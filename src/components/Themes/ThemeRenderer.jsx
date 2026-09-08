@@ -4,7 +4,6 @@ import CreativeTheme from './CreativeTheme'
 import TechTheme from './TechTheme'
 import WarmTheme from './WarmTheme'
 import ExecutiveTheme from './ExecutiveTheme'
-import FloatingViralBadge from '../Common/FloatingViralBadge'
 
 // ponytail: Polymorphic theme map - O(1) lookup table eliminates 60+ lines of switch boilerplate
 const THEME_COMPONENTS = {
@@ -19,7 +18,7 @@ const THEME_COMPONENTS = {
  * Polymorphic Theme Renderer component
  * Dynamically resolves and mounts the corresponding theme layout with smooth 60fps transitions
  */
-export default function ThemeRenderer({ profile, themeOverride, onRecordClick, showViralBadge = true }) {
+export default function ThemeRenderer({ profile, themeOverride, onRecordClick }) {
   if (!profile) return null
 
   const resolvedTheme = (themeOverride || profile.theme || 'minimalist').toLowerCase().trim()
@@ -31,9 +30,6 @@ export default function ThemeRenderer({ profile, themeOverride, onRecordClick, s
         profile={profile} 
         onRecordClick={onRecordClick} 
       />
-      {showViralBadge && (
-        <FloatingViralBadge theme={resolvedTheme} />
-      )}
     </div>
   )
 }

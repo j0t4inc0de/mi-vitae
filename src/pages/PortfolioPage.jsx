@@ -2,7 +2,7 @@ import React, { useEffect } from 'react'
 import { useParams, Link } from '../router/Router'
 import { useProfileStore } from '../stores/profileStore'
 import ThemeRenderer from '../components/Themes/ThemeRenderer'
-import { Sparkles } from 'lucide-react'
+import { Sparkles, Clock, ShieldAlert } from 'lucide-react'
 
 export default function PortfolioPage() {
   const { username } = useParams()
@@ -70,6 +70,48 @@ export default function PortfolioPage() {
             className="px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-medium text-sm hover:bg-indigo-700 transition-colors"
           >
             Crear este Portafolio
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  // Verificación de expiración de plan único
+  const isPlanExpired = Boolean(
+    profile.planStatus === 'expired' ||
+    profile.plan_status === 'expired' ||
+    (profile.planExpiresAt && new Date(profile.planExpiresAt).getTime() < Date.now()) ||
+    (profile.plan_expires_at && new Date(profile.plan_expires_at).getTime() < Date.now())
+  )
+
+  if (isPlanExpired) {
+    return (
+      <div className="min-h-[85vh] flex flex-col items-center justify-center px-4 text-center">
+        <div className="w-20 h-20 rounded-3xl bg-amber-500/10 border border-amber-500/30 text-amber-500 flex items-center justify-center mb-5 shadow-lg shadow-amber-500/10">
+          <Clock className="w-10 h-10" />
+        </div>
+        <span className="text-xs font-bold uppercase tracking-wider px-3.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 mb-3">
+          Portafolio Temporalmente Pausado
+        </span>
+        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mb-3">
+          El enlace @{username} está inactivo
+        </h1>
+        <p className="text-slate-600 dark:text-slate-400 max-w-md mb-8 text-sm sm:text-base leading-relaxed">
+          El periodo de suscripción de este portafolio digital ha concluido. Si eres el propietario de este CV, reactiva tu plan para mantener tu enlace visible para clientes y reclutadores.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center w-full max-w-sm">
+          <Link
+            to="/login"
+            className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-extrabold text-sm shadow-xl shadow-indigo-500/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] cursor-pointer"
+          >
+            <ShieldAlert className="w-4 h-4" />
+            <span>Reactivar mi Portafolio</span>
+          </Link>
+          <Link
+            to="/"
+            className="w-full py-3.5 px-6 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-sm transition-colors flex items-center justify-center"
+          >
+            Ir al Inicio
           </Link>
         </div>
       </div>

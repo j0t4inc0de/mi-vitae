@@ -65,7 +65,11 @@ export default function FloatingContactButton({ profile, onOpenQr }) {
   }
 
   return (
-    <aside aria-label="Contacto rápido" className="fixed bottom-4 right-3 sm:bottom-6 sm:right-6 z-40 flex flex-col items-end gap-2 sm:gap-2.5 group">
+    <aside 
+      aria-label="Contacto rápido" 
+      className="fixed bottom-4 right-3 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end gap-2 sm:gap-2.5 group"
+      style={{ position: 'fixed', zIndex: 9999 }}
+    >
       
       {/* Optional QR Code shortcut button on hover */}
       {onOpenQr && (

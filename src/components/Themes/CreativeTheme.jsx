@@ -32,7 +32,7 @@ export default function CreativeTheme({ profile, onRecordClick }) {
   }
 
   return (
-    <article className="min-h-screen bg-[#0F0E17] text-[#FFFFFE] font-sans antialiased selection:bg-pink-500 selection:text-white relative overflow-hidden pb-24">
+    <article className="min-h-screen bg-[#0F0E17] text-[#FFFFFE] font-sans antialiased selection:bg-pink-500 selection:text-white relative overflow-x-clip pb-24">
       
       {/* Background Animated Gradient Orbs */}
       <div 

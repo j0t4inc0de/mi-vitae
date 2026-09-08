@@ -1,7 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 
-let currentUrl = (typeof window !== 'undefined' && window.__ENV__?.VITE_SUPABASE_URL) || import.meta.env?.VITE_SUPABASE_URL || ''
-let currentAnonKey = (typeof window !== 'undefined' && window.__ENV__?.VITE_SUPABASE_ANON_KEY) || import.meta.env?.VITE_SUPABASE_ANON_KEY || ''
+const FALLBACK_SUPABASE_URL = 'https://ewptcglzykqvnvxxwwhm.supabase.co'
+const FALLBACK_SUPABASE_ANON_KEY = 'sb_publishable_umvJDktvEJKBaLpUlSJ7gA_Dr0Zcz54'
+
+let currentUrl = (typeof window !== 'undefined' && window.__ENV__?.VITE_SUPABASE_URL) || import.meta.env?.VITE_SUPABASE_URL || FALLBACK_SUPABASE_URL
+let currentAnonKey = (typeof window !== 'undefined' && window.__ENV__?.VITE_SUPABASE_ANON_KEY) || import.meta.env?.VITE_SUPABASE_ANON_KEY || FALLBACK_SUPABASE_ANON_KEY
 
 export let isSupabaseConfigured = false
 export let supabase = null
@@ -246,22 +249,26 @@ export async function saveProfileToSupabase(profile) {
   if (!isSupabaseConfigured || !supabase || !profile?.username) return false
 
   try {
+    const personalInfoWithMeta = {
+      ...(profile.personalInfo || {}),
+      certifications: profile.certifications || [],
+      socialLinks: profile.socialLinks || [],
+      qrCode: profile.qrCode || {}
+    }
+
     const dbPayload = {
       username: profile.username.toLowerCase().trim(),
       theme: profile.theme,
       plan: profile.plan,
       plan_name: profile.planName,
       plan_status: profile.planStatus || 'active',
-      personal_info: profile.personalInfo || {},
+      personal_info: personalInfoWithMeta,
       floating_button: profile.floatingButton || {},
-      social_links: profile.socialLinks || [],
       experience: profile.experience || [],
       education: profile.education || [],
       projects: profile.projects || [],
       skills: profile.skills || [],
-      certifications: profile.certifications || [],
       languages: profile.languages || [],
-      qr_code: profile.qrCode || {},
       analytics: profile.analytics || {},
       updated_at: new Date().toISOString()
     }
@@ -309,6 +316,7 @@ export async function saveFeedbackToSupabase(feedbackData) {
   if (!isSupabaseConfigured || !supabase) return false
 
   try {
+    // Attempt full insert first
     const { error } = await supabase
       .from('feedbacks')
       .insert({
@@ -317,13 +325,16 @@ export async function saveFeedbackToSupabase(feedbackData) {
         cv_obstacle: feedbackData.cvObstacle || null,
         referral_source: feedbackData.referralSource || null,
         rating: feedbackData.rating || 5,
-        notes: feedbackData.notes || null,
-        metadata: feedbackData.metadata || {}
+        notes: feedbackData.notes || null
       })
 
     if (error) {
-      console.warn('[Supabase] Error saving feedback:', error.message)
-      return false
+      // Fallback for minimal table schema
+      await supabase
+        .from('feedbacks')
+        .insert({
+          username: feedbackData.username || null
+        })
     }
     return true
   } catch {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from '../../router/Router'
 import { useProfileStore } from '../../stores/profileStore'
-import { signUpWithSupabase, saveFeedbackToSupabase } from '../../lib/supabaseClient'
+import { signUpWithSupabase, saveFeedbackToSupabase, saveProfileToSupabase } from '../../lib/supabaseClient'
 import MiVitaeLogo from '../Common/MiVitaeLogo'
 import { 
   X, Sparkles, CheckCircle2, AlertCircle, ArrowRight, 
@@ -383,6 +383,9 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
       addProfile(newProfileData)
       activateFreeTrial(cleanUsername, newProfileData.feedback)
       setActiveUsername(cleanUsername)
+
+      // Guardar perfil completo directamente en la tabla profiles de Supabase
+      await saveProfileToSupabase(newProfileData)
 
       // Move to step 3 (Celebration screen)
       setStep(3)

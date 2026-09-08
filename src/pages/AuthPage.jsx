@@ -5,6 +5,7 @@ import { MiVitaeLogo } from '../components/Navbar'
 import { 
   signUpWithSupabase, 
   signInWithSupabase, 
+  saveProfileToSupabase,
   isSupabaseConfigured 
 } from '../lib/supabaseClient'
 import { 
@@ -97,6 +98,10 @@ export default function AuthPage() {
 
         addProfile(newProfile)
         setActiveUsername(cleanUsername)
+
+        // Sincronizar de inmediato con la tabla profiles en Supabase
+        await saveProfileToSupabase(newProfile)
+
         setSuccessMessage('¡Cuenta creada exitosamente! Redirigiendo a tu Editor Studio...')
         
         setTimeout(() => {
