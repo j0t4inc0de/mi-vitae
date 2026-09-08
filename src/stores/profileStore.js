@@ -5,10 +5,12 @@ import {
   isSupabaseConfigured,
   saveProfileToSupabase,
   fetchProfileFromSupabase,
+  checkUsernameAvailableInSupabase,
   saveFeedbackToSupabase,
   saveTransactionToSupabase,
   incrementAnalyticsInSupabase
 } from '../lib/supabaseClient'
+import { sendWelcomeEmail } from '../lib/emailService'
 
 export const useProfileStore = create(
   persist(
@@ -83,6 +85,8 @@ export const useProfileStore = create(
         return null
       },
 
+      remoteTakenUsernames: [],
+
       isUsernameAvailable: (username) => {
         if (!username || username.trim() === '') return false
         const normalized = username.toLowerCase().trim()
@@ -92,7 +96,39 @@ export const useProfileStore = create(
         if (reserved.includes(normalized)) return false
 
         const profiles = get().profiles
-        return !Boolean(profiles[normalized])
+        if (profiles[normalized]) return false
+
+        const remoteTaken = get().remoteTakenUsernames || []
+        if (remoteTaken.includes(normalized)) return false
+
+        return true
+      },
+
+      checkUsernameAvailability: async (username) => {
+        if (!username || username.trim() === '') return false
+        const normalized = username.toLowerCase().trim()
+        
+        // Reserved system routes
+        const reserved = ['dashboard', 'admin', 'login', 'register', 'api', 'app', 'settings', 'help', 'pricing']
+        if (reserved.includes(normalized)) return false
+
+        const profiles = get().profiles
+        if (profiles[normalized]) return false
+
+        if (isSupabaseConfigured) {
+          try {
+            const available = await checkUsernameAvailableInSupabase(normalized)
+            if (!available) {
+              set((state) => ({
+                remoteTakenUsernames: [...new Set([...(state.remoteTakenUsernames || []), normalized])]
+              }))
+              return false
+            }
+          } catch {
+            // graceful fallback
+          }
+        }
+        return true
       },
 
       getActiveProfile: () => {
@@ -304,6 +340,20 @@ export const useProfileStore = create(
           if (updated) saveProfileToSupabase(updated)
           saveFeedbackToSupabase({ username: normalized, ...feedbackData })
         }
+
+        // Send Welcome & Free trial activation transactional email
+        const targetEmail = profile.personalInfo?.email || feedbackData?.email
+        if (targetEmail) {
+          sendWelcomeEmail({
+            to: targetEmail,
+            username: normalized,
+            name: profile.personalInfo?.name || normalized,
+            expiresAt: expiresAt.toISOString()
+          }).catch((err) => {
+            console.warn('[profileStore] Notice: Welcome email delivery deferred:', err)
+          })
+        }
+
         return true
       },
 
@@ -356,10 +406,23 @@ export const useProfileStore = create(
         return transaction
       },
 
-      // Reset to original mock profiles for testing
+      // Reset mock profiles to defaults while preserving real custom user profiles
       resetToDefaults: () => {
+        const currentProfiles = get().profiles
+        const preservedUserProfiles = {}
+        const mockKeys = ['carlos_dev', 'antonia_ux', 'valeria_psico', 'rodrigo_ops', 'abogado_consultor']
+
+        Object.keys(currentProfiles).forEach((key) => {
+          if (!mockKeys.includes(key)) {
+            preservedUserProfiles[key] = currentProfiles[key]
+          }
+        })
+
         set({
-          profiles: INITIAL_MOCK_PROFILES,
+          profiles: {
+            ...INITIAL_MOCK_PROFILES,
+            ...preservedUserProfiles
+          },
           activeUsername: 'carlos_dev'
         })
       }

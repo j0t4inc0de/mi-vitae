@@ -242,6 +242,20 @@ export async function fetchProfileFromSupabase(username) {
 }
 
 /**
+ * Get the currently authenticated user from Supabase Auth
+ */
+export async function getCurrentUser() {
+  await initSupabase()
+  if (!isSupabaseConfigured || !supabase) return null
+  try {
+    const { data } = await supabase.auth.getUser()
+    return data?.user || null
+  } catch {
+    return null
+  }
+}
+
+/**
  * Save / Update a profile in Supabase
  */
 export async function saveProfileToSupabase(profile) {
@@ -249,19 +263,34 @@ export async function saveProfileToSupabase(profile) {
   if (!isSupabaseConfigured || !supabase || !profile?.username) return false
 
   try {
+    // Check if there is an active authenticated user to link user id
+    let authUserId = profile.id || null
+    try {
+      const { data: authData } = await supabase.auth.getUser()
+      if (authData?.user?.id) {
+        authUserId = authData.user.id
+      }
+    } catch {
+      // Unauthenticated / public environment
+    }
+
     const personalInfoWithMeta = {
       ...(profile.personalInfo || {}),
       certifications: profile.certifications || [],
       socialLinks: profile.socialLinks || [],
-      qrCode: profile.qrCode || {}
+      qrCode: profile.qrCode || {},
+      feedbackSurveyCompleted: Boolean(profile.feedbackSurveyCompleted ?? profile.feedback_survey_completed ?? false)
     }
 
     const dbPayload = {
+      ...(authUserId ? { id: authUserId } : {}),
       username: profile.username.toLowerCase().trim(),
-      theme: profile.theme,
-      plan: profile.plan,
-      plan_name: profile.planName,
+      theme: profile.theme || 'tech',
+      plan: profile.plan || 'free_trial',
+      plan_name: profile.planName || '1er Mes Gratis ($0 CLP)',
       plan_status: profile.planStatus || 'active',
+      trial_activated_at: profile.trialActivatedAt || profile.trial_activated_at || new Date().toISOString(),
+      plan_expires_at: profile.planExpiresAt || profile.plan_expires_at || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       personal_info: personalInfoWithMeta,
       floating_button: profile.floatingButton || {},
       experience: profile.experience || [],
@@ -269,17 +298,26 @@ export async function saveProfileToSupabase(profile) {
       projects: profile.projects || [],
       skills: profile.skills || [],
       languages: profile.languages || [],
-      analytics: profile.analytics || {},
+      analytics: profile.analytics || { views: 0, contactClicks: 0, cvDownloads: 0 },
       updated_at: new Date().toISOString()
     }
 
-    const { error } = await supabase
+    // Attempt upsert first
+    const { error: upsertError } = await supabase
       .from('profiles')
       .upsert(dbPayload, { onConflict: 'username' })
 
-    if (error) {
-      console.warn('[Supabase] Error saving profile:', error.message)
-      return false
+    if (upsertError) {
+      // If upsert hit RLS constraint on insert, attempt direct update on existing row
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update(dbPayload)
+        .eq('username', profile.username.toLowerCase().trim())
+
+      if (updateError) {
+        console.warn('[Supabase] Error saving profile:', updateError.message)
+        return false
+      }
     }
     return true
   } catch (err) {
@@ -316,16 +354,26 @@ export async function saveFeedbackToSupabase(feedbackData) {
   if (!isSupabaseConfigured || !supabase) return false
 
   try {
+    let authUserId = null
+    try {
+      const { data: authData } = await supabase.auth.getUser()
+      authUserId = authData?.user?.id || null
+    } catch {
+      // Ignored
+    }
+
     // Attempt full insert first
     const { error } = await supabase
       .from('feedbacks')
       .insert({
+        user_id: authUserId,
         username: feedbackData.username || null,
         professional_area: feedbackData.professionalArea || null,
         cv_obstacle: feedbackData.cvObstacle || null,
         referral_source: feedbackData.referralSource || null,
         rating: feedbackData.rating || 5,
-        notes: feedbackData.notes || null
+        notes: feedbackData.notes || null,
+        metadata: feedbackData
       })
 
     if (error) {
@@ -350,12 +398,21 @@ export async function saveTransactionToSupabase(transactionData) {
   if (!isSupabaseConfigured || !supabase) return false
 
   try {
+    let authUserId = transactionData.userId || null
+    try {
+      const { data: authData } = await supabase.auth.getUser()
+      if (authData?.user?.id) authUserId = authData.user.id
+    } catch {
+      // Ignored
+    }
+
     const { error } = await supabase
       .from('transactions')
       .insert({
-        order_number: transactionData.orderNumber || transactionData.transactionId,
-        flow_order_number: transactionData.flowOrder || null,
-        username: transactionData.username || null,
+        order_number: transactionData.orderNumber || transactionData.transactionId || `ORD-${Date.now()}`,
+        flow_order_number: transactionData.flowOrder || transactionData.flowOrderNumber || null,
+        user_id: authUserId,
+        username: transactionData.username ? transactionData.username.toLowerCase().trim() : null,
         amount: transactionData.amount || 3490,
         currency: transactionData.currency || 'CLP',
         status: transactionData.status || 'APROBADO',
@@ -376,21 +433,54 @@ export async function saveTransactionToSupabase(transactionData) {
 }
 
 /**
- * Atomic counter increment for analytics in Supabase
+ * Atomic counter increment for analytics in Supabase with direct table fallback
  */
 export async function incrementAnalyticsInSupabase(username, metricName) {
   await initSupabase()
   if (!isSupabaseConfigured || !supabase || !username) return null
 
+  const cleanUsername = username.toLowerCase().trim()
+
+  // 1. Primary path: RPC function increment_analytics
   try {
     const { data, error } = await supabase.rpc('increment_analytics', {
-      target_username: username.toLowerCase().trim(),
+      target_username: cleanUsername,
       metric_name: metricName
     })
 
-    if (error) return null
-    return data
+    if (!error && data) return data
   } catch {
-    return null
+    // Fallback to direct update if RPC is unavailable
   }
+
+  // 2. Direct fallback update on public.profiles table
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('analytics')
+      .eq('username', cleanUsername)
+      .single()
+
+    const currentAnalytics = profile?.analytics || { views: 0, contactClicks: 0, cvDownloads: 0 }
+    const updatedAnalytics = {
+      ...currentAnalytics,
+      [metricName]: (currentAnalytics[metricName] || 0) + 1
+    }
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({
+        analytics: updatedAnalytics,
+        updated_at: new Date().toISOString()
+      })
+      .eq('username', cleanUsername)
+      .select('analytics')
+      .single()
+
+    if (!error) return data?.analytics
+  } catch (err) {
+    console.warn('[Supabase] incrementAnalytics direct fallback error:', err)
+  }
+
+  return null
 }

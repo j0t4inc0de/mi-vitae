@@ -132,7 +132,7 @@ export async function onRequestPost(context) {
           currency: paymentData.currency || 'CLP',
           status: statusText,
           payment_method: paymentData.paymentData?.media || 'Flow.cl',
-          authorizationCode: paymentData.paymentData?.transferDate || String(paymentData.flowOrder),
+          authorization_code: paymentData.paymentData?.transferDate || String(paymentData.flowOrder),
           payer_email: payerEmail,
           metadata: paymentData
         })

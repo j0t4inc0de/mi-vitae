@@ -15,6 +15,7 @@ export default function LandingPage() {
   const navigate = useNavigate()
   const profiles = useProfileStore((state) => state.profiles)
   const isUsernameAvailable = useProfileStore((state) => state.isUsernameAvailable)
+  const checkUsernameAvailability = useProfileStore((state) => state.checkUsernameAvailability)
   const addProfile = useProfileStore((state) => state.addProfile)
   const setActiveUsername = useProfileStore((state) => state.setActiveUsername)
   const openRegisterModal = useProfileStore((state) => state.openRegisterModal)
@@ -27,29 +28,54 @@ export default function LandingPage() {
   const [inputUsername, setInputUsername] = useState('')
   const [debouncedUsername, setDebouncedUsername] = useState('')
   const [isChecking, setIsChecking] = useState(false)
+  const [isAvailable, setIsAvailable] = useState(null)
 
   // FAQ open index state
   const [openFaqIndex, setOpenFaqIndex] = useState(0)
 
-  // Debounce handling for username validator
+  // Debounce handling for username validator with Supabase Cloud check
   useEffect(() => {
     if (!inputUsername) {
       setDebouncedUsername('')
+      setIsAvailable(null)
+      setIsChecking(false)
+      return
+    }
+
+    const clean = inputUsername.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '')
+    setDebouncedUsername(clean)
+
+    if (clean.length < 3) {
+      setIsAvailable(null)
       setIsChecking(false)
       return
     }
 
     setIsChecking(true)
-    const handler = setTimeout(() => {
-      setDebouncedUsername(inputUsername.trim().toLowerCase().replace(/[^a-z0-9_-]/g, ''))
-      setIsChecking(false)
+    const handler = setTimeout(async () => {
+      // 1. Check local store memory / reserved routes
+      const localOk = isUsernameAvailable(clean)
+      if (!localOk) {
+        setIsAvailable(false)
+        setIsChecking(false)
+        return
+      }
+
+      // 2. Query Supabase Cloud public.profiles to prevent production collisions
+      try {
+        const available = await checkUsernameAvailability(clean)
+        setIsAvailable(available)
+      } catch {
+        setIsAvailable(localOk)
+      } finally {
+        setIsChecking(false)
+      }
     }, 300)
 
     return () => clearTimeout(handler)
-  }, [inputUsername])
+  }, [inputUsername, isUsernameAvailable, checkUsernameAvailability])
 
   const cleanInput = debouncedUsername
-  const isAvailable = cleanInput.length >= 3 ? isUsernameAvailable(cleanInput) : null
 
   // Username claim submission handler
   const handleClaimUsername = (e) => {

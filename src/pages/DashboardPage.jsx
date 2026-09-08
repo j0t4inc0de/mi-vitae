@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Link } from '../router/Router'
 import { useProfileStore } from '../stores/profileStore'
-import { saveProfileToSupabase } from '../lib/supabaseClient'
+import { saveProfileToSupabase, getCurrentUser } from '../lib/supabaseClient'
 import QrModal from '../components/Common/QrModal'
 import { compressImage, getApproximateDataUrlBytes, formatBytes } from '../utils/imageCompressor'
 import {
@@ -113,6 +113,7 @@ export default function DashboardPage() {
 
   // Live editable state
   const [profileData, setProfileData] = useState(() => getInitialProfileState(storeProfile))
+  const [authUser, setAuthUser] = useState(null)
   const [activeTab, setActiveTab] = useState('personal')
   const [savedAlert, setSavedAlert] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -130,6 +131,21 @@ export default function DashboardPage() {
     setCopiedLink(true)
     setTimeout(() => setCopiedLink(false), 2500)
   }
+
+  // Detect authenticated Supabase user and sync
+  useEffect(() => {
+    let isMounted = true
+    getCurrentUser().then((user) => {
+      if (user && isMounted) {
+        setAuthUser(user)
+        const authUsername = user.user_metadata?.username
+        if (authUsername && profiles[authUsername] && !sessionStorage.getItem('manual_archetype_selected')) {
+          setActiveUsername(authUsername)
+        }
+      }
+    }).catch(() => {})
+    return () => { isMounted = false }
+  }, [])
 
   // Sync local state and hydrate from Supabase Cloud if available
   useEffect(() => {
@@ -160,6 +176,7 @@ export default function DashboardPage() {
 
   // Switch profile in top bar
   const handleProfileSwitch = (newUname) => {
+    sessionStorage.setItem('manual_archetype_selected', 'true')
     setActiveUsername(newUname)
   }
 
@@ -185,9 +202,16 @@ export default function DashboardPage() {
     setTimeout(() => setSavedAlert(false), 3500)
   }
 
-  // Reset to initial mock profiles
+  // Reset to initial mock profiles with production safety checks
+  const DEMO_ARCHETYPES = ['carlos_dev', 'antonia_ux', 'valeria_psico', 'rodrigo_ops', 'abogado_consultor']
+  const isCustomProductionProfile = !DEMO_ARCHETYPES.includes(profileData.username)
+
   const handleResetDefaults = () => {
-    if (window.confirm('¿Deseas restablecer todos los perfiles a sus valores por defecto? Se perderán las modificaciones no guardadas.')) {
+    const confirmMessage = isCustomProductionProfile
+      ? `⚠️ ADVERTENCIA DE PRODUCCIÓN: Estás en tu perfil real (@${profileData.username}).\n\nRestablecer valores restaurará las 5 plantillas de demostración originales y NO eliminará tu perfil real en la base de datos de Supabase Cloud.\n\n¿Deseas continuar?`
+      : '¿Deseas restablecer los arquetipos de demostración a sus valores por defecto? Se perderán las modificaciones no guardadas en estas plantillas.'
+
+    if (window.confirm(confirmMessage)) {
       resetToDefaults()
       const defaultProf = profiles['carlos_dev'] || Object.values(profiles)[0]
       setProfileData(getInitialProfileState(defaultProf))
@@ -206,7 +230,7 @@ export default function DashboardPage() {
     }))
   }
 
-  // Avatar Compressor Handlers
+  // Avatar Compressor Handlers with immediate Supabase Cloud synchronization
   const handleAvatarFileUpload = async (file) => {
     if (!file || !file.type.startsWith('image/')) {
       alert('Por favor selecciona un archivo de imagen válido (JPG, PNG, WebP).')
@@ -221,7 +245,21 @@ export default function DashboardPage() {
         quality: 0.85,
         maxSizeBytes: 180 * 1024
       })
+
       updatePersonalInfo('avatar', compressedBase64)
+
+      // Synchronize immediately to store and Supabase to guarantee persistence
+      const updatedProfile = {
+        ...profileData,
+        personalInfo: {
+          ...profileData.personalInfo,
+          avatar: compressedBase64
+        }
+      }
+      updateProfile(profileData.username, updatedProfile)
+      saveProfileToSupabase(updatedProfile).catch((err) => {
+        console.warn('[Dashboard] Avatar auto-sync to Supabase notice:', err)
+      })
     } catch (err) {
       console.error('Error al comprimir avatar:', err)
       alert('Hubo un problema al procesar la imagen.')
@@ -514,18 +552,36 @@ export default function DashboardPage() {
             {/* Profile Selector */}
             <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 rounded-xl px-2.5 py-1">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider hidden lg:inline">
-                Arquetipo:
+                {authUser ? 'Cuenta:' : 'Arquetipo:'}
               </span>
               <select
                 value={activeUsername}
                 onChange={(e) => handleProfileSwitch(e.target.value)}
                 className="bg-transparent text-xs font-bold text-slate-200 focus:outline-none cursor-pointer py-1"
               >
-                {Object.keys(profiles).map((uname) => (
-                  <option key={uname} value={uname} className="bg-slate-900 text-slate-200">
-                    @{uname} ({profiles[uname]?.personalInfo?.name?.split(' ')[0]})
-                  </option>
-                ))}
+                {/* User's authenticated / custom accounts */}
+                {Object.keys(profiles).some((u) => !DEMO_ARCHETYPES.includes(u)) && (
+                  <optgroup label="👤 Mis Perfiles (Producción)" className="bg-slate-900 text-indigo-400 font-bold">
+                    {Object.keys(profiles)
+                      .filter((uname) => !DEMO_ARCHETYPES.includes(uname))
+                      .map((uname) => (
+                        <option key={uname} value={uname} className="bg-slate-900 text-emerald-300 font-bold">
+                          ⭐ @{uname} ({profiles[uname]?.personalInfo?.name || 'Mi Perfil'})
+                        </option>
+                      ))}
+                  </optgroup>
+                )}
+
+                {/* Demo archetypes */}
+                <optgroup label="🎨 Arquetipos Demo" className="bg-slate-900 text-slate-400 font-semibold">
+                  {Object.keys(profiles)
+                    .filter((uname) => DEMO_ARCHETYPES.includes(uname))
+                    .map((uname) => (
+                      <option key={uname} value={uname} className="bg-slate-900 text-slate-200">
+                        @{uname} ({profiles[uname]?.personalInfo?.name?.split(' ')[0]})
+                      </option>
+                    ))}
+                </optgroup>
               </select>
             </div>
 

@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from '../../router/Router'
 import { useProfileStore } from '../../stores/profileStore'
-import { signUpWithSupabase, saveFeedbackToSupabase, saveProfileToSupabase } from '../../lib/supabaseClient'
+import { 
+  signUpWithSupabase, 
+  saveFeedbackToSupabase, 
+  saveProfileToSupabase,
+  checkUsernameAvailableInSupabase 
+} from '../../lib/supabaseClient'
+import { sendWelcomeEmail } from '../../lib/emailService'
 import MiVitaeLogo from '../Common/MiVitaeLogo'
 import { 
   X, Sparkles, CheckCircle2, AlertCircle, ArrowRight, 
@@ -194,15 +200,34 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
       return
     }
 
-    const timer = setTimeout(() => {
-      const available = isUsernameAvailable(clean)
-      setUsernameStatus({
-        checked: true,
-        available,
-        message: available
-          ? `¡Disponible! Tu link será mi-vitae.wearesamod.com/${clean}`
-          : `El usuario @${clean} ya está en uso. Prueba con otro nombre.`
-      })
+    const timer = setTimeout(async () => {
+      const localAvailable = isUsernameAvailable(clean)
+      if (!localAvailable) {
+        setUsernameStatus({
+          checked: true,
+          available: false,
+          message: `El usuario @${clean} ya está en uso. Prueba con otro nombre.`
+        })
+        return
+      }
+
+      // Check remote Supabase Cloud table
+      try {
+        const remoteAvailable = await checkUsernameAvailableInSupabase(clean)
+        setUsernameStatus({
+          checked: true,
+          available: remoteAvailable,
+          message: remoteAvailable
+            ? `¡Disponible! Tu link será mi-vitae.wearesamod.com/${clean}`
+            : `El usuario @${clean} ya está registrado en la nube. Prueba con otro nombre.`
+        })
+      } catch {
+        setUsernameStatus({
+          checked: true,
+          available: true,
+          message: `¡Disponible! Tu link será mi-vitae.wearesamod.com/${clean}`
+        })
+      }
     }, 180)
 
     return () => clearTimeout(timer)
@@ -386,6 +411,16 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
 
       // Guardar perfil completo directamente en la tabla profiles de Supabase
       await saveProfileToSupabase(newProfileData)
+
+      // Send transactional welcome & free trial activation email via Cloudflare Function
+      sendWelcomeEmail({
+        to: email.trim(),
+        username: cleanUsername,
+        name: name.trim(),
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      }).catch((err) => {
+        console.warn('[RegisterModal] Notice: Email delivery deferred:', err)
+      })
 
       // Move to step 3 (Celebration screen)
       setStep(3)

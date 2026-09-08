@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useProfileStore } from '../../stores/profileStore'
+import { saveTransactionToSupabase } from '../../lib/supabaseClient'
+import { sendPaymentReceiptEmail } from '../../lib/emailService'
 import { 
   X, ShieldCheck, CheckCircle2, AlertCircle, 
   Download, ArrowRight, RefreshCw, Lock, Sparkles,
@@ -96,17 +98,57 @@ export default function FlowCheckoutModal({ isOpen, onClose, username, planName 
     }, 200)
   }
 
-  // Simulation: Successful Payment
-  const handleSimulateSuccess = () => {
+  // Flow.cl Payment Execution & Simulation
+  const handleSimulateSuccess = async () => {
     setPaymentState('processing')
-    setProcessingMessage('Conectando de forma segura con los servidores de Flow.cl y Transbank...')
+    setProcessingMessage('Iniciando orden segura en pasarela Flow.cl...')
 
+    const selectedMethod = PAYMENT_METHODS.find((m) => m.id === selectedMethodId)
+
+    try {
+      // 1. Contact Cloudflare Pages Function /api/create-flow-order
+      const response = await fetch('/api/create-flow-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount,
+          email: payerEmail,
+          username: targetUsername,
+          subject: planName
+        })
+      })
+
+      const result = await response.json().catch(() => ({}))
+
+      // 2. If live production credentials are present, redirect to Flow.cl payment screen
+      if (response.ok && result.redirectUrl && result.isSimulation === false) {
+        // Record initiated transaction in Supabase
+        await saveTransactionToSupabase({
+          transactionId: result.commerceOrder,
+          flowOrder: result.flowOrder,
+          orderNumber: result.commerceOrder,
+          username: targetUsername,
+          amount,
+          currency: 'CLP',
+          status: 'PENDIENTE',
+          paymentMethod: selectedMethod?.name || 'Flow.cl Webpay',
+          payerEmail
+        })
+
+        // Redirect user to official Flow.cl portal
+        window.location.href = result.redirectUrl
+        return
+      }
+    } catch (err) {
+      console.warn('[FlowModal] /api/create-flow-order notice, proceeding with interactive sandbox mode:', err)
+    }
+
+    // 3. Interactive Sandbox / Local Demo execution
     setTimeout(() => {
       setProcessingMessage('Validando autorización bancaria y generando token de seguridad...')
-    }, 800)
+    }, 600)
 
-    setTimeout(() => {
-      const selectedMethod = PAYMENT_METHODS.find((m) => m.id === selectedMethodId)
+    setTimeout(async () => {
       const randomFlwId = `FLW-${Math.floor(100000 + Math.random() * 900000)}`
       const randomAuthCode = String(Math.floor(100000 + Math.random() * 900000))
       const now = new Date()
@@ -124,7 +166,7 @@ export default function FlowCheckoutModal({ isOpen, onClose, username, planName 
         authorizationCode: randomAuthCode,
         amount,
         currency: 'CLP',
-        paymentMethod: selectedMethod?.name || 'Webpay Plus',
+        paymentMethod: selectedMethod?.name || 'Webpay Plus (Transbank)',
         payerEmail,
         payerRut,
         dateFormatted: formattedDate,
@@ -137,9 +179,26 @@ export default function FlowCheckoutModal({ isOpen, onClose, username, planName 
       // Upgrade in Zustand store
       upgradeToPremium(targetUsername, transactionData)
 
+      // Explicitly save transaction to Supabase transactions table
+      await saveTransactionToSupabase({
+        ...transactionData,
+        username: targetUsername
+      })
+
+      // Send transactional payment receipt email
+      sendPaymentReceiptEmail({
+        to: payerEmail,
+        orderNumber: transactionData.orderNumber,
+        amount: transactionData.amount,
+        paymentMethod: transactionData.paymentMethod,
+        authorizationCode: transactionData.authorizationCode
+      }).catch((err) => {
+        console.warn('[FlowModal] Notice: Receipt email delivery deferred:', err)
+      })
+
       setTransactionVoucher(transactionData)
       setPaymentState('approved')
-    }, 1700)
+    }, 1400)
   }
 
   // Simulation: Rejected Payment

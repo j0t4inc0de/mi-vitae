@@ -6,8 +6,10 @@ import {
   signUpWithSupabase, 
   signInWithSupabase, 
   saveProfileToSupabase,
+  checkUsernameAvailableInSupabase,
   isSupabaseConfigured 
 } from '../lib/supabaseClient'
+import { sendWelcomeEmail } from '../lib/emailService'
 import { 
   LogIn, UserPlus, Mail, Lock, User, AtSign, ArrowRight, 
   Sparkles, CheckCircle2, AlertCircle, Eye, EyeOff, Loader2, Database
@@ -64,6 +66,12 @@ export default function AuthPage() {
           throw new Error(`El enlace @${cleanUsername} ya está ocupado. Elige otro.`)
         }
 
+        // Consultar Supabase Cloud directamente para evitar colisiones en producción
+        const isRemoteAvailable = await checkUsernameAvailableInSupabase(cleanUsername)
+        if (!isRemoteAvailable) {
+          throw new Error(`El nombre de usuario @${cleanUsername} ya se encuentra registrado en la nube. Por favor selecciona otro.`)
+        }
+
         if (password.length < 6) {
           throw new Error('La contraseña debe tener al menos 6 caracteres.')
         }
@@ -93,6 +101,9 @@ export default function AuthPage() {
           theme: 'tech',
           plan: 'free_trial',
           planName: '1er Mes Gratis ($0 CLP)',
+          planStatus: 'active',
+          trialActivatedAt: new Date().toISOString(),
+          planExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           analytics: { views: 0, contactClicks: 0, cvDownloads: 0 }
         }
 
@@ -101,6 +112,16 @@ export default function AuthPage() {
 
         // Sincronizar de inmediato con la tabla profiles en Supabase
         await saveProfileToSupabase(newProfile)
+
+        // Enviar correo transaccional de bienvenida
+        sendWelcomeEmail({
+          to: email.trim(),
+          username: cleanUsername,
+          name: fullName.trim(),
+          expiresAt: newProfile.planExpiresAt
+        }).catch((err) => {
+          console.warn('[AuthPage] Notice: Welcome email delivery deferred:', err)
+        })
 
         setSuccessMessage('¡Cuenta creada exitosamente! Redirigiendo a tu Editor Studio...')
         
