@@ -67,18 +67,16 @@ export default function AuthPage() {
           throw new Error('La contraseña debe tener al menos 6 caracteres.')
         }
 
-        // Si Supabase está configurado, crear usuario en PostgreSQL y Auth
-        if (isSupabaseConfigured) {
-          const supabaseResult = await signUpWithSupabase({
-            email: email.trim(),
-            password,
-            username: cleanUsername,
-            fullName: fullName.trim()
-          })
+        // Registrar usuario en Supabase Cloud
+        const supabaseResult = await signUpWithSupabase({
+          email: email.trim(),
+          password,
+          username: cleanUsername,
+          fullName: fullName.trim()
+        })
 
-          if (!supabaseResult.success) {
-            throw new Error(supabaseResult.error || 'Error al registrar usuario en Supabase.')
-          }
+        if (!supabaseResult.success && !supabaseResult.isMock) {
+          throw new Error(supabaseResult.error || 'Error al registrar usuario en Supabase.')
         }
 
         // Crear perfil en el store para acceso inmediato al Editor Studio
@@ -99,11 +97,7 @@ export default function AuthPage() {
 
         addProfile(newProfile)
         setActiveUsername(cleanUsername)
-        setSuccessMessage(
-          isSupabaseConfigured 
-            ? '¡Cuenta creada en Supabase Cloud! Redirigiendo a tu Editor Studio...'
-            : '¡Cuenta creada exitosamente! Redirigiendo a tu Editor Studio...'
-        )
+        setSuccessMessage('¡Cuenta creada exitosamente! Redirigiendo a tu Editor Studio...')
         
         setTimeout(() => {
           navigate('/dashboard')
@@ -117,17 +111,17 @@ export default function AuthPage() {
 
         let authenticatedUsername = null
 
-        // Si Supabase está configurado, autenticar contra la base de datos
-        if (isSupabaseConfigured) {
-          const supabaseResult = await signInWithSupabase({
-            email: email.trim(),
-            password
-          })
+        // Autenticar contra Supabase
+        const supabaseResult = await signInWithSupabase({
+          email: email.trim(),
+          password
+        })
 
-          if (!supabaseResult.success) {
-            throw new Error(supabaseResult.error || 'Credenciales inválidas en Supabase.')
-          }
+        if (!supabaseResult.success && !supabaseResult.isMock) {
+          throw new Error(supabaseResult.error || 'Credenciales inválidas.')
+        }
 
+        if (supabaseResult.success) {
           authenticatedUsername = supabaseResult.profile?.username || supabaseResult.user?.user_metadata?.username
         }
 

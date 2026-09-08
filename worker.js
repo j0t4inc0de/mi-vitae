@@ -7,6 +7,7 @@ import { onRequestPost as handleCreateFlowOrder } from './functions/api/create-f
 import { onRequestPost as handleSendEmail } from './functions/api/send-email.js'
 import { onRequestPost as handleUploadAvatar } from './functions/api/upload-avatar.js'
 import { onRequestGet as handleHealth } from './functions/api/health.js'
+import { onRequestGet as handleConfig } from './functions/api/config.js'
 
 export default {
   async fetch(request, env, ctx) {
@@ -14,6 +15,9 @@ export default {
     const pathname = url.pathname
 
     // Route API requests to serverless handlers
+    if (pathname === '/api/config') {
+      return handleConfig({ request, env })
+    }
     if (pathname === '/api/flow-webhook') {
       return handleFlowWebhook({ request, env })
     }

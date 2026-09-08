@@ -1,39 +1,82 @@
 import { createClient } from '@supabase/supabase-js'
 
-const getEnv = (key) => (typeof window !== 'undefined' && window.__ENV__?.[key]) || import.meta.env?.[key] || ''
+let currentUrl = (typeof window !== 'undefined' && window.__ENV__?.VITE_SUPABASE_URL) || import.meta.env?.VITE_SUPABASE_URL || ''
+let currentAnonKey = (typeof window !== 'undefined' && window.__ENV__?.VITE_SUPABASE_ANON_KEY) || import.meta.env?.VITE_SUPABASE_ANON_KEY || ''
 
-const supabaseUrl = getEnv('VITE_SUPABASE_URL')
-const supabaseAnonKey = getEnv('VITE_SUPABASE_ANON_KEY')
+export let isSupabaseConfigured = false
+export let supabase = null
 
-export const isSupabaseConfigured = Boolean(
-  supabaseUrl && 
-  supabaseAnonKey && 
-  !supabaseUrl.includes('xyzcompany') && 
-  supabaseUrl.startsWith('https://')
-)
-
-if (!isSupabaseConfigured) {
-  console.info(
-    'ℹ️ [Mi Vitae] Supabase opera en modo local/mock. ' +
-    'Para activar el backend PostgreSQL en la nube, define VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en Cloudflare Pages o archivo .env'
-  )
-}
-
-// Supabase client instance
-export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey, {
+function applyClient(url, key) {
+  if (url && key && !url.includes('xyzcompany') && url.startsWith('https://')) {
+    currentUrl = url
+    currentAnonKey = key
+    supabase = createClient(url, key, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true
       }
     })
-  : null
+    isSupabaseConfigured = true
+    return true
+  }
+  return false
+}
+
+// Initial sync attempt
+applyClient(currentUrl, currentAnonKey)
+
+let initPromise = null
+
+/**
+ * Ensures Supabase is initialized by querying /api/config if not loaded via build env
+ */
+export async function initSupabase() {
+  if (isSupabaseConfigured && supabase) return true
+
+  if (!initPromise) {
+    initPromise = (async () => {
+      // 1. Check window.__ENV__
+      if (typeof window !== 'undefined' && window.__ENV__?.VITE_SUPABASE_URL && window.__ENV__?.VITE_SUPABASE_ANON_KEY) {
+        if (applyClient(window.__ENV__.VITE_SUPABASE_URL, window.__ENV__.VITE_SUPABASE_ANON_KEY)) {
+          return true
+        }
+      }
+
+      // 2. Fetch /api/config from serverless Edge function
+      if (typeof window !== 'undefined' && window.location?.origin) {
+        try {
+          const res = await fetch(`${window.location.origin}/api/config`)
+          if (res.ok) {
+            const data = await res.json()
+            if (data.supabaseUrl && data.supabaseAnonKey) {
+              if (applyClient(data.supabaseUrl, data.supabaseAnonKey)) {
+                return true
+              }
+            }
+          }
+        } catch {
+          // Graceful fallback
+        }
+      }
+      return isSupabaseConfigured
+    })()
+  }
+
+  return await initPromise
+}
+
+// Kick off auto-initialization in browser immediately
+if (typeof window !== 'undefined') {
+  initSupabase()
+}
 
 /**
  * Sign up a new user with Supabase Auth and initialize user profile
  */
 export async function signUpWithSupabase({ email, password, username, fullName }) {
+  await initSupabase()
+
   if (!isSupabaseConfigured || !supabase) {
     return {
       success: false,
@@ -42,54 +85,55 @@ export async function signUpWithSupabase({ email, password, username, fullName }
     }
   }
 
-  // 1. Sign up user in Supabase Auth
-  const { data: authData, error: authError } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        username: username.toLowerCase().trim(),
-        full_name: fullName.trim()
+  try {
+    // 1. Sign up user in Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: {
+        data: {
+          username: username.toLowerCase().trim(),
+          full_name: fullName.trim()
+        }
       }
+    })
+
+    if (authError) {
+      return { success: false, error: authError.message }
     }
-  })
 
-  if (authError) {
-    return { success: false, error: authError.message }
-  }
+    const userId = authData.user?.id
 
-  const userId = authData.user?.id
-
-  // 2. Insert profile record in 'profiles' table if user was created
-  if (userId) {
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .upsert({
-        id: userId,
-        username: username.toLowerCase().trim(),
-        personal_info: {
-          name: fullName.trim(),
-          email: email.trim(),
-          title: 'Profesional en Mi Vitae',
-          bio: 'Bienvenido a mi portafolio profesional en línea.',
-          availableForWork: true
-        },
-        theme: 'tech',
-        plan: 'free_trial',
-        plan_name: '1er Mes Gratis ($0 CLP)',
-        plan_status: 'active',
-        created_at: new Date().toISOString()
-      }, { onConflict: 'username' })
-
-    if (profileError) {
-      console.warn('Advertencia al insertar perfil en Supabase:', profileError.message)
+    // 2. The trigger `on_auth_user_created` creates the profile automatically in postgres.
+    // We also do an upsert as safety guarantee in case triggers are disabled:
+    if (userId) {
+      await supabase
+        .from('profiles')
+        .upsert({
+          id: userId,
+          username: username.toLowerCase().trim(),
+          personal_info: {
+            name: fullName.trim(),
+            email: email.trim(),
+            title: 'Profesional en Mi Vitae',
+            bio: 'Bienvenido a mi portafolio profesional en línea.',
+            availableForWork: true
+          },
+          theme: 'tech',
+          plan: 'free_trial',
+          plan_name: '1er Mes Gratis ($0 CLP)',
+          plan_status: 'active',
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'username' })
     }
-  }
 
-  return { 
-    success: true, 
-    user: authData.user, 
-    session: authData.session 
+    return { 
+      success: true, 
+      user: authData.user, 
+      session: authData.session 
+    }
+  } catch (err) {
+    return { success: false, error: err.message || 'Error al conectar con Supabase Auth' }
   }
 }
 
@@ -97,6 +141,8 @@ export async function signUpWithSupabase({ email, password, username, fullName }
  * Sign in existing user with Supabase Auth
  */
 export async function signInWithSupabase({ email, password }) {
+  await initSupabase()
+
   if (!isSupabaseConfigured || !supabase) {
     return {
       success: false,
@@ -105,32 +151,36 @@ export async function signInWithSupabase({ email, password }) {
     }
   }
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password
-  })
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password
+    })
 
-  if (error) {
-    return { success: false, error: error.message }
-  }
+    if (error) {
+      return { success: false, error: error.message }
+    }
 
-  // Fetch user profile from database
-  let profile = null
-  if (data.user?.id) {
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', data.user.id)
-      .single()
+    // Fetch user profile from database
+    let profile = null
+    if (data.user?.id) {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single()
 
-    profile = profileData
-  }
+      profile = profileData
+    }
 
-  return {
-    success: true,
-    user: data.user,
-    session: data.session,
-    profile
+    return {
+      success: true,
+      user: data.user,
+      session: data.session,
+      profile
+    }
+  } catch (err) {
+    return { success: false, error: err.message || 'Error al iniciar sesión' }
   }
 }
 
@@ -138,6 +188,7 @@ export async function signInWithSupabase({ email, password }) {
  * Sign out from Supabase Auth
  */
 export async function signOutFromSupabase() {
+  await initSupabase()
   if (isSupabaseConfigured && supabase) {
     await supabase.auth.signOut()
   }
@@ -147,6 +198,7 @@ export async function signOutFromSupabase() {
  * Fetch a profile by username from Supabase
  */
 export async function fetchProfileFromSupabase(username) {
+  await initSupabase()
   if (!isSupabaseConfigured || !supabase || !username) return null
 
   try {
@@ -157,13 +209,9 @@ export async function fetchProfileFromSupabase(username) {
       .single()
 
     if (error) {
-      if (error.code !== 'PGRST116') { // PGRST116 = not found
-        console.warn('[Supabase] Error al buscar perfil:', error.message)
-      }
       return null
     }
 
-    // Normalize keys from DB snake_case to frontend camelCase if needed
     return {
       username: data.username,
       theme: data.theme || 'tech',
@@ -185,8 +233,7 @@ export async function fetchProfileFromSupabase(username) {
       planExpiresAt: data.plan_expires_at,
       createdAt: data.created_at
     }
-  } catch (err) {
-    console.warn('[Supabase] Exception fetching profile:', err)
+  } catch {
     return null
   }
 }
@@ -195,6 +242,7 @@ export async function fetchProfileFromSupabase(username) {
  * Save / Update a profile in Supabase
  */
 export async function saveProfileToSupabase(profile) {
+  await initSupabase()
   if (!isSupabaseConfigured || !supabase || !profile?.username) return false
 
   try {
@@ -237,6 +285,7 @@ export async function saveProfileToSupabase(profile) {
  * Check username availability in Supabase
  */
 export async function checkUsernameAvailableInSupabase(username) {
+  await initSupabase()
   if (!isSupabaseConfigured || !supabase || !username) return true
 
   try {
@@ -256,6 +305,7 @@ export async function checkUsernameAvailableInSupabase(username) {
  * Save user feedback survey
  */
 export async function saveFeedbackToSupabase(feedbackData) {
+  await initSupabase()
   if (!isSupabaseConfigured || !supabase) return false
 
   try {
@@ -276,8 +326,7 @@ export async function saveFeedbackToSupabase(feedbackData) {
       return false
     }
     return true
-  } catch (err) {
-    console.warn('[Supabase] Exception saving feedback:', err)
+  } catch {
     return false
   }
 }
@@ -286,6 +335,7 @@ export async function saveFeedbackToSupabase(feedbackData) {
  * Save payment transaction
  */
 export async function saveTransactionToSupabase(transactionData) {
+  await initSupabase()
   if (!isSupabaseConfigured || !supabase) return false
 
   try {
@@ -309,8 +359,7 @@ export async function saveTransactionToSupabase(transactionData) {
       return false
     }
     return true
-  } catch (err) {
-    console.warn('[Supabase] Exception saving transaction:', err)
+  } catch {
     return false
   }
 }
@@ -319,6 +368,7 @@ export async function saveTransactionToSupabase(transactionData) {
  * Atomic counter increment for analytics in Supabase
  */
 export async function incrementAnalyticsInSupabase(username, metricName) {
+  await initSupabase()
   if (!isSupabaseConfigured || !supabase || !username) return null
 
   try {
@@ -327,10 +377,7 @@ export async function incrementAnalyticsInSupabase(username, metricName) {
       metric_name: metricName
     })
 
-    if (error) {
-      console.warn('[Supabase] Error incrementing analytics RPC:', error.message)
-      return null
-    }
+    if (error) return null
     return data
   } catch {
     return null

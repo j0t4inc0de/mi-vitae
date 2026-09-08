@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from '../../router/Router'
 import { useProfileStore } from '../../stores/profileStore'
+import { signUpWithSupabase, saveFeedbackToSupabase } from '../../lib/supabaseClient'
 import { 
   X, Sparkles, CheckCircle2, AlertCircle, ArrowRight, 
   ArrowLeft, Check, ShieldCheck, HeartHandshake,
   Palette, User, Mail, AtSign, Code2, Scale, Heart,
   BarChart3, Rocket, GraduationCap, Building2, Zap,
-  Smartphone, Users, Search, Ticket
+  Smartphone, Users, Search, Ticket, Lock, Loader2
 } from 'lucide-react'
 
 // Options for Question 1: Professional Areas
@@ -155,9 +156,12 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
   // Step 1 State
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [username, setUsername] = useState(initialUsername || '')
   const [selectedTheme, setSelectedTheme] = useState('tech')
   const [usernameStatus, setUsernameStatus] = useState({ checked: false, available: null, message: '' })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
   // Step 2 Feedback State
   const [selectedAreas, setSelectedAreas] = useState([])
@@ -250,7 +254,7 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
 
   // Validation for Step 1
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-  const isStep1Valid = name.trim().length >= 3 && isEmailValid && usernameStatus.available === true
+  const isStep1Valid = name.trim().length >= 3 && isEmailValid && usernameStatus.available === true && password.length >= 6
 
   // Validation for Step 2
   const isStep2Valid = selectedAreas.length > 0 && selectedObstacle && selectedReferral
@@ -263,98 +267,129 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
   }
 
   // Step 2 Submission & Profile Creation
-  const handleCompleteRegistration = (e) => {
+  const handleCompleteRegistration = async (e) => {
     e.preventDefault()
-    if (!isStep2Valid) return
+    if (!isStep2Valid || isSubmitting) return
+
+    setIsSubmitting(true)
+    setSubmitError('')
 
     const cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '')
     
-    // Create new profile structure in store
-    const newProfileData = {
-      username: cleanUsername,
-      theme: selectedTheme,
-      plan: 'free_trial',
-      planName: '1er Mes Gratis ($0 CLP)',
-      planStatus: 'active',
-      trialActivatedAt: new Date().toISOString(),
-      personalInfo: {
-        name: name.trim(),
-        title: selectedAreas.map(id => PROFESSIONAL_AREAS.find(a => a.id === id)?.label).join(' / ') || 'Profesional en Mi Vitae',
-        bio: 'Bienvenido a mi portafolio online en Mi Vitae. Especialista enfocado en soluciones de alto impacto y resultados profesionales.',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
-        location: 'Chile / Remoto',
+    try {
+      // 1. Sign up user in Supabase Auth & PostgreSQL
+      const supabaseResult = await signUpWithSupabase({
         email: email.trim(),
-        whatsapp: '+56912345678',
-        availableForWork: true
-      },
-      feedback: {
-        professionalAreas: selectedAreas,
-        biggestObstacle: selectedObstacle,
-        referralSource: selectedReferral,
-        submittedAt: new Date().toISOString()
-      },
-      experience: [
-        {
-          id: 'exp-1',
-          role: 'Especialista Principal',
-          company: 'Empresa / Proyecto Destacado',
-          startDate: '2023-01',
-          endDate: null,
-          current: true,
-          description: 'Liderazgo técnico y estratégico de iniciativas de alto rendimiento y valor comercial.',
-          achievements: [
-            'Optimización de resultados operativos en un 35%.',
-            'Gestión y ejecución integral de proyectos clave.'
-          ]
-        }
-      ],
-      education: [
-        {
-          id: 'edu-1',
-          degree: 'Título Profesional / Especialización',
-          institution: 'Universidad / Instituto Profesional',
-          year: '2022',
-          details: 'Graduado con distinción.'
-        }
-      ],
-      skills: [
-        { id: 'sk-1', name: 'Gestión de Proyectos', level: 95, category: 'General' },
-        { id: 'sk-2', name: 'Resolución de Problemas', level: 92, category: 'General' },
-        { id: 'sk-3', name: 'Trabajo en Equipo', level: 90, category: 'General' }
-      ],
-      projects: [
-        {
-          id: 'proj-1',
-          title: 'Proyecto Profesional Destacado',
-          description: 'Implementación y desarrollo de solución innovadora de alto impacto.',
-          image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=600&q=80',
-          tags: ['Estrategia', 'Innovación'],
-          liveUrl: '',
-          repoUrl: ''
-        }
-      ],
-      languages: [
-        { id: 'lang-1', name: 'Español', level: 'Nativo' },
-        { id: 'lang-2', name: 'Inglés', level: 'Intermedio / Avanzado' }
-      ],
-      floatingButton: {
-        type: 'whatsapp',
-        customMessage: `Hola ${name.trim()}, vi tu portafolio en Mi Vitae y me gustaría conversar contigo sobre una oportunidad laboral / proyecto.`,
-        enabled: true
-      },
-      analytics: {
-        views: 1,
-        contactClicks: 0,
-        cvDownloads: 0
+        password,
+        username: cleanUsername,
+        fullName: name.trim()
+      })
+
+      if (!supabaseResult.success && !supabaseResult.isMock) {
+        setSubmitError(supabaseResult.error || 'Error al conectar con Supabase.')
+        setIsSubmitting(false)
+        return
       }
+
+      // 2. Save qualitative feedback in Supabase feedbacks table
+      await saveFeedbackToSupabase({
+        username: cleanUsername,
+        professionalArea: selectedAreas.map(id => PROFESSIONAL_AREAS.find(a => a.id === id)?.label).join(', '),
+        cvObstacle: selectedObstacle,
+        referralSource: selectedReferral
+      })
+
+      // 3. Create new profile structure in store
+      const newProfileData = {
+        username: cleanUsername,
+        theme: selectedTheme,
+        plan: 'free_trial',
+        planName: '1er Mes Gratis ($0 CLP)',
+        planStatus: 'active',
+        trialActivatedAt: new Date().toISOString(),
+        personalInfo: {
+          name: name.trim(),
+          title: selectedAreas.map(id => PROFESSIONAL_AREAS.find(a => a.id === id)?.label).join(' / ') || 'Profesional en Mi Vitae',
+          bio: 'Bienvenido a mi portafolio online en Mi Vitae. Especialista enfocado en soluciones de alto impacto y resultados profesionales.',
+          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
+          location: 'Chile / Remoto',
+          email: email.trim(),
+          whatsapp: '+56912345678',
+          availableForWork: true
+        },
+        feedback: {
+          professionalAreas: selectedAreas,
+          biggestObstacle: selectedObstacle,
+          referralSource: selectedReferral,
+          submittedAt: new Date().toISOString()
+        },
+        experience: [
+          {
+            id: 'exp-1',
+            role: 'Especialista Principal',
+            company: 'Empresa / Proyecto Destacado',
+            startDate: '2023-01',
+            endDate: null,
+            current: true,
+            description: 'Liderazgo técnico y estratégico de iniciativas de alto rendimiento y valor comercial.',
+            achievements: [
+              'Optimización de resultados operativos en un 35%.',
+              'Gestión y ejecución integral de proyectos clave.'
+            ]
+          }
+        ],
+        education: [
+          {
+            id: 'edu-1',
+            degree: 'Título Profesional / Especialización',
+            institution: 'Universidad / Instituto Profesional',
+            year: '2022',
+            details: 'Graduado con distinción.'
+          }
+        ],
+        skills: [
+          { id: 'sk-1', name: 'Gestión de Proyectos', level: 95, category: 'General' },
+          { id: 'sk-2', name: 'Resolución de Problemas', level: 92, category: 'General' },
+          { id: 'sk-3', name: 'Trabajo en Equipo', level: 90, category: 'General' }
+        ],
+        projects: [
+          {
+            id: 'proj-1',
+            title: 'Proyecto Profesional Destacado',
+            description: 'Implementación y desarrollo de solución innovadora de alto impacto.',
+            image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=600&q=80',
+            tags: ['Estrategia', 'Innovación'],
+            liveUrl: '',
+            repoUrl: ''
+          }
+        ],
+        languages: [
+          { id: 'lang-1', name: 'Español', level: 'Nativo' },
+          { id: 'lang-2', name: 'Inglés', level: 'Intermedio / Avanzado' }
+        ],
+        floatingButton: {
+          type: 'whatsapp',
+          customMessage: `Hola ${name.trim()}, vi tu portafolio en Mi Vitae y me gustaría conversar contigo sobre una oportunidad laboral / proyecto.`,
+          enabled: true
+        },
+        analytics: {
+          views: 1,
+          contactClicks: 0,
+          cvDownloads: 0
+        }
+      }
+
+      addProfile(newProfileData)
+      activateFreeTrial(cleanUsername, newProfileData.feedback)
+      setActiveUsername(cleanUsername)
+
+      // Move to step 3 (Celebration screen)
+      setStep(3)
+    } catch (err) {
+      setSubmitError(err.message || 'Error inesperado al registrar cuenta.')
+    } finally {
+      setIsSubmitting(false)
     }
-
-    addProfile(newProfileData)
-    activateFreeTrial(cleanUsername, newProfileData.feedback)
-    setActiveUsername(cleanUsername)
-
-    // Move to step 3 (Celebration screen)
-    setStep(3)
   }
 
   const handleGoToDashboard = () => {
@@ -512,6 +547,28 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                   <p className="text-[11px] text-rose-500 mt-1 flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" />
                     <span>Ingresa un correo electrónico válido</span>
+                  </p>
+                )}
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-palette-primary" />
+                  <span>Crea una Contraseña (mínimo 6 caracteres) *</span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                  className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-palette-primary/40 focus:border-palette-primary text-slate-900 dark:text-white transition-all"
+                />
+                {password && password.length < 6 && (
+                  <p className="text-[11px] text-rose-500 mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    <span>La contraseña debe tener al menos 6 caracteres</span>
                   </p>
                 )}
               </div>
@@ -722,12 +779,21 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                 </div>
               </div>
 
+              {/* Submit Error Banner */}
+              {submitError && (
+                <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 text-xs font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{submitError}</span>
+                </div>
+              )}
+
               {/* Step 2 Buttons */}
               <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5 transition-colors"
+                  disabled={isSubmitting}
+                  className="px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-1.5 transition-colors disabled:opacity-50"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Volver al Paso 1</span>
@@ -735,16 +801,25 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
 
                 <button
                   type="submit"
-                  disabled={!isStep2Valid}
+                  disabled={!isStep2Valid || isSubmitting}
                   className={`w-full sm:w-auto px-8 py-3.5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 transition-all ${
-                    isStep2Valid
+                    isStep2Valid && !isSubmitting
                       ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-600 hover:to-teal-600 text-white shadow-xl shadow-emerald-500/25 cursor-pointer scale-100 hover:scale-[1.02]'
                       : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
                   }`}
                 >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Activar mi 1er Mes Gratis ($0 CLP)</span>
-                  <ArrowRight className="w-4 h-4" />
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Conectando con Supabase...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      <span>Activar mi 1er Mes Gratis ($0 CLP)</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
                 </button>
               </div>
             </form>
