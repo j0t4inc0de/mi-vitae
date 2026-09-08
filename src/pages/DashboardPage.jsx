@@ -3,6 +3,7 @@ import { Link } from '../router/Router'
 import { useProfileStore } from '../stores/profileStore'
 import { saveProfileToSupabase, getCurrentUser } from '../lib/supabaseClient'
 import QrModal from '../components/Common/QrModal'
+import ThemeRenderer from '../components/Themes/ThemeRenderer'
 import { compressImage, getApproximateDataUrlBytes, formatBytes } from '../utils/imageCompressor'
 import {
   LayoutDashboard,
@@ -42,6 +43,9 @@ import {
   MessageCircle,
   QrCode,
   Share2,
+  ChevronDown,
+  ChevronUp,
+  Maximize2
 } from 'lucide-react'
 
 // Available Themes Definition
@@ -115,6 +119,7 @@ export default function DashboardPage() {
   const [profileData, setProfileData] = useState(() => getInitialProfileState(storeProfile))
   const [authUser, setAuthUser] = useState(null)
   const [activeTab, setActiveTab] = useState('personal')
+  const [mobileViewMode, setMobileViewMode] = useState('editor') // 'editor' | 'preview'
   const [savedAlert, setSavedAlert] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isCompressingAvatar, setIsCompressingAvatar] = useState(false)
@@ -123,14 +128,60 @@ export default function DashboardPage() {
   const [isQrOpen, setIsQrOpen] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
 
+  // Collapsible Accordion States for items
+  const [collapsedExp, setCollapsedExp] = useState({})
+  const [collapsedEdu, setCollapsedEdu] = useState({})
+  const [collapsedProj, setCollapsedProj] = useState({})
+
   const avatarInputRef = useRef(null)
+  const tabsContainerRef = useRef(null)
 
   const handleCopyLink = () => {
-    const fullUrl = `https://mivitae.wearesamod.com/${profileData.username}`
+    const fullUrl = `https://mi-vitae.wearesamod.com/${profileData.username}`
     navigator.clipboard.writeText(fullUrl)
     setCopiedLink(true)
     setTimeout(() => setCopiedLink(false), 2500)
   }
+
+  // Calculate plan expiration date and days remaining
+  const calculatePlanStatus = () => {
+    const isPremium = storeProfile?.plan === 'premium' || profileData?.plan === 'premium'
+    const planStatus = profileData?.planStatus || storeProfile?.planStatus || 'active'
+    
+    // Resolve expiration timestamp
+    let expirationDate = null
+    if (profileData?.planExpiresAt || storeProfile?.planExpiresAt) {
+      expirationDate = new Date(profileData?.planExpiresAt || storeProfile?.planExpiresAt)
+    } else if (profileData?.trialActivatedAt || storeProfile?.trialActivatedAt) {
+      const activated = new Date(profileData?.trialActivatedAt || storeProfile?.trialActivatedAt)
+      expirationDate = new Date(activated.getTime() + 30 * 24 * 60 * 60 * 1000)
+    } else {
+      // Default 30 days trial from current local time
+      const now = new Date()
+      expirationDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+    }
+
+    const now = new Date()
+    const diffMs = expirationDate.getTime() - now.getTime()
+    const daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+    const isExpired = daysRemaining <= 0 || planStatus === 'expired'
+
+    const formattedDate = expirationDate.toLocaleDateString('es-CL', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+
+    return {
+      isPremium,
+      isExpired,
+      daysRemaining: Math.max(0, daysRemaining),
+      formattedDate,
+      planStatus
+    }
+  }
+
+  const planInfo = calculatePlanStatus()
 
   // Detect authenticated Supabase user and sync
   useEffect(() => {
@@ -167,7 +218,7 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen flex items-center justify-center p-8 bg-slate-50 dark:bg-slate-950">
         <div className="text-center space-y-4">
-          <RefreshCw className="w-8 h-8 animate-spin mx-auto text-indigo-600" />
+          <RefreshCw className="w-8 h-8 animate-spin mx-auto text-palette-primary" />
           <p className="text-slate-600 dark:text-slate-400 font-medium">Cargando Live Studio...</p>
         </div>
       </div>
@@ -270,8 +321,9 @@ export default function DashboardPage() {
 
   // Experience CRUD
   const handleAddExperience = () => {
+    const newId = `exp-${Date.now()}`
     const newExp = {
-      id: `exp-${Date.now()}`,
+      id: newId,
       role: 'Nuevo Cargo',
       company: 'Empresa / Organización',
       startDate: new Date().toISOString().slice(0, 7),
@@ -284,6 +336,7 @@ export default function DashboardPage() {
       ...prev,
       experience: [newExp, ...(prev.experience || [])]
     }))
+    setCollapsedExp((prev) => ({ ...prev, [newId]: false }))
   }
 
   const handleUpdateExperience = (id, field, value) => {
@@ -346,8 +399,9 @@ export default function DashboardPage() {
 
   // Education CRUD
   const handleAddEducation = () => {
+    const newId = `edu-${Date.now()}`
     const newEdu = {
-      id: `edu-${Date.now()}`,
+      id: newId,
       degree: 'Título o Grado Académico',
       institution: 'Universidad o Instituto',
       year: new Date().getFullYear().toString(),
@@ -357,6 +411,7 @@ export default function DashboardPage() {
       ...prev,
       education: [newEdu, ...(prev.education || [])]
     }))
+    setCollapsedEdu((prev) => ({ ...prev, [newId]: false }))
   }
 
   const handleUpdateEducation = (id, field, value) => {
@@ -407,8 +462,9 @@ export default function DashboardPage() {
 
   // Projects CRUD
   const handleAddProject = () => {
+    const newId = `proj-${Date.now()}`
     const newProj = {
-      id: `proj-${Date.now()}`,
+      id: newId,
       title: 'Nuevo Proyecto / Caso de Éxito',
       description: 'Breve explicación del problema, solución implementada y resultados medibles.',
       image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=80',
@@ -420,6 +476,7 @@ export default function DashboardPage() {
       ...prev,
       projects: [newProj, ...(prev.projects || [])]
     }))
+    setCollapsedProj((prev) => ({ ...prev, [newId]: false }))
   }
 
   const handleUpdateProject = (id, field, value) => {
@@ -516,73 +573,70 @@ export default function DashboardPage() {
   const avatarSize = getApproximateDataUrlBytes(profileData.personalInfo?.avatar)
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col antialiased">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col antialiased pb-24 md:pb-10">
       
       {/* Studio Top Navigation Bar */}
-      <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 sm:px-6 py-3 shadow-md">
-        <div className="max-w-[1720px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-3 sm:px-6 py-3 shadow-md">
+        <div className="max-w-[1720px] mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           
           {/* Studio Brand & Title */}
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-palette-gradient text-white shadow-md shadow-palette-glow">
-              <LayoutDashboard className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base sm:text-lg font-extrabold tracking-tight text-white flex items-center gap-2">
-                  <span>Mi Vitae</span>
-                  <span className="text-palette-primary font-mono font-normal text-xs px-2 py-0.5 rounded-md bg-palette-primary/10 border border-palette-primary/30">
-                    Studio & Control Center
-                  </span>
-                </h1>
-                <span className="flex h-2 w-2 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
+          <div className="flex items-center justify-between sm:justify-start gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-palette-gradient text-white shadow-md shadow-palette-glow shrink-0">
+                <LayoutDashboard className="w-5 h-5" />
               </div>
-              <p className="text-[11px] text-slate-400 hidden sm:block">
-                Editor polimórfico en tiempo real con compresión nativa de imágenes
-              </p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-base sm:text-lg font-extrabold tracking-tight text-white flex items-center gap-1.5">
+                    <span>Mi Vitae</span>
+                    <span className="text-palette-primary font-mono font-normal text-[11px] px-2 py-0.5 rounded-md bg-palette-primary/10 border border-palette-primary/30">
+                      Studio
+                    </span>
+                  </h1>
+                  <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 hidden sm:block">
+                  Editor polimórfico en tiempo real con compresión nativa de imágenes
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Actions for Mobile Header */}
+            <div className="flex items-center gap-1.5 sm:hidden">
+              <Link
+                to={`/${profileData.username}`}
+                target="_blank"
+                className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 active:scale-95"
+                title="Ver en vivo"
+              >
+                <Eye className="w-4 h-4 text-palette-primary" />
+              </Link>
+              <button
+                type="button"
+                onClick={() => setIsQrOpen(true)}
+                className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 active:scale-95 cursor-pointer"
+                title="Código QR"
+              >
+                <QrCode className="w-4 h-4 text-cyan-400" />
+              </button>
             </div>
           </div>
 
-          {/* Archetype Selector & Actions */}
-          <div className="flex flex-wrap items-center gap-2.5">
+          {/* Actions & Profile Indicators */}
+          <div className="flex flex-wrap items-center gap-2">
             
-            {/* Profile Selector */}
-            <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 rounded-xl px-2.5 py-1">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider hidden lg:inline">
-                {authUser ? 'Cuenta:' : 'Arquetipo:'}
+            {/* Active User Badge (Direct profile representation, no select dropdown) */}
+            <div className="flex items-center gap-2 bg-slate-800/90 border border-slate-700/80 rounded-xl px-3 py-1.5 min-h-[44px]">
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span className="text-xs font-bold text-white font-mono">
+                @{profileData.username}
               </span>
-              <select
-                value={activeUsername}
-                onChange={(e) => handleProfileSwitch(e.target.value)}
-                className="bg-transparent text-xs font-bold text-slate-200 focus:outline-none cursor-pointer py-1"
-              >
-                {/* User's authenticated / custom accounts */}
-                {Object.keys(profiles).some((u) => !DEMO_ARCHETYPES.includes(u)) && (
-                  <optgroup label="👤 Mis Perfiles (Producción)" className="bg-slate-900 text-indigo-400 font-bold">
-                    {Object.keys(profiles)
-                      .filter((uname) => !DEMO_ARCHETYPES.includes(uname))
-                      .map((uname) => (
-                        <option key={uname} value={uname} className="bg-slate-900 text-emerald-300 font-bold">
-                          ⭐ @{uname} ({profiles[uname]?.personalInfo?.name || 'Mi Perfil'})
-                        </option>
-                      ))}
-                  </optgroup>
-                )}
-
-                {/* Demo archetypes */}
-                <optgroup label="🎨 Arquetipos Demo" className="bg-slate-900 text-slate-400 font-semibold">
-                  {Object.keys(profiles)
-                    .filter((uname) => DEMO_ARCHETYPES.includes(uname))
-                    .map((uname) => (
-                      <option key={uname} value={uname} className="bg-slate-900 text-slate-200">
-                        @{uname} ({profiles[uname]?.personalInfo?.name?.split(' ')[0]})
-                      </option>
-                    ))}
-                </optgroup>
-              </select>
+              <span className="text-[10px] font-semibold text-slate-400 hidden lg:inline max-w-[120px] truncate">
+                ({profileData.personalInfo?.name || 'Mi Perfil'})
+              </span>
             </div>
 
             {/* Reset to Defaults */}
@@ -590,47 +644,29 @@ export default function DashboardPage() {
               type="button"
               onClick={handleResetDefaults}
               title="Restablecer valores iniciales de prueba"
-              className="p-2 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+              className="p-2.5 min-h-[44px] rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1.5 text-xs font-medium cursor-pointer"
             >
               <RefreshCw className="w-4 h-4" />
               <span className="hidden xl:inline">Restablecer</span>
             </button>
 
-            {/* View Live Link */}
+            {/* View Live Link (Desktop/Tablet) */}
             <Link
               to={`/${profileData.username}`}
               target="_blank"
-              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm"
+              className="hidden sm:flex px-3.5 py-2.5 min-h-[44px] rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-bold items-center gap-1.5 transition-colors shadow-sm"
             >
-              <Eye className="w-3.5 h-3.5 text-indigo-400" />
+              <Eye className="w-3.5 h-3.5 text-palette-primary" />
               <span>Ver en Vivo</span>
               <ExternalLink className="w-3 h-3 text-slate-400 opacity-80" />
             </Link>
 
-            {/* Subscription Status / Flow.cl Trigger */}
-            {storeProfile?.plan === 'premium' ? (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-bold shadow-sm">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Suscripción Activa</span>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => openFlowModal({ username: profileData.username, planName: 'Suscripción Mi Vitae ($3.490 CLP/mes)', amount: 3490 })}
-                className="px-3.5 py-2 rounded-xl bg-[#0F265C] hover:bg-[#163884] text-white border border-cyan-500/40 text-xs font-bold shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
-                title="Suscripción Flow.cl ($3.490 CLP/mes)"
-              >
-                <CreditCard className="w-3.5 h-3.5 text-cyan-300" />
-                <span>Flow.cl ($3.490)</span>
-              </button>
-            )}
-
-            {/* Save Changes Button */}
+            {/* Save Changes Button (Desktop) */}
             <button
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="px-4 py-2 rounded-xl bg-palette-gradient hover:opacity-95 text-white text-xs font-bold shadow-lg shadow-palette-glow transition-all flex items-center gap-2 active:scale-95 cursor-pointer disabled:opacity-75"
+              className="hidden sm:flex px-4 py-2 min-h-[44px] rounded-xl bg-palette-gradient hover:opacity-95 text-white text-xs font-bold shadow-lg shadow-palette-glow transition-all items-center gap-2 active:scale-95 cursor-pointer disabled:opacity-75"
             >
               {isSaving ? (
                 <>
@@ -652,64 +688,74 @@ export default function DashboardPage() {
 
       {/* Notification Toast */}
       {savedAlert && (
-        <div className="fixed top-18 right-6 z-50 p-4 rounded-2xl bg-emerald-950/90 border border-emerald-500/50 text-emerald-200 text-xs font-bold flex items-center gap-3 shadow-2xl backdrop-blur-xl animate-bounce">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-          <div>
-            <div className="text-white font-extrabold text-sm">¡Portafolio Actualizado!</div>
-            <div className="text-emerald-300/90 font-normal text-[11px]">
-              Los cambios se han sincronizado en el almacenamiento local y la vista pública @{profileData.username}.
+        <div className="fixed top-18 right-4 sm:right-6 left-4 sm:left-auto z-50 p-4 rounded-2xl bg-emerald-950/95 border border-emerald-500/60 text-emerald-200 text-xs font-bold flex items-center justify-between gap-3 shadow-2xl backdrop-blur-xl animate-fade-in">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div>
+              <div className="text-white font-extrabold text-sm">¡Portafolio Actualizado!</div>
+              <div className="text-emerald-300/90 font-normal text-[11px]">
+                Cambios sincronizados en Supabase Cloud y vista @{profileData.username}.
+              </div>
             </div>
           </div>
-          <button onClick={() => setSavedAlert(false)} className="text-emerald-400 hover:text-white ml-2">
+          <button 
+            type="button"
+            onClick={() => setSavedAlert(false)} 
+            className="text-emerald-400 hover:text-white p-2 min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
+            aria-label="Cerrar notificación"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
+      {/* Mobile View Mode Switcher (Editor vs Live Preview) */}
+      <div className="lg:hidden px-3 pt-3 pb-1 max-w-2xl mx-auto w-full">
+        <div className="grid grid-cols-2 p-1 bg-slate-900/90 border border-slate-800 rounded-2xl">
+          <button
+            type="button"
+            onClick={() => setMobileViewMode('editor')}
+            className={`py-2.5 min-h-[44px] rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              mobileViewMode === 'editor'
+                ? 'bg-palette-gradient text-white shadow-md shadow-palette-glow'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <LayoutDashboard className="w-4 h-4" />
+            <span>Editor de Contenido</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMobileViewMode('preview')}
+            className={`py-2.5 min-h-[44px] rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              mobileViewMode === 'preview'
+                ? 'bg-palette-gradient text-white shadow-md shadow-palette-glow'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Smartphone className="w-4 h-4" />
+            <span>Vista Previa en Vivo</span>
+          </button>
+        </div>
+      </div>
+
       {/* Main Split-Screen Workspace */}
-      <main className="flex-1 max-w-[1720px] w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <main className="flex-1 max-w-[1720px] w-full mx-auto p-3 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* ========================================================================= */}
         {/* LEFT COLUMN: MODULAR ACCORDION / TABBED EDITOR (Span 7) */}
         {/* ========================================================================= */}
-        <section aria-label="Editor Modular" className="lg:col-span-7 xl:col-span-7 bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl flex flex-col gap-6">
-          
-          {/* Subscription Status Banner */}
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950/60 to-slate-900 border border-indigo-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-inner">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-indigo-600/30 border border-indigo-400/30 text-indigo-300">
-                <Sparkles className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-extrabold text-white">
-                    {storeProfile?.plan === 'premium' ? 'Suscripción Mi Vitae' : '1er Mes Gratis Activo ($0 CLP)'}
-                  </span>
-                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700/50">
-                    {storeProfile?.plan === 'premium' ? 'Suscripción Activa' : 'Bonificado'}
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  {storeProfile?.plan === 'premium'
-                    ? `Transacción Flow: ${storeProfile.lastTransaction?.transactionId || 'FLW-000000'} (${storeProfile.lastTransaction?.paymentMethod || 'Webpay Plus'})`
-                    : '1er Mes bonificado por completar feedback. Suscripción de $3.490 CLP/mes después.'}
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => openFlowModal({ username: profileData.username, planName: 'Suscripción Mi Vitae ($3.490 CLP/mes)', amount: 3490 })}
-              className="px-3.5 py-2 rounded-xl bg-[#0F265C] hover:bg-[#163884] text-white text-xs font-bold border border-cyan-500/40 shadow-md transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
-            >
-              <CreditCard className="w-3.5 h-3.5 text-cyan-300" />
-              <span>{storeProfile?.plan === 'premium' ? 'Gestionar Suscripción' : 'Pagar Suscripción ($3.490)'}</span>
-            </button>
-          </div>
+        <section 
+          aria-label="Editor Modular" 
+          className={`lg:col-span-7 xl:col-span-7 bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col gap-6 ${
+            mobileViewMode === 'preview' ? 'hidden lg:flex' : 'flex'
+          }`}
+        >
 
           {/* Editor Header & Tab Switcher */}
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3">
               <div>
                 <h2 className="text-base font-bold text-white flex items-center gap-2">
                   <span>Editor de Contenido</span>
@@ -722,13 +768,16 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-indigo-950/70 border border-indigo-500/30 text-indigo-300">
+              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-palette-primary/15 border border-palette-primary/30 text-palette-primary capitalize">
                 {profileData.theme}
               </span>
             </div>
 
-            {/* Scrollable Horizontal Tabs */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-slate-800/80 no-scrollbar">
+            {/* Scrollable Horizontal Tabs with Snap and Hidden Scrollbars */}
+            <div 
+              ref={tabsContainerRef}
+              className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-slate-800/80 scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
               {tabs.map((tab) => {
                 const IconComponent = tab.icon
                 const isActive = activeTab === tab.id
@@ -737,17 +786,17 @@ export default function DashboardPage() {
                     key={tab.id}
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                    className={`px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2 shrink-0 cursor-pointer snap-start ${
                       isActive
-                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                        : 'bg-slate-800/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-700/50'
+                        ? 'bg-palette-gradient text-white shadow-md shadow-palette-glow'
+                        : 'bg-slate-800/70 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/60'
                     }`}
                   >
-                    <IconComponent className="w-3.5 h-3.5" />
+                    <IconComponent className="w-4 h-4 shrink-0" />
                     <span>{tab.label}</span>
                     {tab.count !== null && (
-                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                        isActive ? 'bg-indigo-700 text-white' : 'bg-slate-700 text-slate-300'
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                        isActive ? 'bg-white/20 text-white' : 'bg-slate-700 text-slate-300'
                       }`}>
                         {tab.count}
                       </span>
@@ -777,11 +826,11 @@ export default function DashboardPage() {
                     <img
                       src={profileData.personalInfo?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80'}
                       alt="Avatar Preview"
-                      className="w-20 h-20 rounded-2xl object-cover border-2 border-indigo-500/40 shadow-md"
+                      className="w-20 h-20 rounded-2xl object-cover border-2 border-palette-primary/40 shadow-md"
                     />
                     {isCompressingAvatar && (
                       <div className="absolute inset-0 bg-slate-950/80 rounded-2xl flex items-center justify-center">
-                        <RefreshCw className="w-5 h-5 text-indigo-400 animate-spin" />
+                        <RefreshCw className="w-5 h-5 text-palette-primary animate-spin" />
                       </div>
                     )}
                   </div>
@@ -800,8 +849,8 @@ export default function DashboardPage() {
                     onClick={() => avatarInputRef.current?.click()}
                     className={`flex-1 w-full p-4 rounded-xl border-2 border-dashed transition-all text-center cursor-pointer flex flex-col items-center justify-center gap-1 ${
                       avatarDragOver
-                        ? 'border-indigo-500 bg-indigo-950/40'
-                        : 'border-slate-700/80 hover:border-indigo-500/60 bg-slate-900/50 hover:bg-slate-900'
+                        ? 'border-palette-primary bg-palette-primary/10'
+                        : 'border-slate-700/80 hover:border-palette-primary/60 bg-slate-900/50 hover:bg-slate-900'
                     }`}
                   >
                     <input
@@ -815,7 +864,7 @@ export default function DashboardPage() {
                         }
                       }}
                     />
-                    <Upload className="w-5 h-5 text-indigo-400" />
+                    <Upload className="w-5 h-5 text-palette-primary" />
                     <div className="text-xs font-bold text-slate-200">
                       Arrastra tu foto o haz clic para subir
                     </div>
@@ -836,30 +885,40 @@ export default function DashboardPage() {
                     value={profileData.personalInfo?.avatar || ''}
                     onChange={(e) => updatePersonalInfo('avatar', e.target.value)}
                     placeholder="https://..."
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-palette-primary font-mono"
                   />
                 </div>
 
               </div>
 
               {/* Available for Work Toggle */}
-              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
-                <div className="space-y-0.5">
-                  <label htmlFor="availableForWorkToggle" className="text-xs font-bold text-slate-200 flex items-center gap-1.5 cursor-pointer">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span>Badge "Disponible para Trabajar / Consultorías"</span>
-                  </label>
+              <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-950 border border-slate-800">
+                <div className="space-y-0.5 pr-4">
+                  <div className="text-xs font-bold text-slate-200 flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                    <span>Badge "Disponibilidad Inmediata"</span>
+                  </div>
                   <p className="text-[11px] text-slate-400">
-                    Muestra el indicador de disponibilidad activa en la cabecera del portafolio.
+                    Muestra el indicador de disponibilidad inmediata en la cabecera de tu portafolio.
                   </p>
                 </div>
-                <input
-                  id="availableForWorkToggle"
-                  type="checkbox"
-                  checked={profileData.personalInfo?.availableForWork ?? true}
-                  onChange={(e) => updatePersonalInfo('availableForWork', e.target.checked)}
-                  className="w-5 h-5 text-indigo-600 rounded bg-slate-800 border-slate-700 focus:ring-indigo-500 cursor-pointer"
-                />
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={profileData.personalInfo?.availableForWork ?? true}
+                  onClick={() => updatePersonalInfo('availableForWork', !(profileData.personalInfo?.availableForWork ?? true))}
+                  className={`w-12 h-7 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 ease-in-out shrink-0 ${
+                    (profileData.personalInfo?.availableForWork ?? true)
+                      ? 'bg-palette-gradient shadow-sm'
+                      : 'bg-slate-800 border border-slate-700'
+                  }`}
+                >
+                  <div
+                    className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${
+                      (profileData.personalInfo?.availableForWork ?? true) ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
               </div>
 
               {/* Full Name & Title */}
@@ -873,7 +932,7 @@ export default function DashboardPage() {
                     value={profileData.personalInfo?.name || ''}
                     onChange={(e) => updatePersonalInfo('name', e.target.value)}
                     placeholder="Ej. Antonia Morales"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary font-medium"
                   />
                 </div>
 
@@ -886,7 +945,7 @@ export default function DashboardPage() {
                     value={profileData.personalInfo?.title || ''}
                     onChange={(e) => updatePersonalInfo('title', e.target.value)}
                     placeholder="Ej. Lead Product Designer & UX"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary font-medium"
                   />
                 </div>
               </div>
@@ -901,7 +960,7 @@ export default function DashboardPage() {
                   value={profileData.personalInfo?.bio || ''}
                   onChange={(e) => updatePersonalInfo('bio', e.target.value)}
                   placeholder="Redacta un resumen ejecutivo de tu trayectoria, habilidades clave y logros..."
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-normal leading-relaxed"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary font-normal leading-relaxed"
                 />
               </div>
 
@@ -911,7 +970,7 @@ export default function DashboardPage() {
                   Canales de Contacto & Redes
                 </h3>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-400 mb-1">
                       Ubicación
@@ -923,7 +982,7 @@ export default function DashboardPage() {
                         value={profileData.personalInfo?.location || ''}
                         onChange={(e) => updatePersonalInfo('location', e.target.value)}
                         placeholder="Santiago, Chile / Remoto"
-                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary"
                       />
                     </div>
                   </div>
@@ -939,7 +998,7 @@ export default function DashboardPage() {
                         value={profileData.personalInfo?.email || ''}
                         onChange={(e) => updatePersonalInfo('email', e.target.value)}
                         placeholder="tu.correo@ejemplo.com"
-                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary"
                       />
                     </div>
                   </div>
@@ -955,7 +1014,7 @@ export default function DashboardPage() {
                         value={profileData.personalInfo?.phone || ''}
                         onChange={(e) => updatePersonalInfo('phone', e.target.value)}
                         placeholder="+56 9 1234 5678"
-                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary"
                       />
                     </div>
                   </div>
@@ -971,7 +1030,7 @@ export default function DashboardPage() {
                         value={profileData.personalInfo?.whatsapp || ''}
                         onChange={(e) => updatePersonalInfo('whatsapp', e.target.value)}
                         placeholder="+56912345678"
-                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary"
                       />
                     </div>
                   </div>
@@ -987,7 +1046,7 @@ export default function DashboardPage() {
                         value={profileData.personalInfo?.linkedin || ''}
                         onChange={(e) => updatePersonalInfo('linkedin', e.target.value)}
                         placeholder="https://linkedin.com/in/usuario"
-                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary"
                       />
                     </div>
                   </div>
@@ -1003,7 +1062,7 @@ export default function DashboardPage() {
                         value={profileData.personalInfo?.github || ''}
                         onChange={(e) => updatePersonalInfo('github', e.target.value)}
                         placeholder="https://github.com/usuario"
-                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary"
                       />
                     </div>
                   </div>
@@ -1038,7 +1097,7 @@ export default function DashboardPage() {
                       onClick={() => setProfileData((prev) => ({ ...prev, theme: theme.id }))}
                       className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
                         isSelected
-                          ? 'border-indigo-500 bg-indigo-950/30 ring-2 ring-indigo-500/30'
+                          ? 'border-palette-primary bg-palette-primary/10 ring-2 ring-palette-primary/30'
                           : 'border-slate-800 hover:border-slate-700 bg-slate-950/60'
                       }`}
                     >
@@ -1068,7 +1127,7 @@ export default function DashboardPage() {
 
                       <div className="flex items-center gap-2 shrink-0">
                         {isSelected ? (
-                          <span className="px-3 py-1 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center gap-1">
+                          <span className="px-3 py-1 rounded-full bg-palette-primary text-white text-xs font-bold flex items-center gap-1">
                             <Check className="w-3.5 h-3.5" />
                             <span>Activo</span>
                           </span>
@@ -1103,7 +1162,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={handleAddExperience}
-                  className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-palette-primary hover:bg-palette-hover text-white text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>+ Agregar Experiencia</span>
@@ -1119,7 +1178,7 @@ export default function DashboardPage() {
                   {profileData.experience.map((exp, idx) => (
                     <div key={exp.id || idx} className="p-4 sm:p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3.5">
                       <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
-                        <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
+                        <span className="text-xs font-bold text-palette-primary uppercase tracking-wider">
                           Puesto #{idx + 1}
                         </span>
                         <button
@@ -1142,7 +1201,7 @@ export default function DashboardPage() {
                             value={exp.role || ''}
                             onChange={(e) => handleUpdateExperience(exp.id, 'role', e.target.value)}
                             placeholder="Ej. Senior Software Architect"
-                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary"
                           />
                         </div>
 
@@ -1155,7 +1214,7 @@ export default function DashboardPage() {
                             value={exp.company || ''}
                             onChange={(e) => handleUpdateExperience(exp.id, 'company', e.target.value)}
                             placeholder="Ej. Mercado Libre"
-                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary"
                           />
                         </div>
 
@@ -1168,7 +1227,7 @@ export default function DashboardPage() {
                             value={exp.startDate || ''}
                             onChange={(e) => handleUpdateExperience(exp.id, 'startDate', e.target.value)}
                             placeholder="2021-03"
-                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary font-mono"
                           />
                         </div>
 
@@ -1182,7 +1241,7 @@ export default function DashboardPage() {
                             value={exp.current ? 'Presente' : (exp.endDate || '')}
                             onChange={(e) => handleUpdateExperience(exp.id, 'endDate', e.target.value)}
                             placeholder="2023-12"
-                            className={`w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono ${
+                            className={`w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary font-mono ${
                               exp.current ? 'opacity-50 cursor-not-allowed' : ''
                             }`}
                           />
@@ -1198,7 +1257,7 @@ export default function DashboardPage() {
                             handleUpdateExperience(exp.id, 'current', e.target.checked)
                             if (e.target.checked) handleUpdateExperience(exp.id, 'endDate', null)
                           }}
-                          className="w-4 h-4 text-indigo-600 rounded bg-slate-800 border-slate-700 focus:ring-indigo-500 cursor-pointer"
+                          className="w-4 h-4 text-palette-primary rounded bg-slate-800 border-slate-700 focus:ring-palette-primary cursor-pointer"
                         />
                         <label htmlFor={`currentWork-${exp.id}`} className="text-xs font-semibold text-slate-300 cursor-pointer select-none">
                           Trabajo actual / En curso
@@ -1214,7 +1273,7 @@ export default function DashboardPage() {
                           value={exp.description || ''}
                           onChange={(e) => handleUpdateExperience(exp.id, 'description', e.target.value)}
                           placeholder="Liderazgo de equipo, diseño de arquitectura..."
-                          className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary"
                         />
                       </div>
 
@@ -1227,7 +1286,7 @@ export default function DashboardPage() {
                           <button
                             type="button"
                             onClick={() => handleAddAchievement(exp.id)}
-                            className="text-[11px] text-indigo-400 hover:text-indigo-300 font-bold flex items-center gap-1 cursor-pointer"
+                            className="text-[11px] text-palette-primary hover:opacity-80 font-bold flex items-center gap-1 cursor-pointer"
                           >
                             <Plus className="w-3 h-3" />
                             <span>+ Agregar logro</span>
@@ -1241,7 +1300,7 @@ export default function DashboardPage() {
                               value={ach}
                               onChange={(e) => handleUpdateAchievement(exp.id, achIdx, e.target.value)}
                               placeholder="Ej. Reducción de costos de infraestructura en un 40%..."
-                              className="flex-1 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700/70 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              className="flex-1 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700/70 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-palette-primary"
                             />
                             <button
                               type="button"
@@ -1277,7 +1336,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={handleAddEducation}
-                  className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-palette-primary hover:bg-palette-hover text-white text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>+ Agregar Educación</span>
@@ -1293,7 +1352,7 @@ export default function DashboardPage() {
                   {profileData.education.map((edu, idx) => (
                     <div key={edu.id || idx} className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
                       <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                        <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
+                        <span className="text-xs font-bold text-palette-primary uppercase tracking-wider">
                           Título #{idx + 1}
                         </span>
                         <button
@@ -1315,7 +1374,7 @@ export default function DashboardPage() {
                             value={edu.degree || ''}
                             onChange={(e) => handleUpdateEducation(edu.id, 'degree', e.target.value)}
                             placeholder="Ej. Master of Laws (LL.M.)"
-                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary font-medium"
                           />
                         </div>
 
@@ -1328,7 +1387,7 @@ export default function DashboardPage() {
                             value={edu.institution || ''}
                             onChange={(e) => handleUpdateEducation(edu.id, 'institution', e.target.value)}
                             placeholder="Ej. New York University (NYU)"
-                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary"
                           />
                         </div>
                       </div>
@@ -1343,7 +1402,7 @@ export default function DashboardPage() {
                             value={edu.year || ''}
                             onChange={(e) => handleUpdateEducation(edu.id, 'year', e.target.value)}
                             placeholder="Ej. 2018 o 2014 - 2018"
-                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary font-mono"
                           />
                         </div>
 
@@ -1356,7 +1415,7 @@ export default function DashboardPage() {
                             value={edu.details || ''}
                             onChange={(e) => handleUpdateEducation(edu.id, 'details', e.target.value)}
                             placeholder="Graduado con Distinción Máxima..."
-                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary"
                           />
                         </div>
                       </div>
@@ -1383,7 +1442,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={handleAddSkill}
-                  className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-palette-primary hover:bg-palette-hover text-white text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>+ Agregar Habilidad</span>
@@ -1408,7 +1467,7 @@ export default function DashboardPage() {
                           value={skill.name || ''}
                           onChange={(e) => handleUpdateSkill(skill.id, 'name', e.target.value)}
                           placeholder="Ej. React 19 / Go / M&A"
-                          className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                          className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary font-medium"
                         />
                       </div>
 
@@ -1421,14 +1480,14 @@ export default function DashboardPage() {
                           value={skill.category || ''}
                           onChange={(e) => handleUpdateSkill(skill.id, 'category', e.target.value)}
                           placeholder="Ej. Frontend"
-                          className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary"
                         />
                       </div>
 
                       <div className="w-full sm:w-36 flex flex-col justify-center">
                         <div className="flex justify-between text-[10px] text-slate-400 mb-1">
                           <span>Nivel</span>
-                          <span className="font-mono font-bold text-indigo-400">{skill.level}%</span>
+                          <span className="font-mono font-bold text-palette-primary">{skill.level}%</span>
                         </div>
                         <input
                           type="range"
@@ -1436,7 +1495,7 @@ export default function DashboardPage() {
                           max={100}
                           value={skill.level || 80}
                           onChange={(e) => handleUpdateSkill(skill.id, 'level', Number(e.target.value))}
-                          className="w-full accent-indigo-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg"
+                          className="w-full accent-palette-primary cursor-pointer h-1.5 bg-slate-800 rounded-lg"
                         />
                       </div>
 
@@ -1471,7 +1530,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={handleAddProject}
-                  className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-palette-primary hover:bg-palette-hover text-white text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>+ Agregar Proyecto</span>
@@ -1487,7 +1546,7 @@ export default function DashboardPage() {
                   {profileData.projects.map((proj, idx) => (
                     <div key={proj.id || idx} className="p-4 sm:p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3.5">
                       <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                        <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
+                        <span className="text-xs font-bold text-palette-primary uppercase tracking-wider">
                           Proyecto #{idx + 1}
                         </span>
                         <button
@@ -1510,7 +1569,7 @@ export default function DashboardPage() {
                             />
                             {compressingProjectIdx === proj.id && (
                               <div className="absolute inset-0 bg-slate-950/80 rounded-xl flex items-center justify-center">
-                                <RefreshCw className="w-4 h-4 text-indigo-400 animate-spin" />
+                                <RefreshCw className="w-4 h-4 text-palette-primary animate-spin" />
                               </div>
                             )}
                           </div>
@@ -1521,7 +1580,7 @@ export default function DashboardPage() {
                             Foto de Portafolio (Compresión Automática)
                           </label>
                           <div className="flex items-center gap-2">
-                            <label className="px-3 py-1.5 rounded-lg bg-indigo-600/80 hover:bg-indigo-600 text-white text-[11px] font-semibold cursor-pointer flex items-center gap-1.5 transition-colors">
+                            <label className="px-3 py-1.5 rounded-lg bg-palette-primary/90 hover:bg-palette-primary text-white text-[11px] font-semibold cursor-pointer flex items-center gap-1.5 transition-colors">
                               <Upload className="w-3.5 h-3.5" />
                               <span>Subir Imagen</span>
                               <input
@@ -1555,7 +1614,7 @@ export default function DashboardPage() {
                           value={proj.title || ''}
                           onChange={(e) => handleUpdateProject(proj.id, 'title', e.target.value)}
                           placeholder="Ej. Aurora Design System"
-                          className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
+                          className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary font-bold"
                         />
                       </div>
 
@@ -1568,7 +1627,7 @@ export default function DashboardPage() {
                           value={proj.description || ''}
                           onChange={(e) => handleUpdateProject(proj.id, 'description', e.target.value)}
                           placeholder="Breve reseña del proyecto..."
-                          className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary"
                         />
                       </div>
 
@@ -1584,7 +1643,7 @@ export default function DashboardPage() {
                             handleUpdateProject(proj.id, 'tags', tagsArray)
                           }}
                           placeholder="React, Tailwind, AWS, Figma"
-                          className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-palette-primary"
                         />
                       </div>
 
@@ -1598,7 +1657,7 @@ export default function DashboardPage() {
                             value={proj.liveUrl || ''}
                             onChange={(e) => handleUpdateProject(proj.id, 'liveUrl', e.target.value)}
                             placeholder="https://..."
-                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary"
                           />
                         </div>
 
@@ -1611,7 +1670,7 @@ export default function DashboardPage() {
                             value={proj.repoUrl || ''}
                             onChange={(e) => handleUpdateProject(proj.id, 'repoUrl', e.target.value)}
                             placeholder="https://github.com/..."
-                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary"
                           />
                         </div>
                       </div>
@@ -1638,7 +1697,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={handleAddLanguage}
-                  className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-palette-primary hover:bg-palette-hover text-white text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>+ Agregar Idioma</span>
@@ -1662,7 +1721,7 @@ export default function DashboardPage() {
                           value={lang.name || ''}
                           onChange={(e) => handleUpdateLanguage(lang.id, 'name', e.target.value)}
                           placeholder="Ej. Español / Inglés"
-                          className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
+                          className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary font-bold"
                         />
                       </div>
 
@@ -1675,7 +1734,7 @@ export default function DashboardPage() {
                           value={lang.level || ''}
                           onChange={(e) => handleUpdateLanguage(lang.id, 'level', e.target.value)}
                           placeholder="Nativo / Bilingüe (C2) / Avanzado (C1)"
-                          className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/70 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary"
                         />
                       </div>
 
@@ -1707,7 +1766,7 @@ export default function DashboardPage() {
 
               {/* Activation Switch */}
               <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-950 border border-slate-800">
-                <div>
+                <div className="space-y-0.5 pr-4">
                   <div className="text-xs font-bold text-slate-200">
                     Activar Botón Flotante
                   </div>
@@ -1715,12 +1774,23 @@ export default function DashboardPage() {
                     Permite a los visitantes contactarte directamente con 1 solo clic.
                   </div>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={profileData.floatingButton?.enabled ?? true}
-                  onChange={(e) => updateFloatingButton('enabled', e.target.checked)}
-                  className="w-5 h-5 text-indigo-600 rounded bg-slate-800 border-slate-700 focus:ring-indigo-500 cursor-pointer"
-                />
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={profileData.floatingButton?.enabled ?? true}
+                  onClick={() => updateFloatingButton('enabled', !(profileData.floatingButton?.enabled ?? true))}
+                  className={`w-12 h-7 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 ease-in-out shrink-0 ${
+                    (profileData.floatingButton?.enabled ?? true)
+                      ? 'bg-palette-gradient shadow-sm'
+                      : 'bg-slate-800 border border-slate-700'
+                  }`}
+                >
+                  <div
+                    className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${
+                      (profileData.floatingButton?.enabled ?? true) ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
               </div>
 
               {/* Channel Selector */}
@@ -1745,7 +1815,7 @@ export default function DashboardPage() {
                         onClick={() => updateFloatingButton('type', btnType.id)}
                         className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5 cursor-pointer ${
                           isSelected
-                            ? 'border-indigo-500 bg-indigo-950/40 ring-2 ring-indigo-500/20 text-white'
+                            ? 'border-palette-primary bg-palette-primary/10 ring-2 ring-palette-primary/20 text-white'
                             : 'border-slate-800 bg-slate-950 hover:border-slate-700 text-slate-400'
                         }`}
                       >
@@ -1772,7 +1842,7 @@ export default function DashboardPage() {
                   value={profileData.floatingButton?.customMessage || ''}
                   onChange={(e) => updateFloatingButton('customMessage', e.target.value)}
                   placeholder="Hola, vi tu portafolio en Mi Vitae y me gustaría conversar sobre una oportunidad..."
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:ring-2 focus:ring-palette-primary"
                 />
                 <p className="text-[10px] text-slate-500 mt-1">
                   Este texto se precargará automáticamente cuando un reclutador o cliente haga clic en el botón.
@@ -1791,7 +1861,7 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={handleSave}
-              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition-all cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-palette-primary hover:bg-palette-hover text-white text-xs font-bold flex items-center gap-2 shadow-palette-glow transition-all cursor-pointer"
             >
               <Save className="w-4 h-4" />
               <span>Guardar en Almacenamiento Local</span>
@@ -1806,7 +1876,7 @@ export default function DashboardPage() {
         <section aria-label="Control Center y Métricas" className="lg:col-span-5 xl:col-span-5 sticky top-20 flex flex-col gap-5">
           
           {/* Quick Portfolio Action Card */}
-          <div className="bg-gradient-to-br from-slate-900 via-indigo-950/40 to-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
+          <div className="bg-gradient-to-br from-slate-900 via-palette-primary/10 to-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
             
             <div className="flex items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2">
@@ -1815,7 +1885,7 @@ export default function DashboardPage() {
                   Portafolio en Línea
                 </span>
               </div>
-              <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-indigo-950/80 border border-indigo-500/30 text-indigo-300 capitalize">
+              <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-palette-primary/20 border border-palette-primary/30 text-palette-primary capitalize">
                 Tema: {profileData.theme}
               </span>
             </div>
@@ -1825,13 +1895,13 @@ export default function DashboardPage() {
               <img
                 src={profileData.personalInfo?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80'}
                 alt={profileData.personalInfo?.name}
-                className="w-16 h-16 rounded-2xl object-cover border-2 border-indigo-500/40 shadow-md shrink-0"
+                className="w-16 h-16 rounded-2xl object-cover border-2 border-palette-primary/40 shadow-md shrink-0"
               />
               <div className="min-w-0">
                 <h3 className="font-extrabold text-base sm:text-lg text-white truncate">
                   {profileData.personalInfo?.name || 'Tu Nombre'}
                 </h3>
-                <p className="text-xs text-indigo-300 font-medium truncate">
+                <p className="text-xs text-slate-300 font-medium truncate">
                   {profileData.personalInfo?.title || 'Tu Cargo Profesional'}
                 </p>
                 <div className="text-[11px] text-slate-400 font-mono mt-1">
@@ -1843,13 +1913,13 @@ export default function DashboardPage() {
             {/* Custom Link Box */}
             <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex items-center justify-between gap-2 mb-4">
               <div className="flex items-center gap-2 min-w-0 text-xs font-mono text-slate-300">
-                <Globe className="w-4 h-4 text-indigo-400 shrink-0" />
+                <Globe className="w-4 h-4 text-palette-primary shrink-0" />
                 <span className="truncate">mi-vitae.wearesamod.com/<strong className="text-white">{profileData.username}</strong></span>
               </div>
               <button
                 type="button"
                 onClick={handleCopyLink}
-                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white text-xs font-bold transition-colors shrink-0 flex items-center gap-1 cursor-pointer"
+                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-palette-primary text-slate-200 hover:text-white text-xs font-bold transition-colors shrink-0 flex items-center gap-1 cursor-pointer"
                 title="Copiar enlace directo"
               >
                 {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -1862,7 +1932,7 @@ export default function DashboardPage() {
               <Link
                 to={`/${profileData.username}`}
                 target="_blank"
-                className="px-4 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-600/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="px-4 py-3 rounded-2xl bg-palette-gradient hover:opacity-95 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-palette-glow transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 <Eye className="w-4 h-4" />
                 <span>Ver en Vivo ↗</span>
@@ -1901,7 +1971,7 @@ export default function DashboardPage() {
               <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800/80">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[11px] font-medium text-slate-400">Visitas Totales</span>
-                  <Eye className="w-4 h-4 text-indigo-400" />
+                  <Eye className="w-4 h-4 text-palette-primary" />
                 </div>
                 <div className="text-2xl font-black text-white">
                   {(profileData.analytics?.views || 1240).toLocaleString('es-CL')}
@@ -1975,24 +2045,74 @@ export default function DashboardPage() {
 
           </div>
 
-          {/* Plan & Subscription Card */}
-          <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-4 sm:p-5 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white font-bold shadow">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="text-xs font-extrabold text-white">1er Mes Gratis Activo</div>
-                <div className="text-[11px] text-slate-400">Suscripción $3.490 CLP/mes</div>
+          {/* Plan & Subscription Card (Única tarjeta y botón unificado en todo el dashboard) */}
+          <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-4 sm:p-5 space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white font-bold shadow-md shrink-0 ${
+                  planInfo.isExpired
+                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                    : planInfo.isPremium
+                    ? 'bg-palette-gradient shadow-palette-glow'
+                    : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                }`}>
+                  {planInfo.isExpired ? (
+                    <CreditCard className="w-5 h-5" />
+                  ) : planInfo.isPremium ? (
+                    <Sparkles className="w-5 h-5 text-white" />
+                  ) : (
+                    <CheckCircle2 className="w-5 h-5" />
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-black text-white">
+                      {planInfo.isPremium ? 'Suscripción Mi Vitae Pro' : '1er Mes Gratis Activo'}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
+                      planInfo.isExpired
+                        ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                        : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    }`}>
+                      {planInfo.isExpired ? 'Vencido' : 'Activo'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Plan Profesional · $3.490 CLP/mes
+                  </p>
+                </div>
               </div>
             </div>
 
+            {/* Expiration and days remaining notice */}
+            <div className={`p-3 rounded-2xl text-xs flex items-center justify-between gap-2 border ${
+              planInfo.isExpired
+                ? 'bg-rose-950/30 border-rose-500/40 text-rose-300'
+                : 'bg-slate-950/60 border-slate-800 text-slate-300'
+            }`}>
+              {planInfo.isExpired ? (
+                <div className="flex items-center gap-2 text-rose-300 font-medium">
+                  <span>⚠️</span>
+                  <span><strong>Plan Vencido:</strong> Renueva para mantener tu portafolio activo.</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between w-full">
+                  <span className="text-slate-400">Vence: <strong className="text-white">{planInfo.formattedDate}</strong></span>
+                  <span className="px-2 py-0.5 rounded-md bg-palette-primary/10 text-palette-primary font-bold font-mono text-[11px] border border-palette-primary/20">
+                    {planInfo.daysRemaining} {planInfo.daysRemaining === 1 ? 'día restante' : 'días restantes'}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* The single unified action button */}
             <button
               type="button"
               onClick={() => openFlowModal({ username: profileData.username, planName: 'Suscripción Mi Vitae ($3.490 CLP/mes)', amount: 3490 })}
-              className="px-3 py-1.5 rounded-xl bg-[#0F265C] hover:bg-[#163884] text-white text-xs font-bold transition-colors cursor-pointer border border-cyan-500/30 shrink-0"
+              className="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-palette-gradient hover:opacity-95 text-white text-xs sm:text-sm font-bold shadow-palette-glow hover:shadow-palette-glow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
             >
-              Pagar Flow.cl
+              <CreditCard className="w-4 h-4" />
+              <span>{planInfo.isExpired ? 'Renovar Suscripción con Flow.cl ($3.490 CLP)' : 'Pagar Suscripción ($3.490 CLP/mes)'}</span>
             </button>
           </div>
 

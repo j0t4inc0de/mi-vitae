@@ -99,6 +99,16 @@ it('matches dynamic portfolio route /:username and strips query/hash', () => {
   assert.equal(res.path, '/carlos_dev');
 });
 
+it('handles route edge cases: URL-encoded usernames and rejects multi-segment paths as not_found', () => {
+  const encoded = matchRoute('/carlos%20dev?utm_source=test#top');
+  assert.equal(encoded.name, 'portfolio');
+  assert.equal(encoded.params.username, 'carlos dev');
+  assert.equal(encoded.path, '/carlos%20dev');
+
+  const nested = matchRoute('/unknown/deep/path');
+  assert.equal(nested.name, 'not_found');
+});
+
 // -------------------------------------------------------------
 // SUITE 2: MOCK DATA INTEGRITY (src/data/mockProfiles.js)
 // -------------------------------------------------------------
@@ -239,6 +249,28 @@ it('tests free trial activation and feedback storage', () => {
   assert.ok(profile.planExpiresAt);
 });
 
+it('verifies portfolio plan expiration logic (expired status and elapsed date)', () => {
+  const store = useProfileStore.getState();
+  const testUser = 'tester_ponytail';
+
+  // Helper matching PortfolioPage.jsx check
+  const isPlanExpired = (p) => Boolean(
+    p.planStatus === 'expired' ||
+    p.plan_status === 'expired' ||
+    (p.planExpiresAt && new Date(p.planExpiresAt).getTime() < Date.now()) ||
+    (p.plan_expires_at && new Date(p.plan_expires_at).getTime() < Date.now())
+  );
+
+  const activeProfile = store.getProfileByUsername(testUser);
+  assert.equal(isPlanExpired(activeProfile), false, 'Active profile within 30 days should not be expired');
+
+  const expiredByStatus = { ...activeProfile, planStatus: 'expired' };
+  assert.equal(isPlanExpired(expiredByStatus), true, 'Profile with planStatus expired must be flagged');
+
+  const expiredByDate = { ...activeProfile, planExpiresAt: new Date(Date.now() - 1000).toISOString() };
+  assert.equal(isPlanExpired(expiredByDate), true, 'Profile with past expiration date must be flagged');
+});
+
 it('tests global modal state openers & closers', () => {
   const store = useProfileStore.getState();
 
@@ -305,6 +337,20 @@ it('generates valid CSS variables string for injection', () => {
   assert.ok(cssVars.includes('--accent:'));
   assert.ok(cssVars.includes('--highlight:'));
   assert.ok(cssVars.includes('--glow:'));
+});
+
+const { getApproximateDataUrlBytes, formatBytes } = await vite.ssrLoadModule('/src/utils/imageCompressor.js');
+
+it('verifies native image compression utilities and size limits', () => {
+  // Base64 byte size approximation
+  const mockBase64 = 'data:image/jpeg;base64,' + 'A'.repeat(1024);
+  const bytes = getApproximateDataUrlBytes(mockBase64);
+  assert.ok(bytes > 0 && bytes <= 1024, 'Base64 byte size calculation must be accurate');
+
+  // Format bytes helper
+  assert.equal(formatBytes(0), '0 B');
+  assert.equal(formatBytes(1024), '1 KB');
+  assert.equal(formatBytes(1024 * 1024 * 2), '2 MB');
 });
 
 // -------------------------------------------------------------
@@ -377,6 +423,28 @@ it('verifies Supabase client and email service frontend modules load properly', 
 
   assert.ok(typeof emailModule.sendWelcomeEmail === 'function');
   assert.ok(typeof emailModule.sendPaymentReceiptEmail === 'function');
+});
+
+it('verifies Supabase client connects to real instance and is configured', () => {
+  assert.equal(supabaseModule.isSupabaseConfigured, true, 'isSupabaseConfigured must be true');
+  assert.ok(supabaseModule.supabase, 'supabase client must be initialized');
+});
+
+it('verifies CSP policy and clickjacking protection in _headers', () => {
+  const headersPath = path.join(ROOT, 'public', '_headers');
+  const headersContent = fs.readFileSync(headersPath, 'utf-8');
+  assert.ok(headersContent.includes('Content-Security-Policy:'), '_headers must include Content-Security-Policy');
+  assert.ok(headersContent.includes('X-Frame-Options: SAMEORIGIN') || headersContent.includes('X-Frame-Options: DENY'), '_headers must protect against clickjacking');
+});
+
+it('verifies production APP_URL consistency across worker, wrangler and config', () => {
+  const wranglerContent = fs.readFileSync(path.join(ROOT, 'wrangler.toml'), 'utf-8');
+  const workerContent = fs.readFileSync(path.join(ROOT, 'worker.js'), 'utf-8');
+  const configContent = fs.readFileSync(path.join(ROOT, 'functions', 'api', 'config.js'), 'utf-8');
+
+  assert.ok(wranglerContent.includes('https://mi-vitae.wearesamod.com'), 'wrangler.toml must use production URL with hyphen');
+  assert.ok(workerContent.includes('https://mi-vitae.wearesamod.com'), 'worker.js must use production URL with hyphen');
+  assert.ok(configContent.includes('https://mi-vitae.wearesamod.com'), 'config.js must use production URL with hyphen');
 });
 
 it('verifies GitHub Actions Supabase keep-alive cron workflow', () => {

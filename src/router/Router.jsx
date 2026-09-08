@@ -46,11 +46,23 @@ export function matchRoute(path) {
     }
   }
 
+  // If path contains multiple unhandled segments, treat as not found
+  if (segments.length > 1) {
+    return { name: 'not_found', path: cleanPath, params: {} }
+  }
+
+  let decodedUsername = segments[0]
+  try {
+    decodedUsername = decodeURIComponent(segments[0])
+  } catch {
+    // Malformed URI sequence, fallback to raw segment
+  }
+
   // Dynamic portfolio route: /:username
   return {
     name: 'portfolio',
     path: `/${segments[0]}`,
-    params: { username: segments[0] }
+    params: { username: decodedUsername }
   }
 }
 

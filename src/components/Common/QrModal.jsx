@@ -20,10 +20,12 @@ export default function QrModal({ isOpen, onClose, profile, username: propUserna
   const title = profile?.personalInfo?.title || 'Mi Vitae'
   const avatar = profile?.personalInfo?.avatar
 
-  // Build target URL
-  const targetUrl = customUrl || (typeof window !== 'undefined' 
-    ? `${window.location.origin}/${username}` 
-    : `https://mi-vitae.wearesamod.com/${username}`)
+  // Build target URL pointing to production domain
+  const productionBase = 'https://mi-vitae.wearesamod.com'
+  const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  const targetUrl = customUrl || (isLocal || typeof window === 'undefined'
+    ? `${productionBase}/${username}` 
+    : `${window.location.origin}/${username}`)
 
   // Render QR Code onto canvas whenever modal opens or URL changes
   useEffect(() => {

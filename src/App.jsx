@@ -44,7 +44,7 @@ function AppContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+    <div className="min-h-screen flex flex-col font-sans bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-x-clip">
       {route !== 'portfolio' && <Navbar />}
       <div className="flex-1">
         {renderRoute()}

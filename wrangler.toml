@@ -11,7 +11,7 @@ not_found_handling = "single-page-application"
 
 [vars]
 ENVIRONMENT = "production"
-APP_URL = "https://mivitae.wearesamod.com"
+APP_URL = "https://mi-vitae.wearesamod.com"
 
 # Bindings for Cloudflare R2 (Optional Storage)
 # [[r2_buckets]]

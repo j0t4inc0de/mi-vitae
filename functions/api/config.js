@@ -11,7 +11,7 @@ export async function onRequestGet(context) {
 
   const supabaseUrl = env.VITE_SUPABASE_URL || env.SUPABASE_URL || 'https://ewptcglzykqvnvxxwwhm.supabase.co'
   const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_umvJDktvEJKBaLpUlSJ7gA_Dr0Zcz54'
-  const appUrl = env.APP_URL || 'https://mivitae.wearesamod.com'
+  const appUrl = env.APP_URL || 'https://mi-vitae.wearesamod.com'
 
   return new Response(JSON.stringify({
     supabaseUrl,

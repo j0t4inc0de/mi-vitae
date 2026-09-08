@@ -76,9 +76,10 @@ export default function FloatingContactButton({ profile, onOpenQr }) {
         <button
           onClick={onOpenQr}
           title="Ver código QR para tarjetas"
-          className="p-2 sm:p-2.5 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-md hover:scale-110 hover:bg-indigo-50 dark:hover:bg-slate-700 transition-all duration-300 opacity-90 group-hover:opacity-100"
+          aria-label="Ver código QR para tarjetas"
+          className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center p-2.5 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-md hover:scale-110 hover:bg-indigo-50 dark:hover:bg-slate-700 transition-all duration-300 opacity-90 group-hover:opacity-100"
         >
-          <QrCode className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-600 dark:text-indigo-400" />
+          <QrCode className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
         </button>
       )}
 
@@ -88,7 +89,7 @@ export default function FloatingContactButton({ profile, onOpenQr }) {
         target={target}
         rel={target === '_blank' ? 'noopener noreferrer' : undefined}
         onClick={handleClick}
-        className={`flex items-center gap-1.5 sm:gap-2.5 px-3.5 py-2 sm:px-5 sm:py-3.5 rounded-full shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer select-none backdrop-blur-md ${colorClasses}`}
+        className={`min-h-[44px] flex items-center gap-2 px-4 py-2.5 sm:px-5 sm:py-3.5 rounded-full shadow-2xl transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer select-none backdrop-blur-md ${colorClasses}`}
       >
         <span className="relative flex items-center justify-center">
           {icon}
