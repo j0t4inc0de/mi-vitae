@@ -32,7 +32,27 @@ export default {
 
     // Serve static assets with Single Page Application fallback (React SPA)
     if (env.ASSETS) {
-      return env.ASSETS.fetch(request)
+      const response = await env.ASSETS.fetch(request)
+      const contentType = response.headers.get('content-type') || ''
+
+      // Inject runtime client environment variables into HTML without rebuilding
+      if (contentType.includes('text/html') && typeof HTMLRewriter !== 'undefined') {
+        const clientEnv = {
+          VITE_SUPABASE_URL: env.VITE_SUPABASE_URL || '',
+          VITE_SUPABASE_ANON_KEY: env.VITE_SUPABASE_ANON_KEY || '',
+          APP_URL: env.APP_URL || 'https://mivitae.wearesamod.com'
+        }
+
+        return new HTMLRewriter()
+          .on('head', {
+            element(e) {
+              e.append(`<script>window.__ENV__ = ${JSON.stringify(clientEnv)};</script>`, { html: true })
+            }
+          })
+          .transform(response)
+      }
+
+      return response
     }
 
     return new Response('Not Found', { status: 404 })
