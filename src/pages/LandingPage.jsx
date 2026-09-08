@@ -239,8 +239,7 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           
           {/* Header / Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-palette-primary/10 border border-palette-primary/20 text-palette-primary text-xs font-extrabold uppercase tracking-wider mb-6">
-            <Sparkles className="w-3.5 h-3.5 text-palette-primary" />
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-palette-primary/10 border border-palette-primary/20 text-black text-xs font-extrabold uppercase tracking-wider mb-6">
             <span>¿Qué es Mi Vitae?</span>
           </div>
 
@@ -277,9 +276,6 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           <div className="text-center max-w-3xl mx-auto mb-14">
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-3 py-1 rounded-full border border-amber-200 dark:border-amber-800">
-              Prueba Social
-            </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mt-3 mb-4">
               Resultados Reales de Profesionales que ya Destacan
             </h2>
@@ -384,9 +380,6 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           
           <div className="text-center max-w-3xl mx-auto mb-12">
-            <span className="text-xs font-extrabold uppercase tracking-wider px-3.5 py-1 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800">
-              Precios Claros y Transparentes
-            </span>
             <h2 className="text-3xl sm:text-5xl font-black tracking-tight mt-3 mb-4">
               Una inversión accesible para impulsar tu carrera
             </h2>
