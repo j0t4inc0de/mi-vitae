@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Link } from '../router/Router'
 import { useProfileStore } from '../stores/profileStore'
+import { saveProfileToSupabase } from '../lib/supabaseClient'
 import QrModal from '../components/Common/QrModal'
 import { compressImage, getApproximateDataUrlBytes, formatBytes } from '../utils/imageCompressor'
 import {
@@ -97,6 +98,7 @@ export default function DashboardPage() {
   const activeUsername = useProfileStore((state) => state.activeUsername)
   const setActiveUsername = useProfileStore((state) => state.setActiveUsername)
   const updateProfile = useProfileStore((state) => state.updateProfile)
+  const fetchRemoteProfile = useProfileStore((state) => state.fetchRemoteProfile)
   const resetToDefaults = useProfileStore((state) => state.resetToDefaults)
   const openFlowModal = useProfileStore((state) => state.openFlowModal)
 
@@ -113,6 +115,7 @@ export default function DashboardPage() {
   const [profileData, setProfileData] = useState(() => getInitialProfileState(storeProfile))
   const [activeTab, setActiveTab] = useState('personal')
   const [savedAlert, setSavedAlert] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [isCompressingAvatar, setIsCompressingAvatar] = useState(false)
   const [compressingProjectIdx, setCompressingProjectIdx] = useState(null)
   const [avatarDragOver, setAvatarDragOver] = useState(false)
@@ -122,17 +125,26 @@ export default function DashboardPage() {
   const avatarInputRef = useRef(null)
 
   const handleCopyLink = () => {
-    const fullUrl = `https://mi-vitae.wearesamod.com/${profileData.username}`
+    const fullUrl = `https://mivitae.wearesamod.com/${profileData.username}`
     navigator.clipboard.writeText(fullUrl)
     setCopiedLink(true)
     setTimeout(() => setCopiedLink(false), 2500)
   }
 
-  // Sync local state when active profile or store changes
+  // Sync local state and hydrate from Supabase Cloud if available
   useEffect(() => {
-    if (storeProfile) {
+    let isMounted = true
+    if (activeUsername) {
+      fetchRemoteProfile(activeUsername).then((remote) => {
+        if (remote && isMounted) {
+          setProfileData(getInitialProfileState(remote))
+        }
+      })
+    }
+    if (storeProfile && isMounted) {
       setProfileData(getInitialProfileState(storeProfile))
     }
+    return () => { isMounted = false }
   }, [activeUsername])
 
   if (!profileData) {
@@ -151,12 +163,24 @@ export default function DashboardPage() {
     setActiveUsername(newUname)
   }
 
-  // Save changes to Zustand Store
-  const handleSave = (e) => {
+  // Save changes to Zustand Store AND sync directly with Supabase Cloud
+  const handleSave = async (e) => {
     if (e) e.preventDefault()
     if (!profileData || !profileData.username) return
 
+    setIsSaving(true)
+    // 1. Guardar en store local para reactividad inmediata
     updateProfile(profileData.username, profileData)
+
+    // 2. Guardar en la base de datos Supabase para que esté visible en todo el mundo
+    try {
+      await saveProfileToSupabase(profileData)
+    } catch (err) {
+      console.warn('[Dashboard] Error al sincronizar perfil con Supabase:', err)
+    } finally {
+      setIsSaving(false)
+    }
+
     setSavedAlert(true)
     setTimeout(() => setSavedAlert(false), 3500)
   }
@@ -549,10 +573,20 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={handleSave}
-              className="px-4 py-2 rounded-xl bg-palette-gradient hover:opacity-95 text-white text-xs font-bold shadow-lg shadow-palette-glow transition-all flex items-center gap-2 active:scale-95 cursor-pointer"
+              disabled={isSaving}
+              className="px-4 py-2 rounded-xl bg-palette-gradient hover:opacity-95 text-white text-xs font-bold shadow-lg shadow-palette-glow transition-all flex items-center gap-2 active:scale-95 cursor-pointer disabled:opacity-75"
             >
-              <Save className="w-4 h-4" />
-              <span>Guardar Cambios</span>
+              {isSaving ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Sincronizando...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>Guardar Cambios</span>
+                </>
+              )}
             </button>
 
           </div>
@@ -1914,8 +1948,9 @@ export default function DashboardPage() {
       <QrModal
         isOpen={isQrOpen}
         onClose={() => setIsQrOpen(false)}
-        username={profileData.username}
-        theme={profileData.theme}
+        profile={profileData}
+        username={profileData?.username}
+        theme={profileData?.theme}
       />
 
     </div>

@@ -10,12 +10,12 @@ import { drawQRCodeToCanvas } from './qrGenerator'
  * @param {object} profile - Profile object containing username, personalInfo, etc.
  * @param {string} customUrl - Optional custom URL override
  */
-export default function QrModal({ isOpen, onClose, profile, customUrl }) {
+export default function QrModal({ isOpen, onClose, profile, username: propUsername, customUrl }) {
   const canvasRef = useRef(null)
   const [copied, setCopied] = useState(false)
   const [activeTab, setActiveTab] = useState('qr') // 'qr' | 'card'
 
-  const username = profile?.username || 'perfil'
+  const username = propUsername || profile?.username || ''
   const name = profile?.personalInfo?.name || 'Profesional'
   const title = profile?.personalInfo?.title || 'Mi Vitae'
   const avatar = profile?.personalInfo?.avatar
