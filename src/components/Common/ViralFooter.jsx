@@ -24,9 +24,6 @@ export default function ViralFooter({ theme = 'minimalist', className = '', dark
         
         {/* Brand identity & attribution */}
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-sm">
-            <Sparkles className="w-3.5 h-3.5" />
-          </div>
           <div>
             <p className="text-xs font-semibold tracking-tight">
               Portafolio impulsado por{' '}
