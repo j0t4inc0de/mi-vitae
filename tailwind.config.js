@@ -99,12 +99,12 @@ export default {
       addBase({
         ':root': {
           '--primary': semanticTokens.primary.DEFAULT,
-          '--primary-rgb': semanticTokens.primaryRgb || '79, 70, 229',
+          '--primary-rgb': semanticTokens.primaryRgb || '77 94 179',
           '--primary-hover': semanticTokens.primary.hover,
           '--accent': semanticTokens.accent.DEFAULT,
-          '--accent-rgb': semanticTokens.accentRgb || '6, 182, 212',
+          '--accent-rgb': semanticTokens.accentRgb || '97 100 158',
           '--highlight': semanticTokens.highlight.DEFAULT,
-          '--highlight-rgb': semanticTokens.highlightRgb || '207, 125, 48',
+          '--highlight-rgb': semanticTokens.highlightRgb || '207 125 48',
           '--gradient-from': semanticTokens.gradientFrom,
           '--gradient-via': semanticTokens.gradientVia,
           '--gradient-to': semanticTokens.gradientTo,

@@ -437,7 +437,7 @@ export default function LandingPage() {
                     <div
                       className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
                       style={{
-                        background: 'rgba(var(--primary-rgb, 77, 94, 179), 0.2)',
+                        background: 'rgb(var(--primary-rgb, 77 94 179) / 0.2)',
                         color: 'var(--highlight, #cf7d30)'
                       }}
                     >
@@ -453,7 +453,7 @@ export default function LandingPage() {
                     <div
                       className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
                       style={{
-                        background: 'rgba(var(--primary-rgb, 77, 94, 179), 0.2)',
+                        background: 'rgb(var(--primary-rgb, 77 94 179) / 0.2)',
                         color: 'var(--highlight, #cf7d30)'
                       }}
                     >
@@ -469,7 +469,7 @@ export default function LandingPage() {
                     <div
                       className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
                       style={{
-                        background: 'rgba(var(--primary-rgb, 77, 94, 179), 0.2)',
+                        background: 'rgb(var(--primary-rgb, 77 94 179) / 0.2)',
                         color: 'var(--highlight, #cf7d30)'
                       }}
                     >
@@ -485,7 +485,7 @@ export default function LandingPage() {
                     <div
                       className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
                       style={{
-                        background: 'rgba(var(--primary-rgb, 77, 94, 179), 0.2)',
+                        background: 'rgb(var(--primary-rgb, 77 94 179) / 0.2)',
                         color: 'var(--highlight, #cf7d30)'
                       }}
                     >
@@ -501,7 +501,7 @@ export default function LandingPage() {
                     <div
                       className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
                       style={{
-                        background: 'rgba(var(--primary-rgb, 77, 94, 179), 0.2)',
+                        background: 'rgb(var(--primary-rgb, 77 94 179) / 0.2)',
                         color: 'var(--highlight, #cf7d30)'
                       }}
                     >
@@ -551,9 +551,9 @@ export default function LandingPage() {
             <span 
               className="text-xs font-bold uppercase tracking-wider px-3.5 py-1.5 rounded-full border transition-all"
               style={{
-                backgroundColor: 'rgba(var(--primary-rgb, 79, 70, 229), 0.1)',
-                borderColor: 'rgba(var(--primary-rgb, 79, 70, 229), 0.3)',
-                color: 'var(--primary, #4f46e5)'
+                backgroundColor: 'rgb(var(--primary-rgb, 77 94 179) / 0.1)',
+                borderColor: 'rgb(var(--primary-rgb, 77 94 179) / 0.3)',
+                color: 'var(--primary, #4d5eb3)'
               }}
             >
               Preguntas Frecuentes
@@ -630,8 +630,8 @@ export default function LandingPage() {
               className="rounded-3xl p-6 sm:p-8 backdrop-blur-xl border relative transition-all duration-500 shadow-2xl"
               style={{
                 backgroundColor: 'rgba(15, 23, 42, 0.85)',
-                borderColor: 'rgba(var(--primary-rgb, 79, 70, 229), 0.35)',
-                boxShadow: '0 25px 60px -15px var(--glow, rgba(79, 70, 229, 0.3))'
+                borderColor: 'rgb(var(--primary-rgb, 77 94 179) / 0.35)',
+                boxShadow: '0 25px 60px -15px var(--glow, rgba(77, 94, 179, 0.3))'
               }}
             >
               
@@ -667,7 +667,7 @@ export default function LandingPage() {
                   style={
                     cleanInput.length < 3
                       ? {
-                          borderColor: 'rgba(var(--primary-rgb, 79, 70, 229), 0.3)'
+                          borderColor: 'rgb(var(--primary-rgb, 77 94 179) / 0.3)'
                         }
                       : undefined
                   }
@@ -731,7 +731,7 @@ export default function LandingPage() {
                         onClick={() => handleSuggestionClick(sug)}
                         className="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 font-mono text-[11px] border transition-all cursor-pointer"
                         style={{
-                          borderColor: 'rgba(var(--primary-rgb, 79, 70, 229), 0.25)'
+                          borderColor: 'rgb(var(--primary-rgb, 77 94 179) / 0.25)'
                         }}
                       >
                         @{sug}
@@ -780,7 +780,7 @@ export default function LandingPage() {
                           onClick={() => handleSuggestionClick(alt)}
                           className="px-2.5 py-1 rounded bg-slate-900 border text-xs font-mono font-semibold transition-colors cursor-pointer hover:brightness-110"
                           style={{
-                            borderColor: 'rgba(var(--primary-rgb, 79, 70, 229), 0.4)',
+                            borderColor: 'rgb(var(--primary-rgb, 77 94 179) / 0.4)',
                             color: 'var(--highlight, #818cf8)'
                           }}
                         >

@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --primary: #4d5eb3;
+  --primary-rgb: 77 94 179;
+  --primary-hover: #3d4b8f;
+  --accent: #61649e;
+  --accent-rgb: 97 100 158;
+  --highlight: #cf7d30;
+  --highlight-rgb: 207 125 48;
+  --gradient-from: #4d5eb3;
+  --gradient-via: #61649e;
+  --gradient-to: #d8975a;
+  --glow: rgba(77, 94, 179, 0.35);
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;

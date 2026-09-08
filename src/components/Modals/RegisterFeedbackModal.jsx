@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from '../../router/Router'
 import { useProfileStore } from '../../stores/profileStore'
 import { signUpWithSupabase, saveFeedbackToSupabase } from '../../lib/supabaseClient'
+import MiVitaeLogo from '../Common/MiVitaeLogo'
 import { 
   X, Sparkles, CheckCircle2, AlertCircle, ArrowRight, 
   ArrowLeft, Check, ShieldCheck, HeartHandshake,
@@ -451,31 +452,43 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
 
           {/* Stepper Navigation */}
           <div className="grid grid-cols-3 gap-2">
-            <div className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-semibold transition-all ${
-              step === 1 
-                ? 'bg-palette-primary/10 border-palette-primary/40 text-palette-primary shadow-sm'
-                : step > 1
-                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
-                  : 'bg-slate-100 dark:bg-slate-800/40 border-transparent text-slate-400'
-            }`}>
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                step > 1 ? 'bg-emerald-500 text-white' : step === 1 ? 'bg-palette-primary text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-600'
-              }`}>
+            <div 
+              className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-semibold transition-all ${
+                step === 1 
+                  ? 'border-indigo-300 dark:border-indigo-700 shadow-sm'
+                  : step > 1
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-slate-100 dark:bg-slate-800/40 border-transparent text-slate-400'
+              }`}
+              style={step === 1 ? { backgroundColor: 'rgba(77, 94, 179, 0.08)', color: 'var(--primary, #4d5eb3)', borderColor: 'rgba(77, 94, 179, 0.4)' } : {}}
+            >
+              <div 
+                className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                  step > 1 ? 'bg-emerald-500 text-white' : step === 1 ? 'text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-600'
+                }`}
+                style={step === 1 ? { backgroundColor: 'var(--primary, #4d5eb3)' } : {}}
+              >
                 {step > 1 ? <Check className="w-3 h-3" /> : '1'}
               </div>
               <span className="truncate hidden sm:inline">1. Registro</span>
             </div>
 
-            <div className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-semibold transition-all ${
-              step === 2
-                ? 'bg-palette-primary/10 border-palette-primary/40 text-palette-primary shadow-sm'
-                : step > 2
-                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
-                  : 'bg-slate-100 dark:bg-slate-800/40 border-transparent text-slate-400'
-            }`}>
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                step > 2 ? 'bg-emerald-500 text-white' : step === 2 ? 'bg-palette-primary text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-600'
-              }`}>
+            <div 
+              className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-semibold transition-all ${
+                step === 2
+                  ? 'border-indigo-300 dark:border-indigo-700 shadow-sm'
+                  : step > 2
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-slate-100 dark:bg-slate-800/40 border-transparent text-slate-400'
+              }`}
+              style={step === 2 ? { backgroundColor: 'rgba(77, 94, 179, 0.08)', color: 'var(--primary, #4d5eb3)', borderColor: 'rgba(77, 94, 179, 0.4)' } : {}}
+            >
+              <div 
+                className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                  step > 2 ? 'bg-emerald-500 text-white' : step === 2 ? 'text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-600'
+                }`}
+                style={step === 2 ? { backgroundColor: 'var(--primary, #4d5eb3)' } : {}}
+              >
                 {step > 2 ? <Check className="w-3 h-3" /> : '2'}
               </div>
               <span className="truncate hidden sm:inline">2. Feedback</span>
@@ -622,25 +635,42 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
               {/* Initial Theme Selection */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
-                  <Palette className="w-3.5 h-3.5 text-palette-primary" />
+                  <Palette className="w-3.5 h-3.5" style={{ color: 'var(--primary, #4d5eb3)' }} />
                   <span>Selecciona tu Tema Visual de Partida</span>
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                  {THEME_OPTIONS.map((th) => (
-                    <button
-                      key={th.id}
-                      type="button"
-                      onClick={() => setSelectedTheme(th.id)}
-                      className={`p-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
-                        selectedTheme === th.id
-                          ? 'border-palette-primary bg-palette-primary/10 ring-2 ring-palette-primary/30 scale-105'
-                          : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 hover:border-slate-300'
-                      }`}
-                    >
-                      <div className="font-bold text-xs text-slate-900 dark:text-white">{th.label}</div>
-                      <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{th.role}</div>
-                    </button>
-                  ))}
+                  {THEME_OPTIONS.map((th) => {
+                    const isSelected = selectedTheme === th.id
+                    return (
+                      <button
+                        key={th.id}
+                        type="button"
+                        onClick={() => setSelectedTheme(th.id)}
+                        style={
+                          isSelected
+                            ? {
+                                borderColor: 'var(--primary, #4d5eb3)',
+                                backgroundColor: 'rgba(77, 94, 179, 0.1)',
+                                boxShadow: '0 0 0 2px rgba(77, 94, 179, 0.3)'
+                              }
+                            : {}
+                        }
+                        className={`p-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
+                          isSelected
+                            ? 'scale-105'
+                            : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 hover:border-slate-300'
+                        }`}
+                      >
+                        <div 
+                          className="font-bold text-xs"
+                          style={isSelected ? { color: 'var(--primary, #4d5eb3)' } : {}}
+                        >
+                          <span className={isSelected ? '' : 'text-slate-900 dark:text-white'}>{th.label}</span>
+                        </div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{th.role}</div>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 
@@ -649,9 +679,17 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                 <button
                   type="submit"
                   disabled={!isStep1Valid}
+                  style={
+                    isStep1Valid
+                      ? {
+                          backgroundColor: 'var(--primary, #4d5eb3)',
+                          boxShadow: '0 8px 20px -4px rgba(77, 94, 179, 0.4)'
+                        }
+                      : {}
+                  }
                   className={`w-full sm:w-auto px-8 py-3.5 rounded-2xl font-extrabold text-sm flex items-center justify-center gap-2 transition-all ${
                     isStep1Valid
-                      ? 'bg-palette-gradient hover:opacity-95 text-white shadow-lg shadow-palette-glow cursor-pointer scale-100 hover:scale-[1.02]'
+                      ? 'hover:opacity-95 text-white cursor-pointer scale-100 hover:scale-[1.02]'
                       : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
                   }`}
                 >
@@ -667,25 +705,33 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
           {/* ========================================================================= */}
           {step === 2 && (
             <form onSubmit={handleCompleteRegistration} className="space-y-6">
-              <div className="p-4 rounded-2xl bg-palette-primary/10 border border-palette-primary/30 flex items-start gap-3">
-                <div className="p-2 rounded-xl bg-palette-primary text-white shrink-0 shadow-sm">
-                  <HeartHandshake className="w-4 h-4" />
+              <div 
+                className="p-4 rounded-2xl border flex items-center gap-3.5 bg-slate-50 dark:bg-slate-950/70 border-slate-200 dark:border-slate-800 shadow-sm"
+                style={{ borderColor: 'rgba(77, 94, 179, 0.3)' }}
+              >
+                <div className="shrink-0 drop-shadow-sm">
+                  <MiVitaeLogo className="w-10 h-10" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
                     Tu opinión nos ayuda a mejorar Mi Vitae
                   </h4>
-                  <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">
-                    Responde estas 3 breves preguntas para bonificar tu 1er mes ($3.490 CLP → $0 CLP) sin ningún compromiso.
+                  <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
+                    Responde estas 3 breves preguntas para bonificar tu 1er mes (<span className="line-through text-slate-400">$3.490 CLP</span> → <strong className="text-emerald-600 dark:text-emerald-400 font-bold">$0 CLP</strong>) sin ningún compromiso.
                   </p>
                 </div>
               </div>
 
               {/* Pregunta 1: ¿A qué área profesional te dedicas? */}
               <div>
-                <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1.5 flex items-center justify-between">
+                <label className="block text-xs font-bold text-slate-900 dark:text-white mb-2 flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
-                    <span className="w-4 h-4 rounded-full bg-palette-primary text-white text-[10px] font-bold flex items-center justify-center">1</span>
+                    <span 
+                      className="w-4 h-4 rounded-full text-white text-[10px] font-bold flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: 'var(--primary, #4d5eb3)' }}
+                    >
+                      1
+                    </span>
                     <span>¿A qué área profesional te dedicas? *</span>
                   </span>
                   <span className="text-[10px] text-slate-500 font-normal">Selecciona 1 o más</span>
@@ -699,15 +745,25 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                         key={area.id}
                         type="button"
                         onClick={() => handleToggleArea(area.id)}
-                        className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 cursor-pointer ${
+                        style={
                           isSelected
-                            ? 'bg-palette-primary text-white border-palette-primary shadow-md shadow-palette-glow scale-[1.02]'
-                            : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-palette-primary/40'
+                            ? {
+                                backgroundColor: 'var(--primary, #4d5eb3)',
+                                borderColor: 'var(--primary, #4d5eb3)',
+                                color: '#ffffff',
+                                boxShadow: '0 4px 14px -2px rgba(77, 94, 179, 0.45)'
+                              }
+                            : {}
+                        }
+                        className={`px-3.5 py-2.5 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 cursor-pointer ${
+                          isSelected
+                            ? 'text-white scale-[1.02]'
+                            : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'
                         }`}
                       >
-                        <area.icon className="w-3.5 h-3.5 shrink-0" />
+                        <area.icon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-white' : 'text-slate-500'}`} />
                         <span>{area.label}</span>
-                        {isSelected && <Check className="w-3.5 h-3.5 ml-0.5" />}
+                        {isSelected && <Check className="w-3.5 h-3.5 ml-0.5 text-white stroke-[2.5]" />}
                       </button>
                     )
                   })}
@@ -717,7 +773,12 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
               {/* Pregunta 2: ¿Cuál es el mayor obstáculo que tienes con tu CV actual? */}
               <div>
                 <label className="block text-xs font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-1.5">
-                  <span className="w-4 h-4 rounded-full bg-palette-primary text-white text-[10px] font-bold flex items-center justify-center">2</span>
+                  <span 
+                    className="w-4 h-4 rounded-full text-white text-[10px] font-bold flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: 'var(--primary, #4d5eb3)' }}
+                  >
+                    2
+                  </span>
                   <span>¿Cuál es el mayor obstáculo que tienes con tu CV actual? *</span>
                 </label>
 
@@ -729,20 +790,51 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                         key={obs.id}
                         type="button"
                         onClick={() => setSelectedObstacle(obs.id)}
-                        className={`w-full p-3 rounded-2xl border text-left transition-all flex items-start gap-3 cursor-pointer ${
+                        style={
                           isSelected
-                            ? 'bg-palette-primary/10 border-palette-primary ring-2 ring-palette-primary/20'
-                            : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+                            ? {
+                                borderColor: 'var(--primary, #4d5eb3)',
+                                backgroundColor: 'rgba(77, 94, 179, 0.08)',
+                                boxShadow: '0 0 0 1px var(--primary, #4d5eb3)'
+                              }
+                            : {}
+                        }
+                        className={`w-full p-3.5 rounded-2xl border text-left transition-all flex items-start gap-3 cursor-pointer ${
+                          isSelected
+                            ? 'shadow-sm'
+                            : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                         }`}
                       >
-                        <div className={`w-4 h-4 rounded-full border mt-0.5 flex items-center justify-center shrink-0 ${
-                          isSelected ? 'border-palette-primary bg-palette-primary text-white' : 'border-slate-400'
-                        }`}>
-                          {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                        <div 
+                          className="w-5 h-5 rounded-full border mt-0.5 flex items-center justify-center shrink-0 transition-colors"
+                          style={
+                            isSelected
+                              ? {
+                                  backgroundColor: 'var(--primary, #4d5eb3)',
+                                  borderColor: 'var(--primary, #4d5eb3)',
+                                  color: '#ffffff'
+                                }
+                              : {
+                                  borderColor: '#94a3b8'
+                                }
+                          }
+                        >
+                          {isSelected ? (
+                            <Check className="w-3 h-3 text-white stroke-[3]" />
+                          ) : null}
                         </div>
-                        <div>
-                          <div className="font-bold text-xs text-slate-900 dark:text-white">{obs.title}</div>
-                          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">{obs.desc}</div>
+                        <div className="flex-1">
+                          <div 
+                            className="font-bold text-xs"
+                            style={isSelected ? { color: 'var(--primary, #4d5eb3)' } : {}}
+                          >
+                            <span className={isSelected ? '' : 'text-slate-900 dark:text-white'}>
+                              {obs.title}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">
+                            {obs.desc}
+                          </div>
                         </div>
                       </button>
                     )
@@ -753,7 +845,12 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
               {/* Pregunta 3: ¿Cómo te enteraste de Mi Vitae? */}
               <div>
                 <label className="block text-xs font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-1.5">
-                  <span className="w-4 h-4 rounded-full bg-palette-primary text-white text-[10px] font-bold flex items-center justify-center">3</span>
+                  <span 
+                    className="w-4 h-4 rounded-full text-white text-[10px] font-bold flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: 'var(--primary, #4d5eb3)' }}
+                  >
+                    3
+                  </span>
                   <span>¿Cómo te enteraste de Mi Vitae? *</span>
                 </label>
 
@@ -765,14 +862,27 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                         key={ref.id}
                         type="button"
                         onClick={() => setSelectedReferral(ref.id)}
-                        className={`p-3 rounded-xl border text-left text-xs font-medium transition-all flex items-center gap-2 cursor-pointer ${
+                        style={
                           isSelected
-                            ? 'bg-palette-primary text-white border-palette-primary shadow-sm'
-                            : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-palette-primary/40'
+                            ? {
+                                backgroundColor: 'var(--primary, #4d5eb3)',
+                                borderColor: 'var(--primary, #4d5eb3)',
+                                color: '#ffffff',
+                                boxShadow: '0 4px 14px -2px rgba(77, 94, 179, 0.45)'
+                              }
+                            : {}
+                        }
+                        className={`p-3 rounded-xl border text-left text-xs font-semibold transition-all flex items-center justify-between gap-2 cursor-pointer ${
+                          isSelected
+                            ? 'text-white scale-[1.01]'
+                            : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'
                         }`}
                       >
-                        <ref.icon className="w-3.5 h-3.5 shrink-0" />
-                        <span className="truncate">{ref.label}</span>
+                        <div className="flex items-center gap-2 truncate">
+                          <ref.icon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-white' : 'text-slate-500'}`} />
+                          <span className="truncate">{ref.label}</span>
+                        </div>
+                        {isSelected && <Check className="w-3.5 h-3.5 shrink-0 text-white stroke-[2.5]" />}
                       </button>
                     )
                   })}

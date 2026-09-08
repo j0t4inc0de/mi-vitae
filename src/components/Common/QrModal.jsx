@@ -111,8 +111,8 @@ export default function QrModal({ isOpen, onClose, profile, customUrl }) {
       <div 
         className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border p-6 sm:p-8 flex flex-col max-h-[90vh] overflow-y-auto transition-all"
         style={{
-          borderColor: 'rgba(var(--primary-rgb, 79, 70, 229), 0.3)',
-          boxShadow: '0 25px 60px -15px var(--glow, rgba(79, 70, 229, 0.25))'
+          borderColor: 'rgb(var(--primary-rgb, 77 94 179) / 0.3)',
+          boxShadow: '0 25px 60px -15px var(--glow, rgba(77, 94, 179, 0.25))'
         }}
       >
         

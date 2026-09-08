@@ -189,7 +189,7 @@ export default function AuthPage() {
         <div 
           className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border shadow-2xl backdrop-blur-xl transition-all"
           style={{
-            borderColor: 'rgba(var(--primary-rgb, 79, 70, 229), 0.3)',
+            borderColor: 'rgb(var(--primary-rgb, 77 94 179) / 0.3)',
             boxShadow: '0 25px 60px -15px var(--glow, rgba(79, 70, 229, 0.2))'
           }}
         >

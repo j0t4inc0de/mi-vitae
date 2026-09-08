@@ -94,13 +94,13 @@ const highlightScale = rawPalette[warmKey]
 const darkScale = rawPalette[darkKey]
 
 export function hexToRgb(hex) {
-  if (!hex) return '79, 70, 229'
+  if (!hex) return '77 94 179'
   const cleaned = hex.replace('#', '')
   const num = parseInt(cleaned, 16)
   const r = (num >> 16) & 255
   const g = (num >> 8) & 255
   const b = num & 255
-  return `${r}, ${g}, ${b}`
+  return `${r} ${g} ${b}`
 }
 
 export const semanticTokens = {
