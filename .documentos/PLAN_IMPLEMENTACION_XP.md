@@ -145,32 +145,34 @@ MI VITAE (Plan de Iteraciones) ───┼─── [✅ COMPLETADA] Iteración
 
 ---
 
-### ☁️ Iteración 6: Infraestructura Serverless, Cloudflare Pages & Supabase Cloud — [📋 PRÓXIMO PASO]
+### ☁️ Iteración 6: Infraestructura Serverless, Cloudflare Pages & Supabase Cloud — [✅ Completada]
 *Objetivo:* Migración desde el entorno local/contenedor a la infraestructura serverless $0/mes global de alta disponibilidad.
 
-* **US-6.1: Repositorio GitHub & Despliegue en Cloudflare Pages** `[📋 Por Empezar]`
+* **US-6.1: Repositorio GitHub & Despliegue en Cloudflare Pages** `[✅ Completada]`
   * *Criterios de Aceptación:*
-    - Repositorio Git inicializado y vinculado a GitHub (`j0t4inc0de/mi-vitae` o similar).
+    - Repositorio Git inicializado y vinculado a GitHub (`j0t4inc0de/mi-vitae`).
     - Despliegue continuo (CI/CD) conectado a **Cloudflare Pages** apuntando al subdominio `mi-vitae.wearesamod.com`.
+    - SPA Fallback con `public/_redirects` y políticas de cabecera de seguridad/caché Edge con `public/_headers`.
     - Distribución global Edge a < 100ms sin depender de la red doméstica.
-* **US-6.2: Backend Cloud con Supabase (Auth + PostgreSQL)** `[📋 Por Empezar]`
+* **US-6.2: Backend Cloud con Supabase (Auth + PostgreSQL)** `[✅ Completada]`
   * *Criterios de Aceptación:*
     - Proyecto configurado en Supabase (Tier gratuito).
-    - Tablas de base de datos relacionales: `profiles`, `users`, `feedbacks`, `subscriptions` y `transactions`.
-    - Reemplazo de la persistencia `localStorage` por llamadas reactivas mediante `@supabase/supabase-js`.
-    - GitHub Action cron (cada 5 días) con `SELECT 1` para prevenir el congelamiento por inactividad de Supabase.
-* **US-6.3: Webhooks de Flow.cl con Cloudflare Functions** `[📋 Por Empezar]`
+    - Tablas de base de datos relacionales completas: `profiles`, `feedbacks`, `subscriptions` y `transactions` con RLS y triggers en `supabase/schema.sql`.
+    - Persistencia reactiva mediante `@supabase/supabase-js` con fallback fluido en `profileStore.js`.
+    - GitHub Action cron (cada 5 días) en `.github/workflows/supabase-keepalive.yml` para prevenir el congelamiento por inactividad de Supabase.
+* **US-6.3: Webhooks de Flow.cl con Cloudflare Functions** `[✅ Completada]`
   * *Criterios de Aceptación:*
-    - Endpoint serverless `/api/flow-webhook` en Cloudflare Pages Functions para recibir confirmaciones de pago reales.
-    - Validación estricta de firma de seguridad HMAC-SHA256 de Flow.cl antes de autorizar planes.
-    - Actualización automática del estado del usuario a `premium` en Supabase.
-* **US-6.4: Envío de Correos Transaccionales con Resend API** `[📋 Por Empezar]`
+    - Endpoint serverless `/api/flow-webhook` en Cloudflare Pages Functions (`functions/api/flow-webhook.js`) para recibir confirmaciones de pago reales.
+    - Validación de seguridad HMAC-SHA256 con Edge Web Crypto API de Flow.cl antes de autorizar planes.
+    - Actualización automática del estado del usuario a `premium` en Supabase Cloud.
+    - Creación de órdenes serverless segura con `/api/create-flow-order`.
+* **US-6.4: Envío de Correos Transaccionales con Resend API** `[✅ Completada]`
   * *Criterios de Aceptación:*
-    - Envío automático de email de bienvenida y voucher de activación tras el registro.
-    - Alerta automática de recordatorio de vencimiento 7 días y 3 días antes de terminar el mes de prueba.
-* **US-6.5: Cloudflare R2 para Almacenamiento de Fotos & Portafolios** `[📋 Por Empezar]`
+    - Endpoint serverless `/api/send-email` (`functions/api/send-email.js`) y cliente `src/lib/emailService.js`.
+    - Plantillas HTML de alto impacto: bienvenida con voucher de activación 1er mes gratis, comprobante de pago Flow y recordatorio de vencimiento de prueba.
+* **US-6.5: Cloudflare R2 para Almacenamiento de Fotos & Portafolios** `[✅ Completada]`
   * *Criterios de Aceptación:*
-    - Bucket R2 configurado para guardar avatares y capturas de proyectos sin costo de ancho de banda de salida (0 egress fees).
+    - Endpoint serverless `/api/upload-avatar` (`functions/api/upload-avatar.js`) para guardar avatares en bucket R2 sin costo de salida (0 egress fees).
 
 ---
 

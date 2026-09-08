@@ -1,6 +1,14 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { INITIAL_MOCK_PROFILES } from '../data/mockProfiles'
+import {
+  isSupabaseConfigured,
+  saveProfileToSupabase,
+  fetchProfileFromSupabase,
+  saveFeedbackToSupabase,
+  saveTransactionToSupabase,
+  incrementAnalyticsInSupabase
+} from '../lib/supabaseClient'
 
 export const useProfileStore = create(
   persist(
@@ -49,6 +57,30 @@ export const useProfileStore = create(
         const normalized = username.toLowerCase().trim()
         const profiles = get().profiles
         return profiles[normalized] || null
+      },
+
+      // Fetch profile from Supabase Cloud if available
+      fetchRemoteProfile: async (username) => {
+        if (!username || !isSupabaseConfigured) return null
+        const normalized = username.toLowerCase().trim()
+        try {
+          const remote = await fetchProfileFromSupabase(normalized)
+          if (remote) {
+            set((state) => ({
+              profiles: {
+                ...state.profiles,
+                [normalized]: {
+                  ...(state.profiles[normalized] || {}),
+                  ...remote
+                }
+              }
+            }))
+            return remote
+          }
+        } catch (err) {
+          console.warn('[profileStore] Error fetching remote profile:', err)
+        }
+        return null
       },
 
       isUsernameAvailable: (username) => {
@@ -112,6 +144,11 @@ export const useProfileStore = create(
             }
           }
         }))
+
+        if (isSupabaseConfigured) {
+          const latest = get().profiles[normalized]
+          if (latest) saveProfileToSupabase(latest)
+        }
       },
 
       setTheme: (themeOrUsername, maybeTheme) => {
@@ -136,6 +173,11 @@ export const useProfileStore = create(
             }
           }
         }))
+
+        if (isSupabaseConfigured) {
+          const latest = get().profiles[normalized]
+          if (latest) saveProfileToSupabase(latest)
+        }
       },
 
       // Analytics Actions
@@ -158,6 +200,10 @@ export const useProfileStore = create(
             }
           }
         }))
+
+        if (isSupabaseConfigured) {
+          incrementAnalyticsInSupabase(normalized, 'views')
+        }
       },
 
       recordClick: (username, type = 'contact') => {
@@ -169,6 +215,7 @@ export const useProfileStore = create(
         const analytics = profile.analytics || { views: 0, contactClicks: 0, cvDownloads: 0 }
         
         let newAnalytics = { ...analytics }
+        const metricName = (type === 'cv' || type === 'download') ? 'cvDownloads' : 'contactClicks'
         if (type === 'cv' || type === 'download') {
           newAnalytics.cvDownloads = (analytics.cvDownloads || 0) + 1
         } else {
@@ -184,6 +231,10 @@ export const useProfileStore = create(
             }
           }
         }))
+
+        if (isSupabaseConfigured) {
+          incrementAnalyticsInSupabase(normalized, metricName)
+        }
       },
 
       recordDownload: (username) => {
@@ -211,6 +262,10 @@ export const useProfileStore = create(
           },
           activeUsername: normalized
         }))
+
+        if (isSupabaseConfigured) {
+          saveProfileToSupabase(profileWithDefaults)
+        }
         return true
       },
 
@@ -243,6 +298,12 @@ export const useProfileStore = create(
           },
           activeUsername: normalized
         }))
+
+        if (isSupabaseConfigured) {
+          const updated = get().profiles[normalized]
+          if (updated) saveProfileToSupabase(updated)
+          saveFeedbackToSupabase({ username: normalized, ...feedbackData })
+        }
         return true
       },
 
@@ -286,6 +347,12 @@ export const useProfileStore = create(
           },
           activeUsername: normalized
         }))
+
+        if (isSupabaseConfigured) {
+          const updated = get().profiles[normalized]
+          if (updated) saveProfileToSupabase(updated)
+          saveTransactionToSupabase({ ...transaction, username: normalized })
+        }
         return transaction
       },
 

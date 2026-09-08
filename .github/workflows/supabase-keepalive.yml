@@ -1,0 +1,38 @@
+name: Supabase Cloud Keep-Alive Cron
+
+# Prevents free-tier project from pausing due to 7 days of inactivity
+on:
+  schedule:
+    # Run every 5 days at 04:00 UTC
+    - cron: '0 4 */5 * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  ping-supabase:
+    name: Ping Supabase Database
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send keep-alive health request to Supabase REST API
+        run: |
+          SUPABASE_URL="${{ secrets.VITE_SUPABASE_URL }}"
+          SUPABASE_KEY="${{ secrets.VITE_SUPABASE_ANON_KEY }}"
+
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
+            echo "⚠️ Secrets VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY not set yet. Skipping keep-alive ping."
+            exit 0
+          fi
+
+          echo "Pinging Supabase at $SUPABASE_URL..."
+          RESPONSE_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY" \
+            "$SUPABASE_URL/rest/v1/profiles?select=count&limit=1")
+
+          echo "HTTP Response Status Code: $RESPONSE_CODE"
+
+          if [ "$RESPONSE_CODE" -ge 200 ] && [ "$RESPONSE_CODE" -lt 400 ]; then
+            echo "✅ Supabase project is awake and responding healthy!"
+          else
+            echo "❌ Warning: Received HTTP $RESPONSE_CODE from Supabase."
+            exit 1
+          fi

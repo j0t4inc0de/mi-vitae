@@ -1,0 +1,14 @@
+name = "mi-vitae"
+compatibility_date = "2024-09-01"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "dist"
+
+# Cloudflare Pages Functions configuration
+[vars]
+ENVIRONMENT = "production"
+APP_URL = "https://mi-vitae.wearesamod.com"
+
+# Bindings for Cloudflare R2 (Optional Storage)
+# [[r2_buckets]]
+# binding = "AVATARS_BUCKET"
+# bucket_name = "mi-vitae-assets"

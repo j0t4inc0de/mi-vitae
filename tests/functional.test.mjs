@@ -307,6 +307,85 @@ it('generates valid CSS variables string for injection', () => {
   assert.ok(cssVars.includes('--glow:'));
 });
 
+// -------------------------------------------------------------
+// SUITE 6: SERVERLESS EDGE, CLOUDFLARE PAGES & SUPABASE CLOUD
+// -------------------------------------------------------------
+console.log('\n▶ Suite 6: Serverless Edge, Cloudflare Pages & Supabase Cloud');
+
+it('verifies Cloudflare Pages SPA redirects and edge security headers', () => {
+  const redirectsPath = path.join(ROOT, 'public', '_redirects');
+  const headersPath = path.join(ROOT, 'public', '_headers');
+  const wranglerPath = path.join(ROOT, 'wrangler.toml');
+
+  assert.ok(fs.existsSync(redirectsPath), 'public/_redirects must exist');
+  assert.ok(fs.existsSync(headersPath), 'public/_headers must exist');
+  assert.ok(fs.existsSync(wranglerPath), 'wrangler.toml must exist');
+
+  const redirectsContent = fs.readFileSync(redirectsPath, 'utf-8');
+  assert.match(redirectsContent, /\/index\.html\s+200/, '_redirects must route to index.html with 200');
+
+  const headersContent = fs.readFileSync(headersPath, 'utf-8');
+  assert.ok(headersContent.includes('X-Content-Type-Options: nosniff'), '_headers must contain security headers');
+  assert.ok(headersContent.includes('Cache-Control: public, max-age=31536000'), '_headers must configure immutable asset cache');
+});
+
+it('verifies Supabase SQL production schema completeness', () => {
+  const schemaPath = path.join(ROOT, 'supabase', 'schema.sql');
+  assert.ok(fs.existsSync(schemaPath), 'supabase/schema.sql must exist');
+
+  const schemaContent = fs.readFileSync(schemaPath, 'utf-8');
+  assert.ok(schemaContent.includes('CREATE TABLE IF NOT EXISTS public.profiles'), 'schema must define profiles table');
+  assert.ok(schemaContent.includes('CREATE TABLE IF NOT EXISTS public.feedbacks'), 'schema must define feedbacks table');
+  assert.ok(schemaContent.includes('CREATE TABLE IF NOT EXISTS public.subscriptions'), 'schema must define subscriptions table');
+  assert.ok(schemaContent.includes('CREATE TABLE IF NOT EXISTS public.transactions'), 'schema must define transactions table');
+  assert.ok(schemaContent.includes('handle_new_user()'), 'schema must define auto new user trigger');
+  assert.ok(schemaContent.includes('increment_analytics'), 'schema must define analytics RPC function');
+  assert.ok(schemaContent.includes('ENABLE ROW LEVEL SECURITY'), 'schema must enable RLS');
+});
+
+it('verifies Cloudflare Pages Functions serverless endpoints exist', () => {
+  const functionsDir = path.join(ROOT, 'functions', 'api');
+  const webhookFile = path.join(functionsDir, 'flow-webhook.js');
+  const createOrderFile = path.join(functionsDir, 'create-flow-order.js');
+  const emailFile = path.join(functionsDir, 'send-email.js');
+  const avatarFile = path.join(functionsDir, 'upload-avatar.js');
+  const healthFile = path.join(functionsDir, 'health.js');
+
+  assert.ok(fs.existsSync(webhookFile), 'functions/api/flow-webhook.js must exist');
+  assert.ok(fs.existsSync(createOrderFile), 'functions/api/create-flow-order.js must exist');
+  assert.ok(fs.existsSync(emailFile), 'functions/api/send-email.js must exist');
+  assert.ok(fs.existsSync(avatarFile), 'functions/api/upload-avatar.js must exist');
+  assert.ok(fs.existsSync(healthFile), 'functions/api/health.js must exist');
+
+  const webhookContent = fs.readFileSync(webhookFile, 'utf-8');
+  assert.ok(webhookContent.includes('export async function onRequestPost'), 'flow-webhook must export onRequestPost');
+
+  const emailContent = fs.readFileSync(emailFile, 'utf-8');
+  assert.ok(emailContent.includes('export async function onRequestPost'), 'send-email must export onRequestPost');
+});
+
+const supabaseModule = await vite.ssrLoadModule('/src/lib/supabaseClient.js');
+const emailModule = await vite.ssrLoadModule('/src/lib/emailService.js');
+
+it('verifies Supabase client and email service frontend modules load properly', () => {
+  assert.ok(typeof supabaseModule.signUpWithSupabase === 'function');
+  assert.ok(typeof supabaseModule.signInWithSupabase === 'function');
+  assert.ok(typeof supabaseModule.fetchProfileFromSupabase === 'function');
+  assert.ok(typeof supabaseModule.saveProfileToSupabase === 'function');
+
+  assert.ok(typeof emailModule.sendWelcomeEmail === 'function');
+  assert.ok(typeof emailModule.sendPaymentReceiptEmail === 'function');
+});
+
+it('verifies GitHub Actions Supabase keep-alive cron workflow', () => {
+  const keepAlivePath = path.join(ROOT, '.github', 'workflows', 'supabase-keepalive.yml');
+  assert.ok(fs.existsSync(keepAlivePath), 'supabase-keepalive.yml must exist');
+
+  const content = fs.readFileSync(keepAlivePath, 'utf-8');
+  assert.ok(content.includes('cron:'), 'workflow must define cron schedule');
+  assert.ok(content.includes('VITE_SUPABASE_URL'), 'workflow must use Supabase URL secret');
+});
+
 await vite.close();
 
 // -------------------------------------------------------------
