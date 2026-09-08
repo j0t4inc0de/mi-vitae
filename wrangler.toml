@@ -1,12 +1,17 @@
 name = "mi-vitae"
+main = "worker.js"
 compatibility_date = "2024-09-01"
 compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = "dist"
 
-# Cloudflare Pages Functions configuration
+# Cloudflare Static Assets configuration (SPA Mode)
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
 [vars]
 ENVIRONMENT = "production"
-APP_URL = "https://mi-vitae.wearesamod.com"
+APP_URL = "https://mivitae.wearesamod.com"
 
 # Bindings for Cloudflare R2 (Optional Storage)
 # [[r2_buckets]]

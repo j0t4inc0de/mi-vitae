@@ -1,0 +1,40 @@
+/**
+ * Cloudflare Worker Entry Point: Static Assets + Serverless API Router
+ * Compatible with Cloudflare Workers (CI/CD) and Wrangler 4+
+ */
+import { onRequestPost as handleFlowWebhook } from './functions/api/flow-webhook.js'
+import { onRequestPost as handleCreateFlowOrder } from './functions/api/create-flow-order.js'
+import { onRequestPost as handleSendEmail } from './functions/api/send-email.js'
+import { onRequestPost as handleUploadAvatar } from './functions/api/upload-avatar.js'
+import { onRequestGet as handleHealth } from './functions/api/health.js'
+
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url)
+    const pathname = url.pathname
+
+    // Route API requests to serverless handlers
+    if (pathname === '/api/flow-webhook') {
+      return handleFlowWebhook({ request, env })
+    }
+    if (pathname === '/api/create-flow-order') {
+      return handleCreateFlowOrder({ request, env })
+    }
+    if (pathname === '/api/send-email') {
+      return handleSendEmail({ request, env })
+    }
+    if (pathname === '/api/upload-avatar') {
+      return handleUploadAvatar({ request, env })
+    }
+    if (pathname === '/api/health') {
+      return handleHealth({ request, env })
+    }
+
+    // Serve static assets with Single Page Application fallback (React SPA)
+    if (env.ASSETS) {
+      return env.ASSETS.fetch(request)
+    }
+
+    return new Response('Not Found', { status: 404 })
+  }
+}

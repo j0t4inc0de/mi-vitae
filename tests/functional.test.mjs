@@ -316,10 +316,16 @@ it('verifies Cloudflare Pages SPA redirects and edge security headers', () => {
   const redirectsPath = path.join(ROOT, 'public', '_redirects');
   const headersPath = path.join(ROOT, 'public', '_headers');
   const wranglerPath = path.join(ROOT, 'wrangler.toml');
+  const workerPath = path.join(ROOT, 'worker.js');
 
   assert.ok(fs.existsSync(redirectsPath), 'public/_redirects must exist');
   assert.ok(fs.existsSync(headersPath), 'public/_headers must exist');
   assert.ok(fs.existsSync(wranglerPath), 'wrangler.toml must exist');
+  assert.ok(fs.existsSync(workerPath), 'worker.js must exist');
+
+  const wranglerContent = fs.readFileSync(wranglerPath, 'utf-8');
+  assert.ok(wranglerContent.includes('[assets]'), 'wrangler.toml must configure [assets]');
+  assert.ok(wranglerContent.includes('main = "worker.js"'), 'wrangler.toml must define main = "worker.js"');
 
   const redirectsContent = fs.readFileSync(redirectsPath, 'utf-8');
   assert.match(redirectsContent, /\/index\.html\s+200/, '_redirects must route to index.html with 200');
