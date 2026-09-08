@@ -45,6 +45,8 @@ import {
   Share2,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Maximize2
 } from 'lucide-react'
 
@@ -135,11 +137,27 @@ export default function DashboardPage() {
   const avatarInputRef = useRef(null)
   const tabsContainerRef = useRef(null)
 
+  const getLiveProfileUrl = () => {
+    if (typeof window !== 'undefined' && window.location?.origin && !window.location.origin.includes('localhost') && !window.location.origin.includes('127.0.0.1')) {
+      return `${window.location.origin}/${profileData.username}`
+    }
+    return `/${profileData.username}`
+  }
+
   const handleCopyLink = () => {
-    const fullUrl = `https://mi-vitae.wearesamod.com/${profileData.username}`
+    const fullUrl = typeof window !== 'undefined' && window.location?.origin && !window.location.origin.includes('localhost')
+      ? `${window.location.origin}/${profileData.username}`
+      : `https://${window.location.host || 'mivitae.wearesamod.com'}/${profileData.username}`
     navigator.clipboard.writeText(fullUrl)
     setCopiedLink(true)
     setTimeout(() => setCopiedLink(false), 2500)
+  }
+
+  const scrollTabs = (direction) => {
+    if (tabsContainerRef.current) {
+      const scrollAmount = direction === 'left' ? -220 : 220
+      tabsContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' })
+    }
   }
 
   // Calculate plan expiration date and days remaining
@@ -622,7 +640,7 @@ export default function DashboardPage() {
             {/* Quick Actions for Mobile Header */}
             <div className="flex items-center gap-1.5 sm:hidden">
               <a
-                href={`https://mi-vitae.wearesamod.com/${profileData.username}`}
+                href={getLiveProfileUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 active:scale-95"
@@ -668,7 +686,7 @@ export default function DashboardPage() {
 
             {/* View Live Link (Desktop/Tablet) */}
             <a
-              href={`https://mi-vitae.wearesamod.com/${profileData.username}`}
+              href={getLiveProfileUrl()}
               target="_blank"
               rel="noopener noreferrer"
               className="hidden sm:flex px-3.5 py-2.5 min-h-[44px] rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-bold items-center gap-1.5 transition-colors shadow-sm"
@@ -758,36 +776,66 @@ export default function DashboardPage() {
             </div>
 
             {/* Scrollable Horizontal Tabs with Snap and Hidden Scrollbars */}
-            <div 
-              ref={tabsContainerRef}
-              className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-slate-800/80 scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            >
-              {tabs.map((tab) => {
-                const IconComponent = tab.icon
-                const isActive = activeTab === tab.id
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2 shrink-0 cursor-pointer snap-start ${
-                      isActive
-                        ? 'bg-palette-gradient text-white shadow-md shadow-palette-glow'
-                        : 'bg-slate-800/70 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/60'
-                    }`}
-                  >
-                    <IconComponent className="w-4 h-4 shrink-0" />
-                    <span>{tab.label}</span>
-                    {tab.count !== null && (
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
-                        isActive ? 'bg-white/20 text-white' : 'bg-slate-700 text-slate-300'
-                      }`}>
-                        {tab.count}
-                      </span>
-                    )}
-                  </button>
-                )
-              })}
+            <div className="relative flex items-center group/tabs">
+              {/* Left Scroll Arrow (Desktop/PC) */}
+              <button
+                type="button"
+                onClick={() => scrollTabs('left')}
+                className="hidden md:flex p-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 shadow-md absolute left-0 z-10 -translate-x-2 opacity-0 group-hover/tabs:opacity-100 transition-opacity cursor-pointer"
+                title="Desplazar a la izquierda"
+                aria-label="Desplazar pestañas a la izquierda"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              <div 
+                ref={tabsContainerRef}
+                onWheel={(e) => {
+                  if (tabsContainerRef.current && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                    e.preventDefault()
+                    tabsContainerRef.current.scrollLeft += e.deltaY
+                  }
+                }}
+                className="w-full flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-slate-800/80 scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              >
+                {tabs.map((tab) => {
+                  const IconComponent = tab.icon
+                  const isActive = activeTab === tab.id
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2 shrink-0 cursor-pointer snap-start ${
+                        isActive
+                          ? 'bg-palette-gradient text-white shadow-md shadow-palette-glow'
+                          : 'bg-slate-800/70 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/60'
+                      }`}
+                    >
+                      <IconComponent className="w-4 h-4 shrink-0" />
+                      <span>{tab.label}</span>
+                      {tab.count !== null && (
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                          isActive ? 'bg-white/20 text-white' : 'bg-slate-700 text-slate-300'
+                        }`}>
+                          {tab.count}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Right Scroll Arrow (Desktop/PC) */}
+              <button
+                type="button"
+                onClick={() => scrollTabs('right')}
+                className="hidden md:flex p-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 shadow-md absolute right-0 z-10 translate-x-2 opacity-0 group-hover/tabs:opacity-100 transition-opacity cursor-pointer"
+                title="Desplazar a la derecha"
+                aria-label="Desplazar pestañas a la derecha"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
 
@@ -1882,7 +1930,7 @@ export default function DashboardPage() {
             <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex items-center justify-between gap-2 mb-4">
               <div className="flex items-center gap-2 min-w-0 text-xs font-mono text-slate-300">
                 <Globe className="w-4 h-4 text-palette-primary shrink-0" />
-                <span className="truncate">mi-vitae.wearesamod.com/<strong className="text-white">{profileData.username}</strong></span>
+                <span className="truncate">{typeof window !== 'undefined' && window.location?.host && !window.location.host.includes('localhost') ? window.location.host : 'mivitae.wearesamod.com'}/<strong className="text-white">{profileData.username}</strong></span>
               </div>
               <button
                 type="button"
@@ -1898,7 +1946,7 @@ export default function DashboardPage() {
             {/* Action Buttons Grid */}
             <div className="grid grid-cols-2 gap-2.5">
               <a
-                href={`https://mi-vitae.wearesamod.com/${profileData.username}`}
+                href={getLiveProfileUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-4 py-3 rounded-2xl bg-palette-gradient hover:opacity-95 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-palette-glow transition-all hover:scale-[1.02] active:scale-[0.98]"
