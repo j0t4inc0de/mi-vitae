@@ -160,8 +160,13 @@ export default function AuthPage() {
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12 relative overflow-hidden bg-slate-50 dark:bg-slate-950">
       
-      {/* Subtle background glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-gradient-to-tr from-palette-primary/15 via-palette-accent/15 to-palette-highlight/15 blur-3xl rounded-full pointer-events-none -z-10" />
+      {/* Dynamic background ambient glow */}
+      <div 
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] blur-3xl rounded-full pointer-events-none -z-10 opacity-30 transition-all duration-700"
+        style={{
+          background: 'radial-gradient(circle, var(--primary, #4f46e5) 0%, var(--accent, #06b6d4) 50%, transparent 70%)'
+        }}
+      />
 
       <div className="w-full max-w-md">
         
@@ -177,7 +182,7 @@ export default function AuthPage() {
           </Link>
 
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            {mode === 'login' ? 'Iniciar Sesión' : 'Crea tu Cuenta Gratis'}
+            {mode === 'login' ? 'Iniciar Sesión' : <>Crea tu Cuenta <span className="text-palette-gradient">Gratis</span></>}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">
             {mode === 'login' 
@@ -187,20 +192,26 @@ export default function AuthPage() {
         </div>
 
         {/* Card Container */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-xl shadow-palette-glow/10 backdrop-blur-xl">
+        <div 
+          className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border shadow-2xl backdrop-blur-xl transition-all"
+          style={{
+            borderColor: 'rgba(var(--primary-rgb, 79, 70, 229), 0.3)',
+            boxShadow: '0 25px 60px -15px var(--glow, rgba(79, 70, 229, 0.2))'
+          }}
+        >
           
           {/* Mode Switcher Tabs */}
-          <div className="flex rounded-2xl bg-slate-100 dark:bg-slate-800 p-1 mb-6">
+          <div className="flex rounded-2xl bg-slate-100 dark:bg-slate-800/80 p-1 mb-6 border border-slate-200/60 dark:border-slate-700/60">
             <button
               type="button"
               onClick={() => { setMode('login'); setErrorMessage(''); setSuccessMessage('') }}
               className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 mode === 'login'
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                  ? 'bg-white dark:bg-slate-900 text-palette-primary shadow-sm border border-palette-primary/30'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <LogIn className="w-4 h-4" />
+              <LogIn className="w-4 h-4 text-palette-primary" />
               <span>Iniciar Sesión</span>
             </button>
 
@@ -209,11 +220,11 @@ export default function AuthPage() {
               onClick={() => { setMode('register'); setErrorMessage(''); setSuccessMessage('') }}
               className={`flex-1 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 mode === 'register'
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                  ? 'bg-white dark:bg-slate-900 text-palette-primary shadow-sm border border-palette-primary/30'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              <UserPlus className="w-4 h-4" />
+              <UserPlus className="w-4 h-4 text-palette-primary" />
               <span>Registrarse</span>
             </button>
           </div>

@@ -203,7 +203,13 @@ Soporte técnico: contacto@wearesamod.com
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md transition-all animate-fadeIn">
       
       {/* Modal Dialog Card */}
-      <div className="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[92vh]">
+      <div 
+        className="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border overflow-hidden flex flex-col max-h-[92vh] transition-all"
+        style={{
+          borderColor: 'rgba(var(--primary-rgb, 79, 70, 229), 0.3)',
+          boxShadow: '0 25px 60px -15px var(--glow, rgba(79, 70, 229, 0.25))'
+        }}
+      >
         
         {/* Flow.cl Chilean Brand Header */}
         <div className="bg-[#0F265C] text-white p-5 sm:p-6 relative">
@@ -524,7 +530,7 @@ Soporte técnico: contacto@wearesamod.com
                 <button
                   type="button"
                   onClick={handleModalClose}
-                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-extrabold text-sm shadow-xl shadow-indigo-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-3.5 rounded-2xl bg-palette-primary hover:bg-palette-hover text-white font-extrabold text-sm shadow-xl shadow-palette-glow transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4" />
                   <span>Continuar en el Dashboard Studio</span>

@@ -107,23 +107,33 @@ export default function QrModal({ isOpen, onClose, profile, customUrl }) {
       aria-labelledby="qr-modal-title"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in"
       onClick={onClose}
-    >
-      <div
-        className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl overflow-hidden transition-all"
-        onClick={(e) => e.stopPropagation()}
+    >      {/* Modal Card Container */}
+      <div 
+        className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border p-6 sm:p-8 flex flex-col max-h-[90vh] overflow-y-auto transition-all"
+        style={{
+          borderColor: 'rgba(var(--primary-rgb, 79, 70, 229), 0.3)',
+          boxShadow: '0 25px 60px -15px var(--glow, rgba(79, 70, 229, 0.25))'
+        }}
       >
+        
         {/* Close Button */}
         <button
           onClick={onClose}
+          className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           aria-label="Cerrar modal"
-          className="absolute top-5 right-5 p-2 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Modal Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shadow-inner">
+        <div className="flex items-center gap-3 mb-5">
+          <div 
+            className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-md shrink-0 transition-all"
+            style={{
+              background: 'linear-gradient(135deg, var(--gradient-from), var(--gradient-to))',
+              boxShadow: '0 4px 12px -2px var(--glow)'
+            }}
+          >
             <QrCode className="w-5 h-5" />
           </div>
           <div>
@@ -137,27 +147,27 @@ export default function QrModal({ isOpen, onClose, profile, customUrl }) {
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex items-center gap-2 p-1 mb-6 bg-slate-100 dark:bg-slate-800/60 rounded-xl">
+        <div className="flex items-center gap-2 p-1 mb-6 bg-slate-100 dark:bg-slate-800/60 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
           <button
             onClick={() => setActiveTab('qr')}
-            className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               activeTab === 'qr'
-                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                ? 'bg-white dark:bg-slate-900 text-palette-primary shadow-sm border border-palette-primary/20'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
-            <QrCode className="w-3.5 h-3.5" />
+            <QrCode className="w-3.5 h-3.5 text-palette-primary" />
             <span>Código QR Nítido</span>
           </button>
           <button
             onClick={() => setActiveTab('card')}
-            className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
               activeTab === 'card'
-                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-white dark:bg-slate-900 text-palette-primary shadow-sm border border-palette-primary/20'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
-            <CreditCard className="w-3.5 h-3.5" />
+            <CreditCard className="w-3.5 h-3.5 text-palette-primary" />
             <span>Simulador Tarjeta Física</span>
           </button>
         </div>

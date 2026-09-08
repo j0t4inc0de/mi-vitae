@@ -386,7 +386,13 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
         <div className="px-6 pt-6 pb-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 shrink-0">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-md">
+              <div 
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-md transition-all"
+                style={{
+                  background: 'linear-gradient(135deg, var(--gradient-from), var(--gradient-to))',
+                  boxShadow: '0 4px 12px -2px var(--glow)'
+                }}
+              >
                 <Sparkles className="w-4 h-4" />
               </div>
               <div>
@@ -412,13 +418,13 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
           <div className="grid grid-cols-3 gap-2">
             <div className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-semibold transition-all ${
               step === 1 
-                ? 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-300 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 shadow-sm'
+                ? 'bg-palette-primary/10 border-palette-primary/40 text-palette-primary shadow-sm'
                 : step > 1
                   ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
                   : 'bg-slate-100 dark:bg-slate-800/40 border-transparent text-slate-400'
             }`}>
               <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                step > 1 ? 'bg-emerald-500 text-white' : step === 1 ? 'bg-indigo-600 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-600'
+                step > 1 ? 'bg-emerald-500 text-white' : step === 1 ? 'bg-palette-primary text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-600'
               }`}>
                 {step > 1 ? <Check className="w-3 h-3" /> : '1'}
               </div>
@@ -427,13 +433,13 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
 
             <div className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-semibold transition-all ${
               step === 2
-                ? 'bg-indigo-50 dark:bg-indigo-950/60 border-indigo-300 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 shadow-sm'
+                ? 'bg-palette-primary/10 border-palette-primary/40 text-palette-primary shadow-sm'
                 : step > 2
                   ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300'
                   : 'bg-slate-100 dark:bg-slate-800/40 border-transparent text-slate-400'
             }`}>
               <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                step > 2 ? 'bg-emerald-500 text-white' : step === 2 ? 'bg-indigo-600 text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-600'
+                step > 2 ? 'bg-emerald-500 text-white' : step === 2 ? 'bg-palette-primary text-white' : 'bg-slate-300 dark:bg-slate-700 text-slate-600'
               }`}>
                 {step > 2 ? <Check className="w-3 h-3" /> : '2'}
               </div>
@@ -475,7 +481,7 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
               {/* Full Name */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-indigo-500" />
+                  <User className="w-3.5 h-3.5 text-palette-primary" />
                   <span>Nombre Completo *</span>
                 </label>
                 <input
@@ -484,14 +490,14 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Ej. Francisca Silva González"
-                  className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white transition-all"
+                  className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-palette-primary/40 focus:border-palette-primary text-slate-900 dark:text-white transition-all"
                 />
               </div>
 
               {/* Email */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-indigo-500" />
+                  <Mail className="w-3.5 h-3.5 text-palette-primary" />
                   <span>Correo Electrónico *</span>
                 </label>
                 <input
@@ -500,7 +506,7 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="tu-correo@ejemplo.com"
-                  className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-white transition-all"
+                  className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-palette-primary/40 focus:border-palette-primary text-slate-900 dark:text-white transition-all"
                 />
                 {email && !isEmailValid && (
                   <p className="text-[11px] text-rose-500 mt-1 flex items-center gap-1">
@@ -513,7 +519,7 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
               {/* Username with Live Real-time Verification */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
-                  <AtSign className="w-3.5 h-3.5 text-indigo-500" />
+                  <AtSign className="w-3.5 h-3.5 text-palette-primary" />
                   <span>Nombre de Usuario Deseado (Tu Link Único) *</span>
                 </label>
 
@@ -522,7 +528,7 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                     ? usernameStatus.available
                       ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/30 dark:bg-emerald-950/20'
                       : 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/30 dark:bg-rose-950/20'
-                    : 'border-slate-300 dark:border-slate-700 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20'
+                    : 'border-slate-300 dark:border-slate-700 focus-within:border-palette-primary focus-within:ring-2 focus-within:ring-palette-primary/20'
                 }`}>
                   <span className="text-slate-400 dark:text-slate-500 text-xs sm:text-sm font-semibold select-none shrink-0">
                     mi-vitae.wearesamod.com/
@@ -559,7 +565,7 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
               {/* Initial Theme Selection */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
-                  <Palette className="w-3.5 h-3.5 text-indigo-500" />
+                  <Palette className="w-3.5 h-3.5 text-palette-primary" />
                   <span>Selecciona tu Tema Visual de Partida</span>
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
@@ -570,7 +576,7 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                       onClick={() => setSelectedTheme(th.id)}
                       className={`p-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
                         selectedTheme === th.id
-                          ? 'border-indigo-600 bg-indigo-50/80 dark:bg-indigo-950/60 ring-2 ring-indigo-500/30 scale-105'
+                          ? 'border-palette-primary bg-palette-primary/10 ring-2 ring-palette-primary/30 scale-105'
                           : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 hover:border-slate-300'
                       }`}
                     >
@@ -604,15 +610,15 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
           {/* ========================================================================= */}
           {step === 2 && (
             <form onSubmit={handleCompleteRegistration} className="space-y-6">
-              <div className="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/80 flex items-start gap-3">
-                <div className="p-2 rounded-xl bg-indigo-600 text-white shrink-0">
+              <div className="p-4 rounded-2xl bg-palette-primary/10 border border-palette-primary/30 flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-palette-primary text-white shrink-0 shadow-sm">
                   <HeartHandshake className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-indigo-900 dark:text-indigo-200">
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">
                     Tu opinión nos ayuda a mejorar Mi Vitae
                   </h4>
-                  <p className="text-[11px] text-indigo-700 dark:text-indigo-300 mt-0.5">
+                  <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5">
                     Responde estas 3 breves preguntas para bonificar tu 1er mes ($3.490 CLP → $0 CLP) sin ningún compromiso.
                   </p>
                 </div>
@@ -622,7 +628,7 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
               <div>
                 <label className="block text-xs font-bold text-slate-900 dark:text-white mb-1.5 flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
-                    <span className="w-4 h-4 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center">1</span>
+                    <span className="w-4 h-4 rounded-full bg-palette-primary text-white text-[10px] font-bold flex items-center justify-center">1</span>
                     <span>¿A qué área profesional te dedicas? *</span>
                   </span>
                   <span className="text-[10px] text-slate-500 font-normal">Selecciona 1 o más</span>
@@ -638,8 +644,8 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                         onClick={() => handleToggleArea(area.id)}
                         className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 cursor-pointer ${
                           isSelected
-                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-500/20 scale-[1.02]'
-                            : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-indigo-300'
+                            ? 'bg-palette-primary text-white border-palette-primary shadow-md shadow-palette-glow scale-[1.02]'
+                            : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-palette-primary/40'
                         }`}
                       >
                         <area.icon className="w-3.5 h-3.5 shrink-0" />
@@ -654,7 +660,7 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
               {/* Pregunta 2: ¿Cuál es el mayor obstáculo que tienes con tu CV actual? */}
               <div>
                 <label className="block text-xs font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-1.5">
-                  <span className="w-4 h-4 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center">2</span>
+                  <span className="w-4 h-4 rounded-full bg-palette-primary text-white text-[10px] font-bold flex items-center justify-center">2</span>
                   <span>¿Cuál es el mayor obstáculo que tienes con tu CV actual? *</span>
                 </label>
 
@@ -668,12 +674,12 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                         onClick={() => setSelectedObstacle(obs.id)}
                         className={`w-full p-3 rounded-2xl border text-left transition-all flex items-start gap-3 cursor-pointer ${
                           isSelected
-                            ? 'bg-indigo-50/80 dark:bg-indigo-950/60 border-indigo-600 ring-2 ring-indigo-500/20'
+                            ? 'bg-palette-primary/10 border-palette-primary ring-2 ring-palette-primary/20'
                             : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-slate-300'
                         }`}
                       >
                         <div className={`w-4 h-4 rounded-full border mt-0.5 flex items-center justify-center shrink-0 ${
-                          isSelected ? 'border-indigo-600 bg-indigo-600 text-white' : 'border-slate-400'
+                          isSelected ? 'border-palette-primary bg-palette-primary text-white' : 'border-slate-400'
                         }`}>
                           {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                         </div>
@@ -690,7 +696,7 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
               {/* Pregunta 3: ¿Cómo te enteraste de Mi Vitae? */}
               <div>
                 <label className="block text-xs font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-1.5">
-                  <span className="w-4 h-4 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center">3</span>
+                  <span className="w-4 h-4 rounded-full bg-palette-primary text-white text-[10px] font-bold flex items-center justify-center">3</span>
                   <span>¿Cómo te enteraste de Mi Vitae? *</span>
                 </label>
 
@@ -704,8 +710,8 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                         onClick={() => setSelectedReferral(ref.id)}
                         className={`p-3 rounded-xl border text-left text-xs font-medium transition-all flex items-center gap-2 cursor-pointer ${
                           isSelected
-                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                            : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-indigo-300'
+                            ? 'bg-palette-primary text-white border-palette-primary shadow-sm'
+                            : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-palette-primary/40'
                         }`}
                       >
                         <ref.icon className="w-3.5 h-3.5 shrink-0" />

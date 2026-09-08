@@ -14,14 +14,14 @@ export default {
         // Permite usar: bg-almond-cream-500, text-prussian-blue-600, etc.
         ...rawPalette,
 
-        // Tokens semánticos globales
-        primary: semanticTokens.primary,
-        accent: semanticTokens.accent,
-        highlight: semanticTokens.highlight,
-        'palette-primary': semanticTokens.primary.DEFAULT,
-        'palette-hover': semanticTokens.primary.hover,
-        'palette-accent': semanticTokens.accent.DEFAULT,
-        'palette-highlight': semanticTokens.highlight.DEFAULT,
+        // Tokens semánticos globales reactivos con soporte de opacidad Tailwind (/10, /20, etc.)
+        primary: 'rgb(var(--primary-rgb) / <alpha-value>)',
+        accent: 'rgb(var(--accent-rgb) / <alpha-value>)',
+        highlight: 'rgb(var(--highlight-rgb) / <alpha-value>)',
+        'palette-primary': 'rgb(var(--primary-rgb) / <alpha-value>)',
+        'palette-hover': 'var(--primary-hover)',
+        'palette-accent': 'rgb(var(--accent-rgb) / <alpha-value>)',
+        'palette-highlight': 'rgb(var(--highlight-rgb) / <alpha-value>)',
         brand: {
           50: semanticTokens.primary.light,
           500: semanticTokens.primary.DEFAULT,
@@ -104,6 +104,7 @@ export default {
           '--accent': semanticTokens.accent.DEFAULT,
           '--accent-rgb': semanticTokens.accentRgb || '6, 182, 212',
           '--highlight': semanticTokens.highlight.DEFAULT,
+          '--highlight-rgb': semanticTokens.highlightRgb || '207, 125, 48',
           '--gradient-from': semanticTokens.gradientFrom,
           '--gradient-via': semanticTokens.gradientVia,
           '--gradient-to': semanticTokens.gradientTo,
