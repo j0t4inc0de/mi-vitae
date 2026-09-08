@@ -1,31 +1,62 @@
-import React, { useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams, Link } from '../router/Router'
 import { useProfileStore } from '../stores/profileStore'
+import { fetchProfileFromSupabase } from '../lib/supabaseClient'
 import ThemeRenderer from '../components/Themes/ThemeRenderer'
 import { Sparkles, Clock, ShieldAlert } from 'lucide-react'
 
+// System archetypes that can display demo templates if not customized in cloud
+const DEMO_ARCHETYPES = ['carlos_dev', 'antonia_ux', 'matias_dev', 'valeria_psico', 'rodrigo_exec']
+
 export default function PortfolioPage() {
   const { username } = useParams()
+  const cleanUsername = (username || '').toLowerCase().trim()
   const getProfileByUsername = useProfileStore((state) => state.getProfileByUsername)
-  const fetchRemoteProfile = useProfileStore((state) => state.fetchRemoteProfile)
   const recordView = useProfileStore((state) => state.recordView)
   const recordClick = useProfileStore((state) => state.recordClick)
 
-  const profile = getProfileByUsername(username)
-  const [isLoadingRemote, setIsLoadingRemote] = React.useState(!profile)
+  const [profile, setProfile] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     let isMounted = true
-    if (!profile && username) {
-      setIsLoadingRemote(true)
-      fetchRemoteProfile(username).finally(() => {
-        if (isMounted) setIsLoadingRemote(false)
-      })
-    } else {
-      setIsLoadingRemote(false)
+    if (!cleanUsername) {
+      setIsLoading(false)
+      return
     }
+
+    setIsLoading(true)
+
+    // 1. Direct fetch from Supabase Cloud PostgreSQL (The single source of truth for live web CVs)
+    fetchProfileFromSupabase(cleanUsername)
+      .then((remote) => {
+        if (!isMounted) return
+        if (remote) {
+          setProfile(remote)
+        } else if (DEMO_ARCHETYPES.includes(cleanUsername)) {
+          // Fallback to archetype template only for the 5 demo archetypes
+          const demoProfile = getProfileByUsername(cleanUsername)
+          setProfile(demoProfile)
+        } else {
+          // If not in Supabase and not a demo archetype, profile does not exist
+          setProfile(null)
+        }
+      })
+      .catch((err) => {
+        if (!isMounted) return
+        console.warn('[PortfolioPage] Error fetching profile from cloud:', err)
+        if (DEMO_ARCHETYPES.includes(cleanUsername)) {
+          setProfile(getProfileByUsername(cleanUsername))
+        } else {
+          setProfile(null)
+        }
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false)
+      })
+
     return () => { isMounted = false }
-  }, [username, profile, fetchRemoteProfile])
+  }, [cleanUsername, getProfileByUsername])
 
   useEffect(() => {
     if (profile?.username) {
@@ -33,7 +64,7 @@ export default function PortfolioPage() {
     }
   }, [profile?.username, recordView])
 
-  if (isLoadingRemote) {
+  if (isLoading) {
     return (
       <div className="min-h-[80vh] flex flex-col items-center justify-center px-4">
         <div className="w-16 h-16 border-4 border-transparent text-palette-primary text-4xl animate-spin flex items-center justify-center border-t-palette-primary rounded-full">

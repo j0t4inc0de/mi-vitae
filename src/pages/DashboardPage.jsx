@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Link } from '../router/Router'
 import { useProfileStore } from '../stores/profileStore'
-import { saveProfileToSupabase, getCurrentUser } from '../lib/supabaseClient'
+import { saveProfileToSupabase, fetchProfileFromSupabase, getCurrentUser } from '../lib/supabaseClient'
 import QrModal from '../components/Common/QrModal'
 import ThemeRenderer from '../components/Themes/ThemeRenderer'
 import { compressImage, getApproximateDataUrlBytes, formatBytes } from '../utils/imageCompressor'
@@ -119,7 +119,6 @@ export default function DashboardPage() {
   const [profileData, setProfileData] = useState(() => getInitialProfileState(storeProfile))
   const [authUser, setAuthUser] = useState(null)
   const [activeTab, setActiveTab] = useState('personal')
-  const [mobileViewMode, setMobileViewMode] = useState('editor') // 'editor' | 'preview'
   const [savedAlert, setSavedAlert] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isCompressingAvatar, setIsCompressingAvatar] = useState(false)
@@ -190,8 +189,13 @@ export default function DashboardPage() {
       if (user && isMounted) {
         setAuthUser(user)
         const authUsername = user.user_metadata?.username
-        if (authUsername && profiles[authUsername] && !sessionStorage.getItem('manual_archetype_selected')) {
+        if (authUsername && !sessionStorage.getItem('manual_archetype_selected')) {
           setActiveUsername(authUsername)
+          fetchProfileFromSupabase(authUsername).then((remote) => {
+            if (remote && isMounted) {
+              setProfileData(getInitialProfileState(remote))
+            }
+          }).catch(() => {})
         }
       }
     }).catch(() => {})
@@ -202,13 +206,18 @@ export default function DashboardPage() {
   useEffect(() => {
     let isMounted = true
     if (activeUsername) {
-      fetchRemoteProfile(activeUsername).then((remote) => {
+      fetchProfileFromSupabase(activeUsername).then((remote) => {
         if (remote && isMounted) {
           setProfileData(getInitialProfileState(remote))
+        } else if (storeProfile && isMounted) {
+          setProfileData(getInitialProfileState(storeProfile))
+        }
+      }).catch(() => {
+        if (storeProfile && isMounted) {
+          setProfileData(getInitialProfileState(storeProfile))
         }
       })
-    }
-    if (storeProfile && isMounted) {
+    } else if (storeProfile && isMounted) {
       setProfileData(getInitialProfileState(storeProfile))
     }
     return () => { isMounted = false }
@@ -242,7 +251,13 @@ export default function DashboardPage() {
 
     // 2. Guardar en la base de datos Supabase para que esté visible en todo el mundo
     try {
-      await saveProfileToSupabase(profileData)
+      const saved = await saveProfileToSupabase(profileData)
+      if (!saved) {
+        const user = await getCurrentUser()
+        if (!user) {
+          console.warn('[Dashboard] Perfil no guardado en la nube: usuario no autenticado en Supabase.')
+        }
+      }
     } catch (err) {
       console.warn('[Dashboard] Error al sincronizar perfil con Supabase:', err)
     } finally {
@@ -606,14 +621,15 @@ export default function DashboardPage() {
 
             {/* Quick Actions for Mobile Header */}
             <div className="flex items-center gap-1.5 sm:hidden">
-              <Link
-                to={`/${profileData.username}`}
+              <a
+                href={`https://mi-vitae.wearesamod.com/${profileData.username}`}
                 target="_blank"
+                rel="noopener noreferrer"
                 className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 active:scale-95"
                 title="Ver en vivo"
               >
                 <Eye className="w-4 h-4 text-palette-primary" />
-              </Link>
+              </a>
               <button
                 type="button"
                 onClick={() => setIsQrOpen(true)}
@@ -651,15 +667,16 @@ export default function DashboardPage() {
             </button>
 
             {/* View Live Link (Desktop/Tablet) */}
-            <Link
-              to={`/${profileData.username}`}
+            <a
+              href={`https://mi-vitae.wearesamod.com/${profileData.username}`}
               target="_blank"
+              rel="noopener noreferrer"
               className="hidden sm:flex px-3.5 py-2.5 min-h-[44px] rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-bold items-center gap-1.5 transition-colors shadow-sm"
             >
               <Eye className="w-3.5 h-3.5 text-palette-primary" />
               <span>Ver en Vivo</span>
               <ExternalLink className="w-3 h-3 text-slate-400 opacity-80" />
-            </Link>
+            </a>
 
             {/* Save Changes Button (Desktop) */}
             <button
@@ -709,37 +726,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Mobile View Mode Switcher (Editor vs Live Preview) */}
-      <div className="lg:hidden px-3 pt-3 pb-1 max-w-2xl mx-auto w-full">
-        <div className="grid grid-cols-2 p-1 bg-slate-900/90 border border-slate-800 rounded-2xl">
-          <button
-            type="button"
-            onClick={() => setMobileViewMode('editor')}
-            className={`py-2.5 min-h-[44px] rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-              mobileViewMode === 'editor'
-                ? 'bg-palette-gradient text-white shadow-md shadow-palette-glow'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <LayoutDashboard className="w-4 h-4" />
-            <span>Editor de Contenido</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setMobileViewMode('preview')}
-            className={`py-2.5 min-h-[44px] rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-              mobileViewMode === 'preview'
-                ? 'bg-palette-gradient text-white shadow-md shadow-palette-glow'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Smartphone className="w-4 h-4" />
-            <span>Vista Previa en Vivo</span>
-          </button>
-        </div>
-      </div>
-
       {/* Main Split-Screen Workspace */}
       <main className="flex-1 max-w-[1720px] w-full mx-auto p-3 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
@@ -748,9 +734,7 @@ export default function DashboardPage() {
         {/* ========================================================================= */}
         <section 
           aria-label="Editor Modular" 
-          className={`lg:col-span-7 xl:col-span-7 bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col gap-6 ${
-            mobileViewMode === 'preview' ? 'hidden lg:flex' : 'flex'
-          }`}
+          className="lg:col-span-7 xl:col-span-7 bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col gap-6"
         >
 
           {/* Editor Header & Tab Switcher */}
@@ -1852,28 +1836,12 @@ export default function DashboardPage() {
             </div>
           )}
 
-
-          {/* Bottom Save Trigger inside Editor */}
-          <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
-            <span className="text-[11px] text-slate-500">
-              * Cambios visibles en tiempo real a la derecha.
-            </span>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="px-5 py-2.5 rounded-xl bg-palette-primary hover:bg-palette-hover text-white text-xs font-bold flex items-center gap-2 shadow-palette-glow transition-all cursor-pointer"
-            >
-              <Save className="w-4 h-4" />
-              <span>Guardar en Almacenamiento Local</span>
-            </button>
-          </div>
-
         </section>
 
         {/* ========================================================================= */}
         {/* RIGHT COLUMN: LIVE ANALYTICS & PORTFOLIO CONTROL CENTER (Span 5) */}
         {/* ========================================================================= */}
-        <section aria-label="Control Center y Métricas" className="lg:col-span-5 xl:col-span-5 sticky top-20 flex flex-col gap-5">
+        <section aria-label="Control Center y Métricas" className="hidden lg:flex lg:col-span-5 xl:col-span-5 sticky top-20 flex-col gap-5">
           
           {/* Quick Portfolio Action Card */}
           <div className="bg-gradient-to-br from-slate-900 via-palette-primary/10 to-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
@@ -1929,14 +1897,15 @@ export default function DashboardPage() {
 
             {/* Action Buttons Grid */}
             <div className="grid grid-cols-2 gap-2.5">
-              <Link
-                to={`/${profileData.username}`}
+              <a
+                href={`https://mi-vitae.wearesamod.com/${profileData.username}`}
                 target="_blank"
+                rel="noopener noreferrer"
                 className="px-4 py-3 rounded-2xl bg-palette-gradient hover:opacity-95 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-palette-glow transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 <Eye className="w-4 h-4" />
                 <span>Ver en Vivo ↗</span>
-              </Link>
+              </a>
 
               <button
                 type="button"

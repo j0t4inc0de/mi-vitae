@@ -302,20 +302,22 @@ export async function saveProfileToSupabase(profile) {
       updated_at: new Date().toISOString()
     }
 
-    // Attempt upsert first
-    const { error: upsertError } = await supabase
+    // Attempt upsert first with verification
+    const { data: upsertData, error: upsertError } = await supabase
       .from('profiles')
       .upsert(dbPayload, { onConflict: 'username' })
+      .select('username')
 
-    if (upsertError) {
-      // If upsert hit RLS constraint on insert, attempt direct update on existing row
-      const { error: updateError } = await supabase
+    if (upsertError || !upsertData || upsertData.length === 0) {
+      // If upsert failed or RLS prevented write, attempt direct update on existing row
+      const { data: updateData, error: updateError } = await supabase
         .from('profiles')
         .update(dbPayload)
         .eq('username', profile.username.toLowerCase().trim())
+        .select('username')
 
-      if (updateError) {
-        console.warn('[Supabase] Error saving profile:', updateError.message)
+      if (updateError || !updateData || updateData.length === 0) {
+        console.warn('[Supabase] Error saving profile or blocked by RLS:', updateError?.message)
         return false
       }
     }
