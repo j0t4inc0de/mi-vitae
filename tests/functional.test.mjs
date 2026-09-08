@@ -312,13 +312,11 @@ it('generates valid CSS variables string for injection', () => {
 // -------------------------------------------------------------
 console.log('\n▶ Suite 6: Serverless Edge, Cloudflare Pages & Supabase Cloud');
 
-it('verifies Cloudflare Pages SPA redirects and edge security headers', () => {
-  const redirectsPath = path.join(ROOT, 'public', '_redirects');
+it('verifies Cloudflare SPA handling and edge security headers', () => {
   const headersPath = path.join(ROOT, 'public', '_headers');
   const wranglerPath = path.join(ROOT, 'wrangler.toml');
   const workerPath = path.join(ROOT, 'worker.js');
 
-  assert.ok(fs.existsSync(redirectsPath), 'public/_redirects must exist');
   assert.ok(fs.existsSync(headersPath), 'public/_headers must exist');
   assert.ok(fs.existsSync(wranglerPath), 'wrangler.toml must exist');
   assert.ok(fs.existsSync(workerPath), 'worker.js must exist');
@@ -326,9 +324,7 @@ it('verifies Cloudflare Pages SPA redirects and edge security headers', () => {
   const wranglerContent = fs.readFileSync(wranglerPath, 'utf-8');
   assert.ok(wranglerContent.includes('[assets]'), 'wrangler.toml must configure [assets]');
   assert.ok(wranglerContent.includes('main = "worker.js"'), 'wrangler.toml must define main = "worker.js"');
-
-  const redirectsContent = fs.readFileSync(redirectsPath, 'utf-8');
-  assert.match(redirectsContent, /\/index\.html\s+200/, '_redirects must route to index.html with 200');
+  assert.ok(wranglerContent.includes('single-page-application'), 'wrangler.toml must configure SPA handling');
 
   const headersContent = fs.readFileSync(headersPath, 'utf-8');
   assert.ok(headersContent.includes('X-Content-Type-Options: nosniff'), '_headers must contain security headers');
