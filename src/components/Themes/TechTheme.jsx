@@ -366,68 +366,86 @@ export default function TechTheme({ profile, onRecordClick }) {
         )}
 
         {/* Section: Education, Certs & Languages (2 Columns) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
-          {/* Education & Certs */}
-          {education.length > 0 && (
-            <section aria-labelledby="tech-education-heading" className="bg-[#111827] border border-[#1F2937] rounded-2xl p-6">
-              <div className="flex items-center gap-2 border-b border-[#1F2937] pb-3 mb-4">
-                <ShieldCheck className="w-4 h-4 text-[#10B981]" />
-                <h2 id="tech-education-heading" className="text-sm font-bold text-white">
-                  cat /etc/credentials.json
-                </h2>
-              </div>
-
-              <div className="space-y-4">
-                {education.map((edu) => (
-                  <div key={edu.id} className="p-3.5 rounded-lg bg-[#080C14] border border-[#1F2937] text-xs space-y-1">
-                    <div className="flex justify-between items-baseline">
-                      <span className="font-bold text-white">{edu.degree}</span>
-                      <span className="text-[#10B981] text-[11px]">{edu.year}</span>
-                    </div>
-                    <p className="text-slate-400">{edu.institution}</p>
-                    {edu.details && (
-                      <p className="text-[11px] text-slate-500 pt-0.5">{edu.details}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Languages & Protocols */}
-          {languages.length > 0 && (
-            <section aria-labelledby="tech-languages-heading" className="bg-[#111827] border border-[#1F2937] rounded-2xl p-6 flex flex-col justify-between">
-              <div>
+        {(education.length > 0 || languages.length > 0) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* Education & Certs */}
+            {education.length > 0 && (
+              <section aria-labelledby="tech-education-heading" className="bg-[#111827] border border-[#1F2937] rounded-2xl p-6">
                 <div className="flex items-center gap-2 border-b border-[#1F2937] pb-3 mb-4">
-                  <Globe className="w-4 h-4 text-[#06B6D4]" />
-                  <h2 id="tech-languages-heading" className="text-sm font-bold text-white">
-                    netstat --languages
+                  <ShieldCheck className="w-4 h-4 text-[#10B981]" />
+                  <h2 id="tech-education-heading" className="text-sm font-bold text-white">
+                    cat /etc/credentials.json
                   </h2>
                 </div>
 
-                <div className="space-y-2.5">
-                  {languages.map((lang) => (
-                    <div 
-                      key={lang.id} 
-                      className="flex items-center justify-between p-3 rounded-lg bg-[#080C14] border border-[#1F2937] text-xs"
-                    >
-                      <span className="font-bold text-slate-200">{lang.name}</span>
-                      <span className="text-[#06B6D4] font-mono bg-[#06B6D4]/10 px-2 py-0.5 rounded border border-[#06B6D4]/20">
-                        {lang.level}
-                      </span>
+                <div className="space-y-4">
+                  {education.map((edu) => (
+                    <div key={edu.id} className="p-3.5 rounded-lg bg-[#080C14] border border-[#1F2937] text-xs space-y-1">
+                      <div className="flex justify-between items-baseline">
+                        <span className="font-bold text-white">{edu.degree}</span>
+                        <span className="text-[#10B981] text-[11px]">{edu.year}</span>
+                      </div>
+                      <p className="text-slate-400">{edu.institution}</p>
+                      {edu.details && (
+                        <p className="text-[11px] text-slate-500 pt-0.5">{edu.details}</p>
+                      )}
                     </div>
                   ))}
                 </div>
-              </div>
+              </section>
+            )}
 
-              <div className="pt-4 mt-4 border-t border-[#1F2937] text-center text-[11px] text-slate-500">
-                <span>Latency: ~1ms • Ready for high-throughput teams</span>
-              </div>
-            </section>
-          )}
+            {/* Languages & Protocols */}
+            {languages.length > 0 && (
+              <section aria-labelledby="tech-languages-heading" className="bg-[#111827] border border-[#1F2937] rounded-2xl p-6 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2 border-b border-[#1F2937] pb-3 mb-4">
+                    <Globe className="w-4 h-4 text-[#06B6D4]" />
+                    <h2 id="tech-languages-heading" className="text-sm font-bold text-white">
+                      netstat --languages
+                    </h2>
+                  </div>
 
-        </div>
+                  <div className="space-y-2.5">
+                    {languages.map((lang) => (
+                      <div 
+                        key={lang.id} 
+                        className="flex items-center justify-between p-3 rounded-lg bg-[#080C14] border border-[#1F2937] text-xs"
+                      >
+                        <span className="font-bold text-slate-200">{lang.name}</span>
+                        <span className="text-[#06B6D4] font-mono bg-[#06B6D4]/10 px-2 py-0.5 rounded border border-[#06B6D4]/20">
+                          {lang.level}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-4 mt-4 border-t border-[#1F2937] text-center text-[11px] text-slate-500">
+                  <span>Latency: ~1ms • Ready for high-throughput teams</span>
+                </div>
+              </section>
+            )}
+          </div>
+        )}
+
+        {/* Empty State Prompt if no sections are loaded */}
+        {skills.length === 0 && projects.length === 0 && experience.length === 0 && education.length === 0 && (
+          <section className="bg-[#111827] border border-[#1F2937] rounded-2xl p-8 sm:p-12 text-center space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/30 flex items-center justify-center mx-auto">
+              <Terminal className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <h2 className="text-base sm:text-lg font-bold text-white">
+                Portafolio en Construcción
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto">
+                Este perfil aún no cuenta con módulos de experiencia, habilidades o proyectos añadidos. Si eres el titular, añade contenido desde tu editor para que aparezca aquí.
+              </p>
+            </div>
+          </section>
+        )}
 
       </div>
 

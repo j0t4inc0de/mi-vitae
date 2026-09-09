@@ -530,10 +530,20 @@ export default function WarmTheme({ profile, onRecordClick }) {
                 </div>
               </section>
             )}
-
           </div>
-
         </div>
+
+        {/* Empty State Prompt if no sections are loaded */}
+        {skills.length === 0 && projects.length === 0 && experience.length === 0 && education.length === 0 && (
+          <section className="bg-white/80 border border-[#F3E8E2] rounded-3xl p-8 sm:p-12 text-center space-y-3 shadow-md">
+            <h2 className="text-lg sm:text-xl font-serif font-bold text-[#43281C]">
+              Portafolio en Construcción
+            </h2>
+            <p className="text-xs sm:text-sm text-[#7F5539] max-w-md mx-auto leading-relaxed">
+              Este perfil aún no cuenta con módulos de experiencia o áreas de acompañamiento agregados. Complétalos desde el editor para visualizarlos aquí.
+            </p>
+          </section>
+        )}
 
         {/* Viral Conversion Footer */}
         <ViralFooter theme="warm" />

@@ -520,10 +520,20 @@ export default function ExecutiveTheme({ profile, onRecordClick }) {
                 </div>
               </section>
             )}
-
           </div>
-
         </div>
+
+        {/* Empty State Prompt if no sections are loaded */}
+        {skills.length === 0 && projects.length === 0 && experience.length === 0 && education.length === 0 && (
+          <section className="bg-[#1C2541]/80 backdrop-blur-xl border border-[#334155] rounded-3xl p-8 sm:p-12 text-center space-y-3 shadow-xl">
+            <h2 className="text-lg sm:text-xl font-bold text-white">
+              Dossier en Construcción
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
+              Este perfil directivo aún no cuenta con experiencia profesional o credenciales cargadas. Complétalos desde el editor para visualizarlos aquí.
+            </p>
+          </section>
+        )}
 
         {/* Viral Conversion Footer */}
         <ViralFooter theme="executive" dark={true} />

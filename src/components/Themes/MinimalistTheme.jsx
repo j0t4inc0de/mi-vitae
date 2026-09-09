@@ -416,6 +416,18 @@ export default function MinimalistTheme({ profile, onRecordClick }) {
           </section>
         )}
 
+        {/* Empty State Prompt if no sections are loaded */}
+        {skills.length === 0 && projects.length === 0 && experience.length === 0 && education.length === 0 && (
+          <section className="border border-dashed border-stone-300 rounded-xl p-8 sm:p-12 text-center space-y-3 bg-stone-50">
+            <h2 className="font-serif text-lg sm:text-xl font-bold text-stone-800">
+              Portafolio en Construcción
+            </h2>
+            <p className="font-sans text-xs sm:text-sm text-stone-500 max-w-md mx-auto">
+              Este portafolio aún no tiene módulos de experiencia o competencias agregados. Completa tu información desde el panel de edición para que se visualice aquí.
+            </p>
+          </section>
+        )}
+
       </main>
 
       {/* Viral Conversion Footer */}
