@@ -108,6 +108,7 @@ export default function DashboardPage() {
   const resetToDefaults = useProfileStore((state) => state.resetToDefaults)
   const openFlowModal = useProfileStore((state) => state.openFlowModal)
   const dashboardSaveTrigger = useProfileStore((state) => state.dashboardSaveTrigger)
+  const dashboardResetTrigger = useProfileStore((state) => state.dashboardResetTrigger)
   const setIsDashboardSaving = useProfileStore((state) => state.setIsDashboardSaving)
 
   // Current active profile from store
@@ -298,6 +299,15 @@ export default function DashboardPage() {
       handleSave()
     }
   }, [dashboardSaveTrigger])
+
+  // Listen to Navbar Reset Trigger
+  const lastResetTriggerRef = useRef(dashboardResetTrigger)
+  useEffect(() => {
+    if (dashboardResetTrigger > 0 && dashboardResetTrigger !== lastResetTriggerRef.current) {
+      lastResetTriggerRef.current = dashboardResetTrigger
+      handleResetDefaults()
+    }
+  }, [dashboardResetTrigger])
 
   // Reset to initial mock profiles with production safety checks
   const DEMO_ARCHETYPES = ['carlos_dev', 'antonia_ux', 'valeria_psico', 'rodrigo_ops', 'abogado_consultor']
@@ -620,106 +630,10 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col antialiased pb-24 md:pb-10">
-      
-      {/* Studio Top Navigation Bar */}
-      <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-3 sm:px-6 py-3 shadow-md">
-        <div className="max-w-[1720px] mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          
-          {/* Studio Brand & Title */}
-          <div className="flex items-center justify-between sm:justify-start gap-3">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-palette-gradient text-white shadow-md shadow-palette-glow shrink-0">
-                <LayoutDashboard className="w-5 h-5" />
-              </div>
-            </div>
-
-            {/* Quick Actions for Mobile Header */}
-            <div className="flex items-center gap-1.5 sm:hidden">
-              <a
-                href={getLiveProfileUrl()}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 active:scale-95"
-                title="Ver en vivo"
-              >
-                <Eye className="w-4 h-4 text-palette-primary" />
-              </a>
-              <button
-                type="button"
-                onClick={() => setIsQrOpen(true)}
-                className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 active:scale-95 cursor-pointer"
-                title="Código QR"
-              >
-                <QrCode className="w-4 h-4 text-cyan-400" />
-              </button>
-            </div>
-          </div>
-
-          {/* Actions & Profile Indicators */}
-          <div className="flex flex-wrap items-center gap-2">
-            
-            {/* Active User Badge (Direct profile representation, no select dropdown) */}
-            <div className="flex items-center gap-2 bg-slate-800/90 border border-slate-700/80 rounded-xl px-3 py-1.5 min-h-[44px]">
-              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-              <span className="text-xs font-bold text-white font-mono">
-                @{profileData.username}
-              </span>
-              <span className="text-[10px] font-semibold text-slate-400 hidden lg:inline max-w-[120px] truncate">
-                ({profileData.personalInfo?.name || 'Mi Perfil'})
-              </span>
-            </div>
-
-            {/* Reset to Defaults */}
-            <button
-              type="button"
-              onClick={handleResetDefaults}
-              title="Restablecer valores iniciales de prueba"
-              className="p-2.5 min-h-[44px] rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1.5 text-xs font-medium cursor-pointer"
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span className="hidden xl:inline">Restablecer</span>
-            </button>
-
-            {/* View Live Link (Desktop/Tablet) */}
-            <a
-              href={getLiveProfileUrl()}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden sm:flex px-3.5 py-2.5 min-h-[44px] rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-bold items-center gap-1.5 transition-colors shadow-sm"
-            >
-              <Eye className="w-3.5 h-3.5 text-palette-primary" />
-              <span>Ver en Vivo</span>
-              <ExternalLink className="w-3 h-3 text-slate-400 opacity-80" />
-            </a>
-
-            {/* Save Changes Button (Desktop) */}
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={isSaving}
-              className="hidden sm:flex px-4 py-2 min-h-[44px] rounded-xl bg-palette-gradient hover:opacity-95 text-white text-xs font-bold shadow-lg shadow-palette-glow transition-all items-center gap-2 active:scale-95 cursor-pointer disabled:opacity-75"
-            >
-              {isSaving ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Sincronizando...</span>
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  <span>Guardar Cambios</span>
-                </>
-              )}
-            </button>
-
-          </div>
-
-        </div>
-      </header>
 
       {/* Notification Toast */}
       {savedAlert && (
-        <div className="fixed top-18 right-4 sm:right-6 left-4 sm:left-auto z-50 p-4 rounded-2xl bg-emerald-950/95 border border-emerald-500/60 text-emerald-200 text-xs font-bold flex items-center justify-between gap-3 shadow-2xl backdrop-blur-xl animate-fade-in">
+        <div className="fixed top-20 right-4 sm:right-6 left-4 sm:left-auto z-50 p-4 rounded-2xl bg-emerald-950/95 border border-emerald-500/60 text-emerald-200 text-xs font-bold flex items-center justify-between gap-3 shadow-2xl backdrop-blur-xl animate-fade-in">
           <div className="flex items-center gap-3">
             <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
             <div>
@@ -766,9 +680,20 @@ export default function DashboardPage() {
                 </p>
               </div>
 
-              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-palette-primary/15 border border-palette-primary/30 text-palette-primary capitalize">
-                {profileData.theme}
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsQrOpen(true)}
+                  className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Código QR del Portafolio"
+                >
+                  <QrCode className="w-3.5 h-3.5 text-palette-primary" />
+                  <span className="hidden sm:inline">Código QR</span>
+                </button>
+                <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-palette-primary/15 border border-palette-primary/30 text-palette-primary capitalize">
+                  {profileData.theme}
+                </span>
+              </div>
             </div>
 
             {/* Scrollable Horizontal Tabs with Snap and Hidden Scrollbars */}
