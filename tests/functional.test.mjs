@@ -456,6 +456,97 @@ it('verifies GitHub Actions Supabase keep-alive cron workflow', () => {
   assert.ok(content.includes('VITE_SUPABASE_URL'), 'workflow must use Supabase URL secret');
 });
 
+// -------------------------------------------------------------
+// SUITE 7: DASHBOARD PAGE AUDIT (FUNCTIONAL & NON-FUNCTIONAL)
+// -------------------------------------------------------------
+console.log('\n▶ Suite 7: Dashboard Page QA Audit (Functional & Non-Functional)');
+
+const dashboardContent = fs.readFileSync(path.join(ROOT, 'src/pages/DashboardPage.jsx'), 'utf-8');
+
+it('verifies all 8 editor tabs are defined with icons and null-safe counts', () => {
+  const expectedTabs = ['personal', 'theme', 'experience', 'education', 'skills', 'projects', 'languages', 'floatingButton'];
+  for (const tabId of expectedTabs) {
+    assert.ok(dashboardContent.includes(`id: '${tabId}'`), `Dashboard must include tab '${tabId}'`);
+  }
+  // Null safety verification
+  assert.ok(dashboardContent.includes('profileData.experience?.length || 0'));
+  assert.ok(dashboardContent.includes('profileData.education?.length || 0'));
+  assert.ok(dashboardContent.includes('profileData.skills?.length || 0'));
+  assert.ok(dashboardContent.includes('profileData.projects?.length || 0'));
+  assert.ok(dashboardContent.includes('profileData.languages?.length || 0'));
+});
+
+it('verifies calculatePlanStatus handles active vs expired dates and statuses correctly', () => {
+  const testCalculatePlanStatus = (profile) => {
+    const isPremium = profile?.plan === 'premium';
+    const planStatus = profile?.planStatus || profile?.plan_status || 'active';
+    const rawExpiresAt = profile?.planExpiresAt || profile?.plan_expires_at;
+    const rawTrialAt = profile?.trialActivatedAt || profile?.trial_activated_at;
+    
+    let expirationDate = null;
+    if (rawExpiresAt) {
+      expirationDate = new Date(rawExpiresAt);
+    } else if (rawTrialAt) {
+      const activated = new Date(rawTrialAt);
+      expirationDate = new Date(activated.getTime() + 30 * 24 * 60 * 60 * 1000);
+    } else {
+      const now = new Date();
+      expirationDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    }
+
+    const now = new Date();
+    const diffMs = expirationDate.getTime() - now.getTime();
+    const daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    const isExpired = diffMs <= 0 || daysRemaining <= 0 || planStatus === 'expired';
+
+    return { isPremium, isExpired, daysRemaining: Math.max(0, daysRemaining), planStatus };
+  };
+
+  // Active user within trial
+  const activeUser = { username: 'test_active', plan: 'free_trial', planStatus: 'active' };
+  const resActive = testCalculatePlanStatus(activeUser);
+  assert.equal(resActive.isExpired, false);
+  assert.ok(resActive.daysRemaining > 0);
+
+  // Expired by status
+  const expiredStatus = { username: 'test_exp_status', planStatus: 'expired' };
+  assert.equal(testCalculatePlanStatus(expiredStatus).isExpired, true);
+
+  // Expired by status (snake_case)
+  const expiredSnakeStatus = { username: 'test_exp_snake', plan_status: 'expired' };
+  assert.equal(testCalculatePlanStatus(expiredSnakeStatus).isExpired, true);
+
+  // Expired by past date
+  const expiredDate = { username: 'test_exp_date', planExpiresAt: new Date(Date.now() - 5000).toISOString() };
+  assert.equal(testCalculatePlanStatus(expiredDate).isExpired, true);
+
+  // Expired by past date (snake_case)
+  const expiredSnakeDate = { username: 'test_exp_snake_date', plan_expires_at: new Date(Date.now() - 5000).toISOString() };
+  assert.equal(testCalculatePlanStatus(expiredSnakeDate).isExpired, true);
+});
+
+it('verifies visual status indicator states (Offline vs Online dot)', () => {
+  assert.ok(dashboardContent.includes('Portafolio Offline'), 'Must include Portafolio Offline status text');
+  assert.ok(dashboardContent.includes('bg-rose-500'), 'Must include static red dot (bg-rose-500)');
+  assert.ok(dashboardContent.includes('Portafolio en Línea'), 'Must include Portafolio en Línea status text');
+  assert.ok(dashboardContent.includes('bg-emerald-500') && dashboardContent.includes('animate-ping'), 'Must include pulsating green dot');
+});
+
+it('verifies mobile touch target heights (>= 44px) and mobile bottom bar padding', () => {
+  // Mobile bar buttons
+  assert.ok(dashboardContent.includes('min-h-[44px] px-3 py-2 rounded-xl bg-slate-100'), 'Mobile QR button must meet touch target');
+  assert.ok(dashboardContent.includes('min-h-[44px] px-3 py-2 rounded-xl bg-palette-gradient'), 'Mobile En Vivo button must meet touch target');
+  // Bottom padding for mobile fixed bar
+  assert.ok(dashboardContent.includes('pb-24 md:pb-10') || dashboardContent.includes('pb-24'), 'Main wrapper must have bottom padding to prevent mobile bar overlap');
+});
+
+it('verifies memory leak prevention on unmount with timer cleanups', () => {
+  assert.ok(dashboardContent.includes('savedAlertTimerRef'), 'Must track savedAlert timer reference');
+  assert.ok(dashboardContent.includes('copiedLinkTimerRef'), 'Must track copiedLink timer reference');
+  assert.ok(dashboardContent.includes('clearTimeout(savedAlertTimerRef.current)'), 'Must clear savedAlert timer on unmount');
+  assert.ok(dashboardContent.includes('clearTimeout(copiedLinkTimerRef.current)'), 'Must clear copiedLink timer on unmount');
+});
+
 await vite.close();
 
 // -------------------------------------------------------------

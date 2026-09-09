@@ -139,6 +139,16 @@ export default function DashboardPage() {
 
   const avatarInputRef = useRef(null)
   const tabsContainerRef = useRef(null)
+  const savedAlertTimerRef = useRef(null)
+  const copiedLinkTimerRef = useRef(null)
+
+  // Clean up timer references on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (savedAlertTimerRef.current) clearTimeout(savedAlertTimerRef.current)
+      if (copiedLinkTimerRef.current) clearTimeout(copiedLinkTimerRef.current)
+    }
+  }, [])
 
   const getLiveProfileUrl = () => {
     if (typeof window !== 'undefined' && window.location?.origin && !window.location.origin.includes('localhost') && !window.location.origin.includes('127.0.0.1')) {
@@ -153,7 +163,8 @@ export default function DashboardPage() {
       : `https://${window.location.host || 'mivitae.wearesamod.com'}/${profileData.username}`
     navigator.clipboard.writeText(fullUrl)
     setCopiedLink(true)
-    setTimeout(() => setCopiedLink(false), 2500)
+    if (copiedLinkTimerRef.current) clearTimeout(copiedLinkTimerRef.current)
+    copiedLinkTimerRef.current = setTimeout(() => setCopiedLink(false), 2500)
   }
 
   const scrollTabs = (direction) => {
@@ -166,14 +177,17 @@ export default function DashboardPage() {
   // Calculate plan expiration date and days remaining
   const calculatePlanStatus = () => {
     const isPremium = storeProfile?.plan === 'premium' || profileData?.plan === 'premium'
-    const planStatus = profileData?.planStatus || storeProfile?.planStatus || 'active'
+    const planStatus = profileData?.planStatus || profileData?.plan_status || storeProfile?.planStatus || storeProfile?.plan_status || 'active'
     
-    // Resolve expiration timestamp
+    // Resolve expiration timestamp (supporting both camelCase and snake_case)
+    const rawExpiresAt = profileData?.planExpiresAt || profileData?.plan_expires_at || storeProfile?.planExpiresAt || storeProfile?.plan_expires_at
+    const rawTrialAt = profileData?.trialActivatedAt || profileData?.trial_activated_at || storeProfile?.trialActivatedAt || storeProfile?.trial_activated_at
+    
     let expirationDate = null
-    if (profileData?.planExpiresAt || storeProfile?.planExpiresAt) {
-      expirationDate = new Date(profileData?.planExpiresAt || storeProfile?.planExpiresAt)
-    } else if (profileData?.trialActivatedAt || storeProfile?.trialActivatedAt) {
-      const activated = new Date(profileData?.trialActivatedAt || storeProfile?.trialActivatedAt)
+    if (rawExpiresAt) {
+      expirationDate = new Date(rawExpiresAt)
+    } else if (rawTrialAt) {
+      const activated = new Date(rawTrialAt)
       expirationDate = new Date(activated.getTime() + 30 * 24 * 60 * 60 * 1000)
     } else {
       // Default 30 days trial from current local time
@@ -184,7 +198,7 @@ export default function DashboardPage() {
     const now = new Date()
     const diffMs = expirationDate.getTime() - now.getTime()
     const daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
-    const isExpired = daysRemaining <= 0 || planStatus === 'expired'
+    const isExpired = diffMs <= 0 || daysRemaining <= 0 || planStatus === 'expired'
 
     const formattedDate = expirationDate.toLocaleDateString('es-CL', {
       day: 'numeric',
@@ -288,7 +302,8 @@ export default function DashboardPage() {
     }
 
     setSavedAlert(true)
-    setTimeout(() => setSavedAlert(false), 3500)
+    if (savedAlertTimerRef.current) clearTimeout(savedAlertTimerRef.current)
+    savedAlertTimerRef.current = setTimeout(() => setSavedAlert(false), 3500)
   }
 
   // Listen to Navbar Save Trigger
@@ -1832,7 +1847,10 @@ export default function DashboardPage() {
                   </>
                 ) : (
                   <>
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                    <span className="relative flex h-2.5 w-2.5 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                    </span>
                     <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-600">
                       Portafolio en Línea
                     </span>
