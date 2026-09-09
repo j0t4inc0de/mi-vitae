@@ -61,8 +61,13 @@ export default function PortfolioPage() {
   useEffect(() => {
     if (profile?.username) {
       recordView(profile.username)
+
+      // Registrar escaneo QR físico si el visitante proviene de ?ref=qr
+      if (typeof window !== 'undefined' && window.location?.search?.includes('ref=qr')) {
+        recordClick(profile.username, 'qr')
+      }
     }
-  }, [profile?.username, recordView])
+  }, [profile?.username, recordView, recordClick])
 
   if (isLoading) {
     return (

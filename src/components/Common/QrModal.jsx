@@ -23,6 +23,9 @@ export default function QrModal({ isOpen, onClose, profile, username: propUserna
     ? `${productionBase}/${username}` 
     : `${window.location.origin}/${username}`)
 
+  // Target URL for scanning includes ?ref=qr to attribute and record physical QR scans
+  const qrScanUrl = targetUrl.includes('?') ? `${targetUrl}&ref=qr` : `${targetUrl}?ref=qr`
+
   // Render QR Code onto canvas whenever modal opens or URL changes
   useEffect(() => {
     if (!isOpen) return
@@ -32,7 +35,7 @@ export default function QrModal({ isOpen, onClose, profile, username: propUserna
       if (canvasRef.current) {
         drawQRCodeToCanvas({
           canvas: canvasRef.current,
-          text: targetUrl,
+          text: qrScanUrl,
           size: 512,
           darkColor: '#0f172a',
           lightColor: '#ffffff',
@@ -81,7 +84,7 @@ export default function QrModal({ isOpen, onClose, profile, username: propUserna
     const exportCanvas = document.createElement('canvas')
     drawQRCodeToCanvas({
       canvas: exportCanvas,
-      text: targetUrl,
+      text: qrScanUrl,
       size: 1024,
       darkColor: '#0b132b',
       lightColor: '#ffffff',

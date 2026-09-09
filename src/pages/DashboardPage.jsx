@@ -1909,67 +1909,91 @@ export default function DashboardPage() {
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              
-              {/* Metric 1: Views */}
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-medium text-slate-500">Visitas Totales</span>
-                  <Eye className="w-4 h-4 text-palette-primary" />
-                </div>
-                <div className="text-2xl font-black text-slate-900">
-                  {(profileData.analytics?.views || 1240).toLocaleString('es-CL')}
-                </div>
-                <div className="text-[10px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3" />
-                  <span>+18% esta semana</span>
-                </div>
-              </div>
+            {(() => {
+              const realViews = profileData.analytics?.views ?? 0
+              const realContactClicks = profileData.analytics?.contactClicks ?? 0
+              const realQrScans = (profileData.analytics?.qrScans ?? profileData.analytics?.cvDownloads ?? 0)
+              const totalInteractions = realContactClicks + realQrScans
+              const realConversionRate = realViews > 0 
+                ? ((totalInteractions / realViews) * 100).toFixed(1) 
+                : '0.0'
 
-              {/* Metric 2: WhatsApp Clicks */}
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-medium text-slate-500">Clics WhatsApp</span>
-                  <MessageCircle className="w-4 h-4 text-emerald-600" />
-                </div>
-                <div className="text-2xl font-black text-slate-900">
-                  {(profileData.analytics?.contactClicks || 380).toLocaleString('es-CL')}
-                </div>
-                <div className="text-[10px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3" />
-                  <span>Contacto directo</span>
-                </div>
-              </div>
+              return (
+                <div className="grid grid-cols-2 gap-3">
+                  
+                  {/* Metric 1: Views */}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-medium text-slate-500">Visitas Totales</span>
+                      <Eye className="w-4 h-4 text-palette-primary" />
+                    </div>
+                    <div className="text-2xl font-black text-slate-900">
+                      {realViews.toLocaleString('es-CL')}
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-semibold mt-1 flex items-center gap-1">
+                      {realViews > 0 ? (
+                        <>
+                          <TrendingUp className="w-3 h-3 text-emerald-600" />
+                          <span className="text-emerald-600">Tráfico web real</span>
+                        </>
+                      ) : (
+                        <span>Comparte tu enlace</span>
+                      )}
+                    </div>
+                  </div>
 
-              {/* Metric 3: QR Scans */}
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-medium text-slate-500">Escaneos QR</span>
-                  <QrCode className="w-4 h-4 text-palette-primary" />
-                </div>
-                <div className="text-2xl font-black text-slate-900">
-                  {(profileData.analytics?.cvDownloads || 3).toLocaleString('es-CL')}
-                </div>
-                <div className="text-[10px] text-slate-500 font-semibold mt-1">
-                  Tarjetas & networking
-                </div>
-              </div>
+                  {/* Metric 2: WhatsApp Clicks */}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-medium text-slate-500">Clics WhatsApp</span>
+                      <MessageCircle className="w-4 h-4 text-emerald-600" />
+                    </div>
+                    <div className="text-2xl font-black text-slate-900">
+                      {realContactClicks.toLocaleString('es-CL')}
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-semibold mt-1 flex items-center gap-1">
+                      {realContactClicks > 0 ? (
+                        <>
+                          <TrendingUp className="w-3 h-3 text-emerald-600" />
+                          <span className="text-emerald-600">Contacto directo</span>
+                        </>
+                      ) : (
+                        <span>Sin contactos aún</span>
+                      )}
+                    </div>
+                  </div>
 
-              {/* Metric 4: Conversion Rate */}
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-medium text-slate-500">Tasa de Conversión</span>
-                  <Sparkles className="w-4 h-4 text-palette-primary" />
-                </div>
-                <div className="text-2xl font-black text-palette-primary">
-                  {(((profileData.analytics?.contactClicks || 380) / Math.max(profileData.analytics?.views || 1240, 1)) * 100).toFixed(1)}%
-                </div>
-                <div className="text-[10px] text-palette-primary font-semibold mt-1">
-                  x15 vs CV en PDF
-                </div>
-              </div>
+                  {/* Metric 3: QR Scans */}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-medium text-slate-500">Escaneos QR</span>
+                      <QrCode className="w-4 h-4 text-palette-primary" />
+                    </div>
+                    <div className="text-2xl font-black text-slate-900">
+                      {realQrScans.toLocaleString('es-CL')}
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-semibold mt-1">
+                      {realQrScans > 0 ? 'Tarjetas & networking' : 'Sin escaneos aún'}
+                    </div>
+                  </div>
 
-            </div>
+                  {/* Metric 4: Conversion Rate */}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-medium text-slate-500">Tasa de Conversión</span>
+                      <Sparkles className="w-4 h-4 text-palette-primary" />
+                    </div>
+                    <div className="text-2xl font-black text-palette-primary">
+                      {realConversionRate}%
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-semibold mt-1">
+                      {realViews > 0 ? 'Interacciones / Visitas' : 'Esperando visitas'}
+                    </div>
+                  </div>
+
+                </div>
+              )
+            })()}
 
             {/* Profile Content Summary */}
             <div className="pt-2 border-t border-slate-200 text-xs text-slate-500 space-y-2">
