@@ -246,10 +246,10 @@ export default function DashboardPage() {
 
   if (!profileData) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-8 bg-slate-950 text-slate-100">
+      <div className="min-h-screen flex items-center justify-center p-8 bg-[#f8fafc] text-slate-900">
         <div className="text-center space-y-4">
-          <RefreshCw className="w-8 h-8 animate-spin mx-auto text-palette-primary brightness-125" />
-          <p className="text-slate-300 font-medium">Cargando Live Studio...</p>
+          <RefreshCw className="w-8 h-8 animate-spin mx-auto text-palette-primary" />
+          <p className="text-slate-600 font-medium">Cargando Live Studio...</p>
         </div>
       </div>
     )
@@ -629,16 +629,16 @@ export default function DashboardPage() {
   const avatarSize = getApproximateDataUrlBytes(profileData.personalInfo?.avatar)
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col antialiased pb-24 md:pb-10">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col antialiased pb-24 md:pb-10">
 
       {/* Notification Toast */}
       {savedAlert && (
-        <div className="fixed top-20 right-4 sm:right-6 left-4 sm:left-auto z-50 p-4 rounded-2xl bg-emerald-950/95 border border-emerald-500/60 text-emerald-200 text-xs font-bold flex items-center justify-between gap-3 shadow-2xl backdrop-blur-xl animate-fade-in">
+        <div className="fixed top-20 right-4 sm:right-6 left-4 sm:left-auto z-50 p-4 rounded-2xl bg-emerald-50/95 border border-emerald-300 text-emerald-900 text-xs font-bold flex items-center justify-between gap-3 shadow-xl backdrop-blur-xl animate-fade-in">
           <div className="flex items-center gap-3">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
             <div>
-              <div className="text-white font-extrabold text-sm">¡Portafolio Actualizado!</div>
-              <div className="text-emerald-300/90 font-normal text-[11px]">
+              <div className="text-emerald-950 font-extrabold text-sm">¡Portafolio Actualizado!</div>
+              <div className="text-emerald-700 font-normal text-[11px]">
                 Cambios sincronizados en Supabase Cloud y vista @{profileData.username}.
               </div>
             </div>
@@ -646,7 +646,7 @@ export default function DashboardPage() {
           <button 
             type="button"
             onClick={() => setSavedAlert(false)} 
-            className="text-emerald-400 hover:text-white p-2 min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
+            className="text-emerald-600 hover:text-emerald-950 p-2 min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
             aria-label="Cerrar notificación"
           >
             <X className="w-4 h-4" />
@@ -662,20 +662,17 @@ export default function DashboardPage() {
         {/* ========================================================================= */}
         <section 
           aria-label="Editor Modular" 
-          className="lg:col-span-7 xl:col-span-7 bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col gap-6"
+          className="lg:col-span-7 xl:col-span-7 bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-6 shadow-sm flex flex-col gap-6"
         >
 
           {/* Editor Header & Tab Switcher */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <div>
-                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                   <span>Editor de Contenido</span>
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-palette-primary/10 text-palette-primary brightness-125 border border-palette-primary/25 font-mono font-semibold">
-                    @{profileData.username}
-                  </span>
                 </h2>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-500 mt-0.5">
                   Edita cada sección modularmente con actualización inmediata en el Live Preview.
                 </p>
               </div>
@@ -684,13 +681,13 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => setIsQrOpen(true)}
-                  className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 hover:border-palette-primary/40 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
                   title="Código QR del Portafolio"
                 >
-                  <QrCode className="w-3.5 h-3.5 text-palette-primary brightness-125" />
+                  <QrCode className="w-3.5 h-3.5 text-palette-primary" />
                   <span className="hidden sm:inline">Código QR</span>
                 </button>
-                <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-palette-primary/15 border border-palette-primary/30 text-palette-primary brightness-125 capitalize">
+                <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-palette-primary/10 border border-palette-primary/20 text-palette-primary capitalize">
                   {profileData.theme}
                 </span>
               </div>
@@ -702,7 +699,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => scrollTabs('left')}
-                className="hidden md:flex p-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 shadow-md absolute left-0 z-10 -translate-x-2 opacity-0 group-hover/tabs:opacity-100 transition-opacity cursor-pointer"
+                className="hidden md:flex p-1.5 rounded-lg bg-white/95 hover:bg-white text-slate-600 hover:text-slate-900 border border-slate-200 shadow-sm absolute left-0 z-10 -translate-x-2 opacity-0 group-hover/tabs:opacity-100 transition-opacity cursor-pointer"
                 title="Desplazar a la izquierda"
                 aria-label="Desplazar pestañas a la izquierda"
               >
@@ -717,7 +714,7 @@ export default function DashboardPage() {
                     tabsContainerRef.current.scrollLeft += e.deltaY
                   }
                 }}
-                className="w-full flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-slate-800/80 scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                className="w-full flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-slate-200 scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               >
                 {tabs.map((tab) => {
                   const IconComponent = tab.icon
@@ -727,17 +724,17 @@ export default function DashboardPage() {
                       key={tab.id}
                       type="button"
                       onClick={() => setActiveTab(tab.id)}
-                      className={`px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2 shrink-0 cursor-pointer snap-start ${
+                      className={`px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs whitespace-nowrap transition-all flex items-center gap-2 shrink-0 cursor-pointer snap-start ${
                         isActive
-                          ? 'bg-palette-primary/15 text-white border-2 border-palette-primary shadow-sm shadow-palette-glow'
-                          : 'bg-slate-800/70 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/60'
+                          ? 'bg-palette-primary/10 border-2 border-palette-primary text-palette-primary font-bold shadow-sm'
+                          : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-slate-200/80 font-medium'
                       }`}
                     >
-                      <IconComponent className={`w-4 h-4 shrink-0 ${isActive ? 'text-palette-primary brightness-125' : 'text-slate-400'}`} />
+                      <IconComponent className={`w-4 h-4 shrink-0 ${isActive ? 'text-palette-primary' : 'text-slate-400'}`} />
                       <span>{tab.label}</span>
                       {tab.count !== null && (
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
-                          isActive ? 'bg-palette-primary text-white shadow-sm' : 'bg-slate-700 text-slate-300'
+                          isActive ? 'bg-palette-primary text-white shadow-sm' : 'bg-slate-100 text-slate-600'
                         }`}>
                           {tab.count}
                         </span>
@@ -751,7 +748,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => scrollTabs('right')}
-                className="hidden md:flex p-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 shadow-md absolute right-0 z-10 translate-x-2 opacity-0 group-hover/tabs:opacity-100 transition-opacity cursor-pointer"
+                className="hidden md:flex p-1.5 rounded-lg bg-white/95 hover:bg-white text-slate-600 hover:text-slate-900 border border-slate-200 shadow-sm absolute right-0 z-10 translate-x-2 opacity-0 group-hover/tabs:opacity-100 transition-opacity cursor-pointer"
                 title="Desplazar a la derecha"
                 aria-label="Desplazar pestañas a la derecha"
               >
@@ -767,8 +764,8 @@ export default function DashboardPage() {
             <div className="space-y-6 animate-fadeIn">
               
               {/* Avatar Dropzone with Auto-Compression */}
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800/90 space-y-3">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+              <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200 space-y-3">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
                   Foto de Perfil / Avatar (Compresión Nativa &lt; 200 KB)
                 </label>
 
@@ -779,11 +776,11 @@ export default function DashboardPage() {
                     <img
                       src={profileData.personalInfo?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80'}
                       alt="Avatar Preview"
-                      className="w-20 h-20 rounded-2xl object-cover border-2 border-palette-primary/40 shadow-md shadow-palette-glow/20"
+                      className="w-20 h-20 rounded-2xl object-cover border-2 border-palette-primary/30 shadow-sm"
                     />
                     {isCompressingAvatar && (
-                      <div className="absolute inset-0 bg-slate-950/80 rounded-2xl flex items-center justify-center">
-                        <RefreshCw className="w-5 h-5 text-palette-primary brightness-125 animate-spin" />
+                      <div className="absolute inset-0 bg-white/80 rounded-2xl flex items-center justify-center">
+                        <RefreshCw className="w-5 h-5 text-palette-primary animate-spin" />
                       </div>
                     )}
                   </div>
@@ -803,7 +800,7 @@ export default function DashboardPage() {
                     className={`flex-1 w-full p-4 rounded-xl border-2 border-dashed transition-all text-center cursor-pointer flex flex-col items-center justify-center gap-1 ${
                       avatarDragOver
                         ? 'border-palette-primary bg-palette-primary/10'
-                        : 'border-slate-700/80 hover:border-palette-primary/60 bg-slate-900/50 hover:bg-slate-900'
+                        : 'border-slate-300 hover:border-palette-primary/60 bg-white hover:bg-slate-50'
                     }`}
                   >
                     <input
@@ -817,11 +814,11 @@ export default function DashboardPage() {
                         }
                       }}
                     />
-                    <Upload className="w-5 h-5 text-palette-primary brightness-125" />
-                    <div className="text-xs font-bold text-slate-200">
+                    <Upload className="w-5 h-5 text-palette-primary" />
+                    <div className="text-xs font-bold text-slate-800">
                       Arrastra tu foto o haz clic para subir
                     </div>
-                    <div className="text-[10px] text-slate-400">
+                    <div className="text-[10px] text-slate-500">
                       Escalado y compresión automática mediante Canvas nativo ({formatBytes(avatarSize)})
                     </div>
                   </div>
@@ -830,7 +827,7 @@ export default function DashboardPage() {
 
                 {/* Manual Avatar URL Input as fallback */}
                 <div className="pt-2">
-                  <label className="text-[11px] text-slate-400 font-medium mb-1 block">
+                  <label className="text-[11px] text-slate-600 font-medium mb-1 block">
                     O ingresa una URL de imagen directa:
                   </label>
                   <input
@@ -838,20 +835,20 @@ export default function DashboardPage() {
                     value={profileData.personalInfo?.avatar || ''}
                     onChange={(e) => updatePersonalInfo('avatar', e.target.value)}
                     placeholder="https://..."
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary font-mono transition-colors"
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary font-mono transition-colors"
                   />
                 </div>
 
               </div>
 
               {/* Available for Work Toggle */}
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-950 border border-slate-800">
+              <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50/80 border border-slate-200">
                 <div className="space-y-0.5 pr-4">
-                  <div className="text-xs font-bold text-slate-200 flex items-center gap-2">
+                  <div className="text-xs font-bold text-slate-800 flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
                     <span>Badge "Disponibilidad Inmediata"</span>
                   </div>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-500">
                     Muestra el indicador de disponibilidad inmediata en la cabecera de tu portafolio.
                   </p>
                 </div>
@@ -863,7 +860,7 @@ export default function DashboardPage() {
                   className={`w-12 h-7 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 ease-in-out shrink-0 ${
                     (profileData.personalInfo?.availableForWork ?? true)
                       ? 'bg-palette-gradient shadow-sm shadow-palette-glow'
-                      : 'bg-slate-800 border border-slate-700'
+                      : 'bg-slate-200 border border-slate-300'
                   }`}
                 >
                   <div
@@ -877,7 +874,7 @@ export default function DashboardPage() {
               {/* Full Name & Title */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
                     Nombre Completo
                   </label>
                   <input
@@ -885,12 +882,12 @@ export default function DashboardPage() {
                     value={profileData.personalInfo?.name || ''}
                     onChange={(e) => updatePersonalInfo('name', e.target.value)}
                     placeholder="Ej. Antonia Morales"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary font-medium transition-colors"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary font-medium transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
                     Título / Especialidad
                   </label>
                   <input
@@ -898,14 +895,14 @@ export default function DashboardPage() {
                     value={profileData.personalInfo?.title || ''}
                     onChange={(e) => updatePersonalInfo('title', e.target.value)}
                     placeholder="Ej. Lead Product Designer & UX"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary font-medium transition-colors"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary font-medium transition-colors"
                   />
                 </div>
               </div>
 
               {/* Professional Bio */}
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-slate-700 mb-1">
                   Biografía Profesional
                 </label>
                 <textarea
@@ -913,19 +910,19 @@ export default function DashboardPage() {
                   value={profileData.personalInfo?.bio || ''}
                   onChange={(e) => updatePersonalInfo('bio', e.target.value)}
                   placeholder="Redacta un resumen ejecutivo de tu trayectoria, habilidades clave y logros..."
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary font-normal leading-relaxed transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary font-normal leading-relaxed transition-colors"
                 />
               </div>
 
               {/* Contact Information & Channels */}
-              <div className="space-y-3 pt-2 border-t border-slate-800">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+              <div className="space-y-3 pt-2 border-t border-slate-200">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
                   Canales de Contacto & Redes
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                       Ubicación
                     </label>
                     <div className="relative">
@@ -935,13 +932,13 @@ export default function DashboardPage() {
                         value={profileData.personalInfo?.location || ''}
                         onChange={(e) => updatePersonalInfo('location', e.target.value)}
                         placeholder="Santiago, Chile / Remoto"
-                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
+                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                       Correo Electrónico
                     </label>
                     <div className="relative">
@@ -951,13 +948,13 @@ export default function DashboardPage() {
                         value={profileData.personalInfo?.email || ''}
                         onChange={(e) => updatePersonalInfo('email', e.target.value)}
                         placeholder="tu.correo@ejemplo.com"
-                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
+                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                       Teléfono
                     </label>
                     <div className="relative">
@@ -967,13 +964,13 @@ export default function DashboardPage() {
                         value={profileData.personalInfo?.phone || ''}
                         onChange={(e) => updatePersonalInfo('phone', e.target.value)}
                         placeholder="+56 9 1234 5678"
-                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
+                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                       WhatsApp (con código de país)
                     </label>
                     <div className="relative">
@@ -983,13 +980,13 @@ export default function DashboardPage() {
                         value={profileData.personalInfo?.whatsapp || ''}
                         onChange={(e) => updatePersonalInfo('whatsapp', e.target.value)}
                         placeholder="+56912345678"
-                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
+                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                       LinkedIn URL
                     </label>
                     <div className="relative">
@@ -999,13 +996,13 @@ export default function DashboardPage() {
                         value={profileData.personalInfo?.linkedin || ''}
                         onChange={(e) => updatePersonalInfo('linkedin', e.target.value)}
                         placeholder="https://linkedin.com/in/usuario"
-                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
+                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                       GitHub URL
                     </label>
                     <div className="relative">
@@ -1015,12 +1012,11 @@ export default function DashboardPage() {
                         value={profileData.personalInfo?.github || ''}
                         onChange={(e) => updatePersonalInfo('github', e.target.value)}
                         placeholder="https://github.com/usuario"
-                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
+                        className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
                       />
                     </div>
                   </div>
                 </div>
-
 
               </div>
 
@@ -1034,8 +1030,8 @@ export default function DashboardPage() {
             <div className="space-y-5 animate-fadeIn">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-white">Selector de Tema Polimórfico</h3>
-                  <p className="text-xs text-slate-400">
+                  <h3 className="text-sm font-bold text-slate-900">Selector de Tema Polimórfico</h3>
+                  <p className="text-xs text-slate-500">
                     Cambia la arquitectura visual completa con un solo clic.
                   </p>
                 </div>
@@ -1048,10 +1044,10 @@ export default function DashboardPage() {
                     <div
                       key={theme.id}
                       onClick={() => setProfileData((prev) => ({ ...prev, theme: theme.id }))}
-                      className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
+                      className={`p-4 rounded-2xl transition-all cursor-pointer flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
                         isSelected
-                          ? 'border-palette-primary bg-palette-primary/10 ring-2 ring-palette-primary/30 shadow-md shadow-palette-glow/20'
-                          : 'border-slate-800 hover:border-slate-700 bg-slate-950/60'
+                          ? 'bg-palette-primary/5 border-2 border-palette-primary shadow-sm'
+                          : 'bg-white border-2 border-slate-200 hover:border-slate-300'
                       }`}
                     >
                       <div className="flex items-center gap-3.5">
@@ -1068,13 +1064,13 @@ export default function DashboardPage() {
 
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-sm text-white">{theme.name}</span>
-                            <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-slate-800 text-slate-200">
+                            <span className="font-bold text-sm text-slate-900">{theme.name}</span>
+                            <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
                               {theme.tag}
                             </span>
                           </div>
-                          <p className="text-xs text-slate-400 mt-0.5">{theme.desc}</p>
-                          <span className="text-[10px] text-slate-400 font-semibold">{theme.category}</span>
+                          <p className="text-xs text-slate-500 mt-0.5">{theme.desc}</p>
+                          <span className="text-[10px] text-slate-500 font-semibold">{theme.category}</span>
                         </div>
                       </div>
 
@@ -1087,7 +1083,7 @@ export default function DashboardPage() {
                         ) : (
                           <button
                             type="button"
-                            className="px-3 py-1 rounded-full bg-slate-800 text-slate-200 hover:text-white hover:bg-slate-700 text-xs font-semibold transition-colors"
+                            className="px-3 py-1 rounded-full bg-slate-100 text-slate-700 hover:text-slate-900 hover:bg-slate-200 text-xs font-semibold transition-colors"
                           >
                             Seleccionar
                           </button>
@@ -1107,8 +1103,8 @@ export default function DashboardPage() {
             <div className="space-y-5 animate-fadeIn">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-white">Historial de Experiencia</h3>
-                  <p className="text-xs text-slate-400">
+                  <h3 className="text-sm font-bold text-slate-900">Historial de Experiencia</h3>
+                  <p className="text-xs text-slate-500">
                     Agrega, edita y organiza tus roles profesionales y logros clave.
                   </p>
                 </div>
@@ -1123,21 +1119,21 @@ export default function DashboardPage() {
               </div>
 
               {(!profileData.experience || profileData.experience.length === 0) ? (
-                <div className="p-8 text-center rounded-2xl bg-slate-950 border border-slate-800 text-slate-400 text-xs">
+                <div className="p-8 text-center rounded-2xl bg-slate-50/80 border border-slate-200 text-slate-500 text-xs">
                   No hay registros de experiencia. Haz clic en "+ Agregar Experiencia" para comenzar.
                 </div>
               ) : (
                 <div className="space-y-4">
                   {profileData.experience.map((exp, idx) => (
-                    <div key={exp.id || idx} className="p-4 sm:p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3.5">
-                      <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
-                        <span className="text-xs font-bold text-palette-primary brightness-125 uppercase tracking-wider flex items-center gap-1.5">
+                    <div key={exp.id || idx} className="p-4 sm:p-5 rounded-2xl bg-slate-50/80 border border-slate-200 space-y-3.5">
+                      <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
+                        <span className="text-xs font-bold text-palette-primary uppercase tracking-wider flex items-center gap-1.5">
                           Puesto #{idx + 1}
                         </span>
                         <button
                           type="button"
                           onClick={() => handleDeleteExperience(exp.id)}
-                          className="text-rose-400 hover:text-rose-300 p-1 rounded-lg hover:bg-rose-950/50 transition-colors cursor-pointer"
+                          className="text-rose-500 hover:text-rose-700 p-1 rounded-lg hover:bg-rose-100/50 transition-colors cursor-pointer"
                           title="Eliminar este puesto"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1146,7 +1142,7 @@ export default function DashboardPage() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                             Rol / Cargo
                           </label>
                           <input
@@ -1154,12 +1150,12 @@ export default function DashboardPage() {
                             value={exp.role || ''}
                             onChange={(e) => handleUpdateExperience(exp.id, 'role', e.target.value)}
                             placeholder="Ej. Senior Software Architect"
-                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
+                            className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                             Empresa / Organización
                           </label>
                           <input
@@ -1167,12 +1163,12 @@ export default function DashboardPage() {
                             value={exp.company || ''}
                             onChange={(e) => handleUpdateExperience(exp.id, 'company', e.target.value)}
                             placeholder="Ej. Mercado Libre"
-                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
+                            className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                             Fecha Inicio (YYYY-MM)
                           </label>
                           <input
@@ -1180,12 +1176,12 @@ export default function DashboardPage() {
                             value={exp.startDate || ''}
                             onChange={(e) => handleUpdateExperience(exp.id, 'startDate', e.target.value)}
                             placeholder="2021-03"
-                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary font-mono transition-colors"
+                            className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary font-mono transition-colors"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                             Fecha Fin (o deja vacío si es actual)
                           </label>
                           <input
@@ -1194,8 +1190,8 @@ export default function DashboardPage() {
                             value={exp.current ? 'Presente' : (exp.endDate || '')}
                             onChange={(e) => handleUpdateExperience(exp.id, 'endDate', e.target.value)}
                             placeholder="2023-12"
-                            className={`w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary font-mono transition-colors ${
-                              exp.current ? 'opacity-50 cursor-not-allowed' : ''
+                            className={`w-full px-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary font-mono transition-colors ${
+                              exp.current ? 'bg-slate-100 text-slate-500 opacity-60 cursor-not-allowed' : ''
                             }`}
                           />
                         </div>
@@ -1210,15 +1206,15 @@ export default function DashboardPage() {
                             handleUpdateExperience(exp.id, 'current', e.target.checked)
                             if (e.target.checked) handleUpdateExperience(exp.id, 'endDate', null)
                           }}
-                          className="w-4 h-4 text-palette-primary rounded bg-slate-800 border-slate-700 focus:ring-palette-primary cursor-pointer accent-palette-primary"
+                          className="w-4 h-4 text-palette-primary rounded bg-white border-slate-300 focus:ring-palette-primary cursor-pointer accent-palette-primary"
                         />
-                        <label htmlFor={`currentWork-${exp.id}`} className="text-xs font-semibold text-slate-300 cursor-pointer select-none">
+                        <label htmlFor={`currentWork-${exp.id}`} className="text-xs font-semibold text-slate-700 cursor-pointer select-none">
                           Trabajo actual / En curso
                         </label>
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                           Descripción de Funciones
                         </label>
                         <textarea
@@ -1226,20 +1222,20 @@ export default function DashboardPage() {
                           value={exp.description || ''}
                           onChange={(e) => handleUpdateExperience(exp.id, 'description', e.target.value)}
                           placeholder="Liderazgo de equipo, diseño de arquitectura..."
-                          className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
+                          className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
                         />
                       </div>
 
                       {/* Achievements Sub-List */}
-                      <div className="space-y-2 pt-2 border-t border-slate-800/80">
+                      <div className="space-y-2 pt-2 border-t border-slate-200">
                         <div className="flex items-center justify-between">
-                          <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+                          <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
                             Logros & Hitos
                           </label>
                           <button
                             type="button"
                             onClick={() => handleAddAchievement(exp.id)}
-                            className="px-2 py-0.5 rounded-lg bg-palette-primary/15 border border-palette-primary/30 text-palette-primary brightness-125 hover:bg-palette-primary/25 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                            className="px-2 py-0.5 rounded-lg bg-palette-primary/10 border border-palette-primary/30 text-palette-primary hover:bg-palette-primary/20 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
                           >
                             <Plus className="w-3 h-3" />
                             <span>+ Agregar logro</span>
@@ -1253,12 +1249,12 @@ export default function DashboardPage() {
                               value={ach}
                               onChange={(e) => handleUpdateAchievement(exp.id, achIdx, e.target.value)}
                               placeholder="Ej. Reducción de costos de infraestructura en un 40%..."
-                              className="flex-1 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700/70 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
+                              className="flex-1 px-3 py-1.5 rounded-lg bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
                             />
                             <button
                               type="button"
                               onClick={() => handleDeleteAchievement(exp.id, achIdx)}
-                              className="text-slate-400 hover:text-rose-400 p-1 transition-colors cursor-pointer"
+                              className="text-slate-400 hover:text-rose-600 p-1 transition-colors cursor-pointer"
                               title="Eliminar logro"
                             >
                               <X className="w-3.5 h-3.5" />
@@ -1281,8 +1277,8 @@ export default function DashboardPage() {
             <div className="space-y-5 animate-fadeIn">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-white">Educación & Certificaciones</h3>
-                  <p className="text-xs text-slate-400">
+                  <h3 className="text-sm font-bold text-slate-900">Educación & Certificaciones</h3>
+                  <p className="text-xs text-slate-500">
                     Grados académicos, másters y certificaciones profesionales.
                   </p>
                 </div>
@@ -1297,21 +1293,21 @@ export default function DashboardPage() {
               </div>
 
               {(!profileData.education || profileData.education.length === 0) ? (
-                <div className="p-8 text-center rounded-2xl bg-slate-950 border border-slate-800 text-slate-400 text-xs">
+                <div className="p-8 text-center rounded-2xl bg-slate-50/80 border border-slate-200 text-slate-500 text-xs">
                   No hay registros de educación. Haz clic en "+ Agregar Educación".
                 </div>
               ) : (
                 <div className="space-y-3.5">
                   {profileData.education.map((edu, idx) => (
-                    <div key={edu.id || idx} className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
-                      <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                        <span className="text-xs font-bold text-palette-primary brightness-125 uppercase tracking-wider flex items-center gap-1.5">
+                    <div key={edu.id || idx} className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200 space-y-3">
+                      <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                        <span className="text-xs font-bold text-palette-primary uppercase tracking-wider flex items-center gap-1.5">
                           Título #{idx + 1}
                         </span>
                         <button
                           type="button"
                           onClick={() => handleDeleteEducation(edu.id)}
-                          className="text-rose-400 hover:text-rose-300 p-1 rounded-lg hover:bg-rose-950/50 transition-colors cursor-pointer"
+                          className="text-rose-500 hover:text-rose-700 p-1 rounded-lg hover:bg-rose-100/50 transition-colors cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -1319,7 +1315,7 @@ export default function DashboardPage() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                             Grado / Título
                           </label>
                           <input
@@ -1327,12 +1323,12 @@ export default function DashboardPage() {
                             value={edu.degree || ''}
                             onChange={(e) => handleUpdateEducation(edu.id, 'degree', e.target.value)}
                             placeholder="Ej. Master of Laws (LL.M.)"
-                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary font-medium transition-colors"
+                            className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary font-medium transition-colors"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                             Institución Educativa
                           </label>
                           <input
@@ -1340,14 +1336,14 @@ export default function DashboardPage() {
                             value={edu.institution || ''}
                             onChange={(e) => handleUpdateEducation(edu.id, 'institution', e.target.value)}
                             placeholder="Ej. New York University (NYU)"
-                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
+                            className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
                           />
                         </div>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
-                          <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                             Año / Periodo
                           </label>
                           <input
@@ -1355,12 +1351,12 @@ export default function DashboardPage() {
                             value={edu.year || ''}
                             onChange={(e) => handleUpdateEducation(edu.id, 'year', e.target.value)}
                             placeholder="Ej. 2018 o 2014 - 2018"
-                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary font-mono transition-colors"
+                            className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary font-mono transition-colors"
                           />
                         </div>
 
                         <div className="sm:col-span-2">
-                          <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                             Detalles / Honores Académicos
                           </label>
                           <input
@@ -1368,7 +1364,7 @@ export default function DashboardPage() {
                             value={edu.details || ''}
                             onChange={(e) => handleUpdateEducation(edu.id, 'details', e.target.value)}
                             placeholder="Graduado con Distinción Máxima..."
-                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
+                            className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
                           />
                         </div>
                       </div>
@@ -1387,8 +1383,8 @@ export default function DashboardPage() {
             <div className="space-y-5 animate-fadeIn">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-white">Stack & Habilidades Técnicas</h3>
-                  <p className="text-xs text-slate-400">
+                  <h3 className="text-sm font-bold text-slate-900">Stack & Habilidades Técnicas</h3>
+                  <p className="text-xs text-slate-500">
                     Define tus competencias con nivel porcentual (1-100%) y categoría.
                   </p>
                 </div>
@@ -1403,16 +1399,16 @@ export default function DashboardPage() {
               </div>
 
               {(!profileData.skills || profileData.skills.length === 0) ? (
-                <div className="p-8 text-center rounded-2xl bg-slate-950 border border-slate-800 text-slate-400 text-xs">
+                <div className="p-8 text-center rounded-2xl bg-slate-50/80 border border-slate-200 text-slate-500 text-xs">
                   No hay habilidades agregadas. Haz clic en "+ Agregar Habilidad".
                 </div>
               ) : (
                 <div className="space-y-3">
                   {profileData.skills.map((skill, idx) => (
-                    <div key={skill.id || idx} className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                    <div key={skill.id || idx} className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center gap-3">
                       
                       <div className="flex-1 w-full sm:w-auto">
-                        <label className="block text-[10px] font-semibold text-slate-300 mb-0.5">
+                        <label className="block text-[10px] font-semibold text-slate-700 mb-0.5">
                           Habilidad / Tecnología
                         </label>
                         <input
@@ -1420,12 +1416,12 @@ export default function DashboardPage() {
                           value={skill.name || ''}
                           onChange={(e) => handleUpdateSkill(skill.id, 'name', e.target.value)}
                           placeholder="Ej. React 19 / Go / M&A"
-                          className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/70 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary font-medium transition-colors"
+                          className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary font-medium transition-colors"
                         />
                       </div>
 
                       <div className="w-full sm:w-36">
-                        <label className="block text-[10px] font-semibold text-slate-300 mb-0.5">
+                        <label className="block text-[10px] font-semibold text-slate-700 mb-0.5">
                           Categoría
                         </label>
                         <input
@@ -1433,14 +1429,14 @@ export default function DashboardPage() {
                           value={skill.category || ''}
                           onChange={(e) => handleUpdateSkill(skill.id, 'category', e.target.value)}
                           placeholder="Ej. Frontend"
-                          className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/70 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
+                          className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
                         />
                       </div>
 
                       <div className="w-full sm:w-36 flex flex-col justify-center">
-                        <div className="flex justify-between text-[10px] text-slate-300 mb-1">
+                        <div className="flex justify-between text-[10px] text-slate-700 mb-1">
                           <span>Nivel</span>
-                          <span className="font-mono font-bold text-palette-primary brightness-125">{skill.level}%</span>
+                          <span className="font-mono font-bold text-palette-primary">{skill.level}%</span>
                         </div>
                         <input
                           type="range"
@@ -1448,14 +1444,14 @@ export default function DashboardPage() {
                           max={100}
                           value={skill.level || 80}
                           onChange={(e) => handleUpdateSkill(skill.id, 'level', Number(e.target.value))}
-                          className="w-full accent-palette-primary cursor-pointer h-2 bg-slate-800 rounded-lg"
+                          className="w-full accent-palette-primary cursor-pointer h-2 bg-slate-200 rounded-lg"
                         />
                       </div>
 
                       <button
                         type="button"
                         onClick={() => handleDeleteSkill(skill.id)}
-                        className="text-rose-400 hover:text-rose-300 p-2 rounded-lg hover:bg-rose-950/50 transition-colors self-end sm:self-center cursor-pointer"
+                        className="text-rose-500 hover:text-rose-700 p-2 rounded-lg hover:bg-rose-100/50 transition-colors self-end sm:self-center cursor-pointer"
                         title="Eliminar habilidad"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -1475,8 +1471,8 @@ export default function DashboardPage() {
             <div className="space-y-5 animate-fadeIn">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-white">Proyectos & Casos de Estudio</h3>
-                  <p className="text-xs text-slate-400">
+                  <h3 className="text-sm font-bold text-slate-900">Proyectos & Casos de Estudio</h3>
+                  <p className="text-xs text-slate-500">
                     Muestra tus mejores trabajos con imágenes optimizadas y enlaces en vivo.
                   </p>
                 </div>
@@ -1491,45 +1487,45 @@ export default function DashboardPage() {
               </div>
 
               {(!profileData.projects || profileData.projects.length === 0) ? (
-                <div className="p-8 text-center rounded-2xl bg-slate-950 border border-slate-800 text-slate-400 text-xs">
+                <div className="p-8 text-center rounded-2xl bg-slate-50/80 border border-slate-200 text-slate-500 text-xs">
                   No hay proyectos registrados. Haz clic en "+ Agregar Proyecto".
                 </div>
               ) : (
                 <div className="space-y-4">
                   {profileData.projects.map((proj, idx) => (
-                    <div key={proj.id || idx} className="p-4 sm:p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3.5">
-                      <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                        <span className="text-xs font-bold text-palette-primary brightness-125 uppercase tracking-wider flex items-center gap-1.5">
+                    <div key={proj.id || idx} className="p-4 sm:p-5 rounded-2xl bg-slate-50/80 border border-slate-200 space-y-3.5">
+                      <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                        <span className="text-xs font-bold text-palette-primary uppercase tracking-wider flex items-center gap-1.5">
                           Proyecto #{idx + 1}
                         </span>
                         <button
                           type="button"
                           onClick={() => handleDeleteProject(proj.id)}
-                          className="text-rose-400 hover:text-rose-300 p-1 rounded-lg hover:bg-rose-950/50 transition-colors cursor-pointer"
+                          className="text-rose-500 hover:text-rose-700 p-1 rounded-lg hover:bg-rose-100/50 transition-colors cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
 
                       {/* Image Upload & Preview */}
-                      <div className="flex flex-col sm:flex-row items-center gap-3.5 p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+                      <div className="flex flex-col sm:flex-row items-center gap-3.5 p-3 rounded-xl bg-white border border-slate-200">
                         {proj.image && (
                           <div className="relative group shrink-0">
                             <img
                               src={proj.image}
                               alt={proj.title}
-                              className="w-24 h-16 rounded-xl object-cover border border-slate-700"
+                              className="w-24 h-16 rounded-xl object-cover border border-slate-200"
                             />
                             {compressingProjectIdx === proj.id && (
-                              <div className="absolute inset-0 bg-slate-950/80 rounded-xl flex items-center justify-center">
-                                <RefreshCw className="w-4 h-4 text-palette-primary brightness-125 animate-spin" />
+                              <div className="absolute inset-0 bg-white/80 rounded-xl flex items-center justify-center">
+                                <RefreshCw className="w-4 h-4 text-palette-primary animate-spin" />
                               </div>
                             )}
                           </div>
                         )}
 
                         <div className="flex-1 w-full space-y-1.5">
-                          <label className="block text-[10px] font-bold text-slate-300 uppercase tracking-wider">
+                          <label className="block text-[10px] font-bold text-slate-700 uppercase tracking-wider">
                             Foto de Portafolio (Compresión Automática)
                           </label>
                           <div className="flex items-center gap-2">
@@ -1552,14 +1548,14 @@ export default function DashboardPage() {
                               value={proj.image || ''}
                               onChange={(e) => handleUpdateProject(proj.id, 'image', e.target.value)}
                               placeholder="O pega URL de imagen..."
-                              className="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700/70 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
+                              className="flex-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
                             />
                           </div>
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                           Título del Proyecto
                         </label>
                         <input
@@ -1567,12 +1563,12 @@ export default function DashboardPage() {
                           value={proj.title || ''}
                           onChange={(e) => handleUpdateProject(proj.id, 'title', e.target.value)}
                           placeholder="Ej. Aurora Design System"
-                          className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary font-bold transition-colors"
+                          className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary font-bold transition-colors"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                           Descripción
                         </label>
                         <textarea
@@ -1580,12 +1576,12 @@ export default function DashboardPage() {
                           value={proj.description || ''}
                           onChange={(e) => handleUpdateProject(proj.id, 'description', e.target.value)}
                           placeholder="Breve reseña del proyecto..."
-                          className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
+                          className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                           Etiquetas / Tags (separados por coma)
                         </label>
                         <input
@@ -1596,12 +1592,12 @@ export default function DashboardPage() {
                             handleUpdateProject(proj.id, 'tags', tagsArray)
                           }}
                           placeholder="React, Tailwind, AWS, Figma"
-                          className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
+                          className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
                         />
                         {proj.tags && proj.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1.5 mt-2">
                             {proj.tags.map((tag, tagI) => (
-                              <span key={tagI} className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-palette-primary/15 text-slate-200 border border-palette-primary/30">
+                              <span key={tagI} className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-palette-primary/10 text-palette-primary border border-palette-primary/20">
                                 #{tag}
                               </span>
                             ))}
@@ -1611,7 +1607,7 @@ export default function DashboardPage() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                             URL en Vivo / Demo
                           </label>
                           <input
@@ -1619,12 +1615,12 @@ export default function DashboardPage() {
                             value={proj.liveUrl || ''}
                             onChange={(e) => handleUpdateProject(proj.id, 'liveUrl', e.target.value)}
                             placeholder="https://..."
-                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary font-mono transition-colors"
+                            className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary font-mono transition-colors"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                             URL de Repositorio / Código
                           </label>
                           <input
@@ -1632,7 +1628,7 @@ export default function DashboardPage() {
                             value={proj.repoUrl || ''}
                             onChange={(e) => handleUpdateProject(proj.id, 'repoUrl', e.target.value)}
                             placeholder="https://github.com/..."
-                            className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700/70 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary font-mono transition-colors"
+                            className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary font-mono transition-colors"
                           />
                         </div>
                       </div>
@@ -1651,8 +1647,8 @@ export default function DashboardPage() {
             <div className="space-y-5 animate-fadeIn">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-white">Idiomas & Dominio</h3>
-                  <p className="text-xs text-slate-400">
+                  <h3 className="text-sm font-bold text-slate-900">Idiomas & Dominio</h3>
+                  <p className="text-xs text-slate-500">
                     Idiomas que manejas y nivel de suficiencia comunicativa.
                   </p>
                 </div>
@@ -1667,15 +1663,15 @@ export default function DashboardPage() {
               </div>
 
               {(!profileData.languages || profileData.languages.length === 0) ? (
-                <div className="p-8 text-center rounded-2xl bg-slate-950 border border-slate-800 text-slate-400 text-xs">
+                <div className="p-8 text-center rounded-2xl bg-slate-50/80 border border-slate-200 text-slate-500 text-xs">
                   No hay idiomas registrados. Haz clic en "+ Agregar Idioma".
                 </div>
               ) : (
                 <div className="space-y-3">
                   {profileData.languages.map((lang, idx) => (
-                    <div key={lang.id || idx} className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 flex items-center gap-3">
+                    <div key={lang.id || idx} className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200 flex items-center gap-3">
                       <div className="flex-1">
-                        <label className="block text-[10px] font-semibold text-slate-300 mb-0.5">
+                        <label className="block text-[10px] font-semibold text-slate-700 mb-0.5">
                           Idioma
                         </label>
                         <input
@@ -1683,12 +1679,12 @@ export default function DashboardPage() {
                           value={lang.name || ''}
                           onChange={(e) => handleUpdateLanguage(lang.id, 'name', e.target.value)}
                           placeholder="Ej. Español / Inglés"
-                          className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/70 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary font-bold transition-colors"
+                          className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary font-bold transition-colors"
                         />
                       </div>
 
                       <div className="flex-1">
-                        <label className="block text-[10px] font-semibold text-slate-300 mb-0.5">
+                        <label className="block text-[10px] font-semibold text-slate-700 mb-0.5">
                           Nivel de Dominio
                         </label>
                         <input
@@ -1696,14 +1692,14 @@ export default function DashboardPage() {
                           value={lang.level || ''}
                           onChange={(e) => handleUpdateLanguage(lang.id, 'level', e.target.value)}
                           placeholder="Nativo / Bilingüe (C2) / Avanzado (C1)"
-                          className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/70 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
+                          className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
                         />
                       </div>
 
                       <button
                         type="button"
                         onClick={() => handleDeleteLanguage(lang.id)}
-                        className="text-rose-400 hover:text-rose-300 p-2 rounded-lg hover:bg-rose-950/50 transition-colors self-end cursor-pointer"
+                        className="text-rose-500 hover:text-rose-700 p-2 rounded-lg hover:bg-rose-100/50 transition-colors self-end cursor-pointer"
                         title="Eliminar idioma"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -1721,19 +1717,19 @@ export default function DashboardPage() {
           {activeTab === 'floatingButton' && (
             <div className="space-y-5 animate-fadeIn">
               <div>
-                <h3 className="text-sm font-bold text-white">Botón de Contacto Flotante</h3>
-                <p className="text-xs text-slate-400">
+                <h3 className="text-sm font-bold text-slate-900">Botón de Contacto Flotante</h3>
+                <p className="text-xs text-slate-500">
                   Gatillo de alta conversión fijo en la esquina inferior del portafolio.
                 </p>
               </div>
 
               {/* Activation Switch */}
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-950 border border-slate-800">
+              <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50/80 border border-slate-200">
                 <div className="space-y-0.5 pr-4">
-                  <div className="text-xs font-bold text-slate-200">
+                  <div className="text-xs font-bold text-slate-800">
                     Activar Botón Flotante
                   </div>
-                  <div className="text-[11px] text-slate-400">
+                  <div className="text-[11px] text-slate-500">
                     Permite a los visitantes contactarte directamente con 1 solo clic.
                   </div>
                 </div>
@@ -1745,7 +1741,7 @@ export default function DashboardPage() {
                   className={`w-12 h-7 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 ease-in-out shrink-0 ${
                     (profileData.floatingButton?.enabled ?? true)
                       ? 'bg-palette-gradient shadow-sm shadow-palette-glow'
-                      : 'bg-slate-800 border border-slate-700'
+                      : 'bg-slate-200 border border-slate-300'
                   }`}
                 >
                   <div
@@ -1758,7 +1754,7 @@ export default function DashboardPage() {
 
               {/* Channel Selector */}
               <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
                   Tipo de Acción / Canal
                 </label>
 
@@ -1778,8 +1774,8 @@ export default function DashboardPage() {
                         onClick={() => updateFloatingButton('type', btnType.id)}
                         className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5 cursor-pointer ${
                           isSelected
-                            ? 'border-palette-primary bg-palette-primary/15 ring-2 ring-palette-primary/30 text-white shadow-sm shadow-palette-glow/25'
-                            : 'border-slate-800 bg-slate-950 hover:border-slate-700 text-slate-300'
+                            ? 'border-palette-primary bg-palette-primary/10 ring-2 ring-palette-primary/30 text-palette-primary font-bold shadow-sm'
+                            : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700 shadow-sm'
                         }`}
                       >
                         <div
@@ -1797,7 +1793,7 @@ export default function DashboardPage() {
 
               {/* Custom Message Template */}
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-slate-700 mb-1">
                   Mensaje Predeterminado al Abrir
                 </label>
                 <textarea
@@ -1805,9 +1801,9 @@ export default function DashboardPage() {
                   value={profileData.floatingButton?.customMessage || ''}
                   onChange={(e) => updateFloatingButton('customMessage', e.target.value)}
                   placeholder="Hola, vi tu portafolio en Mi Vitae y me gustaría conversar sobre una oportunidad..."
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-palette-primary/60 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
                 />
-                <p className="text-[10px] text-slate-400 mt-1">
+                <p className="text-[10px] text-slate-500 mt-1">
                   Este texto se precargará automáticamente cuando un reclutador o cliente haga clic en el botón.
                 </p>
               </div>
@@ -1822,17 +1818,17 @@ export default function DashboardPage() {
         {/* ========================================================================= */}
         <section aria-label="Control Center y Métricas" className="hidden lg:flex lg:col-span-5 xl:col-span-5 sticky top-20 flex-col gap-5">
           
-          {/* Quick Portfolio Action Card */}
-          <div className="bg-gradient-to-br from-slate-900 via-palette-primary/10 to-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl relative overflow-hidden">
+          {/* Quick Portfolio Action / Live Preview Card */}
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-6 shadow-sm relative overflow-hidden">
             
             <div className="flex items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-400">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-600">
                   Portafolio en Línea
                 </span>
               </div>
-              <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-palette-primary/20 border border-palette-primary/30 text-palette-primary brightness-125 capitalize">
+              <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-palette-primary/10 border border-palette-primary/20 text-palette-primary capitalize">
                 Tema: {profileData.theme}
               </span>
             </div>
@@ -1842,13 +1838,13 @@ export default function DashboardPage() {
               <img
                 src={profileData.personalInfo?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80'}
                 alt={profileData.personalInfo?.name}
-                className="w-16 h-16 rounded-2xl object-cover border-2 border-palette-primary/40 shadow-md shadow-palette-glow/20 shrink-0"
+                className="w-16 h-16 rounded-2xl object-cover border-2 border-palette-primary/30 shadow-sm shrink-0"
               />
               <div className="min-w-0">
-                <h3 className="font-extrabold text-base sm:text-lg text-white truncate">
+                <h3 className="font-extrabold text-base sm:text-lg text-slate-900 truncate">
                   {profileData.personalInfo?.name || 'Tu Nombre'}
                 </h3>
-                <p className="text-xs text-slate-300 font-medium truncate">
+                <p className="text-xs text-slate-500 font-medium truncate">
                   {profileData.personalInfo?.title || 'Tu Cargo Profesional'}
                 </p>
                 <div className="text-[11px] text-slate-400 font-mono mt-1">
@@ -1858,18 +1854,18 @@ export default function DashboardPage() {
             </div>
 
             {/* Custom Link Box */}
-            <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex items-center justify-between gap-2 mb-4">
-              <div className="flex items-center gap-2 min-w-0 text-xs font-mono text-slate-300">
-                <Globe className="w-4 h-4 text-palette-primary brightness-125 shrink-0" />
-                <span className="truncate">{typeof window !== 'undefined' && window.location?.host && !window.location.host.includes('localhost') ? window.location.host : 'mivitae.wearesamod.com'}/<strong className="text-white">{profileData.username}</strong></span>
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex items-center justify-between gap-2 mb-4">
+              <div className="flex items-center gap-2 min-w-0 text-xs font-mono text-slate-600">
+                <Globe className="w-4 h-4 text-palette-primary shrink-0" />
+                <span className="truncate">{typeof window !== 'undefined' && window.location?.host && !window.location.host.includes('localhost') ? window.location.host : 'mivitae.wearesamod.com'}/<strong className="text-slate-900">{profileData.username}</strong></span>
               </div>
               <button
                 type="button"
                 onClick={handleCopyLink}
-                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-palette-primary text-slate-200 hover:text-white border border-slate-700 text-xs font-bold transition-colors shrink-0 flex items-center gap-1 cursor-pointer"
+                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold transition-colors shrink-0 flex items-center gap-1 cursor-pointer"
                 title="Copiar enlace directo"
               >
-                {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{copiedLink ? 'Copiado' : 'Copiar'}</span>
               </button>
             </div>
@@ -1880,7 +1876,7 @@ export default function DashboardPage() {
                 href={getLiveProfileUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-3 rounded-2xl bg-palette-gradient hover:opacity-95 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-palette-glow transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="px-4 py-3 rounded-2xl bg-palette-gradient hover:opacity-95 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-palette-glow transition-all hover:scale-[1.02] active:scale-[0.98] no-underline"
               >
                 <Eye className="w-4 h-4" />
                 <span>Ver en Vivo ↗</span>
@@ -1889,9 +1885,9 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => setIsQrOpen(true)}
-                className="px-4 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 hover:border-palette-primary/40 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                className="px-4 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
               >
-                <QrCode className="w-4 h-4 text-palette-primary brightness-125" />
+                <QrCode className="w-4 h-4 text-palette-primary" />
                 <span>Código QR</span>
               </button>
             </div>
@@ -1899,16 +1895,16 @@ export default function DashboardPage() {
           </div>
 
           {/* Real-time Analytics Dashboard Cards */}
-          <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
             
-            <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-3">
+            <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-3">
               <div className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-palette-primary brightness-125" />
-                <h4 className="text-xs font-extrabold text-white uppercase tracking-wider">
+                <BarChart3 className="w-4 h-4 text-palette-primary" />
+                <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
                   Métricas de Rendimiento
                 </h4>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-500/30">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                 Tiempo Real
               </span>
             </div>
@@ -1916,59 +1912,59 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 gap-3">
               
               {/* Metric 1: Views */}
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800/80">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-medium text-slate-300">Visitas Totales</span>
-                  <Eye className="w-4 h-4 text-palette-primary brightness-125" />
+                  <span className="text-[11px] font-medium text-slate-500">Visitas Totales</span>
+                  <Eye className="w-4 h-4 text-palette-primary" />
                 </div>
-                <div className="text-2xl font-black text-white">
+                <div className="text-2xl font-black text-slate-900">
                   {(profileData.analytics?.views || 1240).toLocaleString('es-CL')}
                 </div>
-                <div className="text-[10px] text-emerald-400 font-semibold mt-1 flex items-center gap-1">
+                <div className="text-[10px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
                   <TrendingUp className="w-3 h-3" />
                   <span>+18% esta semana</span>
                 </div>
               </div>
 
               {/* Metric 2: WhatsApp Clicks */}
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800/80">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-medium text-slate-300">Clics WhatsApp</span>
-                  <MessageCircle className="w-4 h-4 text-emerald-400" />
+                  <span className="text-[11px] font-medium text-slate-500">Clics WhatsApp</span>
+                  <MessageCircle className="w-4 h-4 text-emerald-600" />
                 </div>
-                <div className="text-2xl font-black text-white">
+                <div className="text-2xl font-black text-slate-900">
                   {(profileData.analytics?.contactClicks || 380).toLocaleString('es-CL')}
                 </div>
-                <div className="text-[10px] text-emerald-400 font-semibold mt-1 flex items-center gap-1">
+                <div className="text-[10px] text-emerald-600 font-semibold mt-1 flex items-center gap-1">
                   <TrendingUp className="w-3 h-3" />
                   <span>Contacto directo</span>
                 </div>
               </div>
 
               {/* Metric 3: QR Scans */}
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800/80">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-medium text-slate-300">Escaneos QR</span>
-                  <QrCode className="w-4 h-4 text-palette-primary brightness-125" />
+                  <span className="text-[11px] font-medium text-slate-500">Escaneos QR</span>
+                  <QrCode className="w-4 h-4 text-palette-primary" />
                 </div>
-                <div className="text-2xl font-black text-white">
-                  {(profileData.analytics?.cvDownloads || 195).toLocaleString('es-CL')}
+                <div className="text-2xl font-black text-slate-900">
+                  {(profileData.analytics?.cvDownloads || 3).toLocaleString('es-CL')}
                 </div>
-                <div className="text-[10px] text-slate-300 font-semibold mt-1">
+                <div className="text-[10px] text-slate-500 font-semibold mt-1">
                   Tarjetas & networking
                 </div>
               </div>
 
               {/* Metric 4: Conversion Rate */}
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800/80">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-medium text-slate-300">Tasa de Conversión</span>
-                  <Sparkles className="w-4 h-4 text-palette-highlight brightness-125" />
+                  <span className="text-[11px] font-medium text-slate-500">Tasa de Conversión</span>
+                  <Sparkles className="w-4 h-4 text-palette-primary" />
                 </div>
-                <div className="text-2xl font-black text-palette-highlight brightness-125">
+                <div className="text-2xl font-black text-palette-primary">
                   {(((profileData.analytics?.contactClicks || 380) / Math.max(profileData.analytics?.views || 1240, 1)) * 100).toFixed(1)}%
                 </div>
-                <div className="text-[10px] text-palette-highlight brightness-110 font-semibold mt-1">
+                <div className="text-[10px] text-palette-primary font-semibold mt-1">
                   x15 vs CV en PDF
                 </div>
               </div>
@@ -1976,33 +1972,33 @@ export default function DashboardPage() {
             </div>
 
             {/* Profile Content Summary */}
-            <div className="pt-2 border-t border-slate-800 text-xs text-slate-300 space-y-2">
+            <div className="pt-2 border-t border-slate-200 text-xs text-slate-500 space-y-2">
               <div className="flex items-center justify-between">
                 <span>Experiencias registradas:</span>
-                <strong className="text-white">{profileData.experience?.length || 0}</strong>
+                <strong className="text-slate-900">{profileData.experience?.length || 0}</strong>
               </div>
               <div className="flex items-center justify-between">
                 <span>Proyectos destacados:</span>
-                <strong className="text-white">{profileData.projects?.length || 0}</strong>
+                <strong className="text-slate-900">{profileData.projects?.length || 0}</strong>
               </div>
               <div className="flex items-center justify-between">
                 <span>Competencias / Stack:</span>
-                <strong className="text-white">{profileData.skills?.length || 0}</strong>
+                <strong className="text-slate-900">{profileData.skills?.length || 0}</strong>
               </div>
             </div>
 
           </div>
 
-          {/* Plan & Subscription Card (Única tarjeta y botón unificado en todo el dashboard) */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-4 sm:p-5 space-y-4">
+          {/* Plan & Subscription Card */}
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-5 shadow-sm space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-white font-bold shadow-md shrink-0 ${
+                <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold shadow-sm shrink-0 ${
                   planInfo.isExpired
-                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                    ? 'bg-rose-100 text-rose-600 border border-rose-200'
                     : planInfo.isPremium
-                    ? 'bg-palette-gradient shadow-palette-glow'
-                    : 'bg-palette-primary/20 text-palette-primary brightness-125 border border-palette-primary/30 shadow-palette-glow/20'
+                    ? 'bg-palette-gradient text-white shadow-palette-glow'
+                    : 'bg-palette-primary/10 text-palette-primary border border-palette-primary/20'
                 }`}>
                   {planInfo.isExpired ? (
                     <CreditCard className="w-5 h-5" />
@@ -2014,18 +2010,18 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-black text-white">
+                    <span className="text-sm font-black text-slate-900">
                       {planInfo.isPremium ? 'Suscripción Mi Vitae Pro' : '1er Mes Gratis Activo'}
                     </span>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
                       planInfo.isExpired
-                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                        : 'bg-palette-primary/15 text-palette-primary brightness-125 border border-palette-primary/30'
+                        ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                        : 'bg-palette-primary/10 text-palette-primary border border-palette-primary/20'
                     }`}>
                       {planInfo.isExpired ? 'Vencido' : 'Activo'}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-300 mt-0.5">
+                  <p className="text-xs text-slate-500 mt-0.5">
                     Plan Profesional · $3.490 CLP/mes
                   </p>
                 </div>
@@ -2035,18 +2031,18 @@ export default function DashboardPage() {
             {/* Expiration and days remaining notice */}
             <div className={`p-3 rounded-2xl text-xs flex items-center justify-between gap-2 border ${
               planInfo.isExpired
-                ? 'bg-rose-950/30 border-rose-500/40 text-rose-300'
-                : 'bg-slate-950/60 border-slate-800 text-slate-300'
+                ? 'bg-rose-50 border-rose-200 text-rose-700'
+                : 'bg-slate-50 border border-slate-200 text-slate-700'
             }`}>
               {planInfo.isExpired ? (
-                <div className="flex items-center gap-2 text-rose-300 font-medium">
+                <div className="flex items-center gap-2 text-rose-700 font-medium">
                   <span>⚠️</span>
                   <span><strong>Plan Vencido:</strong> Renueva para mantener tu portafolio activo.</span>
                 </div>
               ) : (
                 <div className="flex items-center justify-between w-full">
-                  <span className="text-slate-300">Vence: <strong className="text-white">{planInfo.formattedDate}</strong></span>
-                  <span className="px-2 py-0.5 rounded-md bg-palette-primary/15 text-slate-100 font-bold font-mono text-[11px] border border-palette-primary/30">
+                  <span className="text-slate-600">Vence: <strong className="text-slate-900">{planInfo.formattedDate}</strong></span>
+                  <span className="px-2 py-0.5 rounded-md bg-palette-primary/10 text-palette-primary font-bold font-mono text-[11px] border border-palette-primary/20">
                     {planInfo.daysRemaining} {planInfo.daysRemaining === 1 ? 'día restante' : 'días restantes'}
                   </span>
                 </div>
@@ -2067,6 +2063,37 @@ export default function DashboardPage() {
         </section>
 
       </main>
+
+      {/* Sticky Bottom Bar for Mobile */}
+      <aside aria-label="Acciones rápidas móviles" className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-3 shadow-xl flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() => setIsQrOpen(true)}
+          className="flex-1 min-h-[44px] px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+        >
+          <QrCode className="w-4 h-4 text-palette-primary" />
+          <span>Código QR</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={handleCopyLink}
+          className="flex-1 min-h-[44px] px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+        >
+          {copiedLink ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
+          <span>{copiedLink ? 'Copiado' : 'Copiar Link'}</span>
+        </button>
+
+        <a
+          href={getLiveProfileUrl()}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-1 min-h-[44px] px-3 py-2 rounded-xl bg-palette-gradient hover:opacity-95 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm shadow-palette-glow transition-transform active:scale-[0.98] no-underline"
+        >
+          <Eye className="w-4 h-4" />
+          <span>En Vivo ↗</span>
+        </a>
+      </aside>
 
       {/* QR Code Generator Modal */}
       <QrModal

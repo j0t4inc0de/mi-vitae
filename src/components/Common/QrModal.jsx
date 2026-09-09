@@ -16,10 +16,10 @@ export default function QrModal({ isOpen, onClose, profile, username: propUserna
 
   const username = propUsername || profile?.username || ''
 
-  // Build target URL pointing to production domain
-  const productionBase = 'https://mi-vitae.wearesamod.com'
+  // Build target URL pointing to production domain (mivitae.wearesamod.com)
+  const productionBase = 'https://mivitae.wearesamod.com'
   const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-  const targetUrl = customUrl || (isLocal || typeof window === 'undefined'
+  const targetUrl = customUrl || (isLocal || typeof window === 'undefined' || window.location.origin.includes('mi-vitae')
     ? `${productionBase}/${username}` 
     : `${window.location.origin}/${username}`)
 
