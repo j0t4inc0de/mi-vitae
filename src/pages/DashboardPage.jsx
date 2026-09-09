@@ -1823,10 +1823,21 @@ export default function DashboardPage() {
             
             <div className="flex items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-600">
-                  Portafolio en Línea
-                </span>
+                {planInfo.isExpired ? (
+                  <>
+                    <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0" />
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-rose-600">
+                      Portafolio Offline
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                    <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-600">
+                      Portafolio en Línea
+                    </span>
+                  </>
+                )}
               </div>
               <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-palette-primary/10 border border-palette-primary/20 text-palette-primary capitalize">
                 Tema: {profileData.theme}
