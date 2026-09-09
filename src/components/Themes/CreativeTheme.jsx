@@ -74,7 +74,7 @@ export default function CreativeTheme({ profile, onRecordClick }) {
                       className="w-full h-full object-cover rounded-[21px] sm:rounded-[21px]"
                     />
                   </div>
-                  {personalInfo.availableForWork && (
+                  {(personalInfo.availableForWork ?? true) && (
                     <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-[#1B1A28]"></span>
@@ -89,9 +89,9 @@ export default function CreativeTheme({ profile, onRecordClick }) {
                       <Sparkles className="w-3 h-3 text-pink-400" />
                       <span>@{profile.username}</span>
                     </span>
-                    {personalInfo.availableForWork && (
+                    {(personalInfo.availableForWork ?? true) && (
                       <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-950/60 text-emerald-300 border border-emerald-500/30">
-                        Open to Projects
+                        Disponibilidad Inmediata
                       </span>
                     )}
                   </div>

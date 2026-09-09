@@ -115,11 +115,11 @@ export default function WarmTheme({ profile, onRecordClick }) {
               </div>
 
               {/* Status Badge floating at bottom of avatar */}
-              {personalInfo.availableForWork && (
+              {(personalInfo.availableForWork ?? true) && (
                 <div className="absolute -bottom-2 inset-x-0 flex justify-center">
                   <AvailableBadge 
-                    available={personalInfo.availableForWork} 
-                    text="Atención Online & Presencial"
+                    available={personalInfo.availableForWork ?? true} 
+                    text="Disponibilidad Inmediata"
                     compact={false}
                     size="sm"
                     className="bg-[#FEF3C7] text-[#92400E] border-[#FDE68A] shadow-md"

@@ -52,10 +52,10 @@ export default function MinimalistTheme({ profile, onRecordClick }) {
           </div>
 
           <div className="flex items-center gap-3">
-            {personalInfo.availableForWork && (
+            {(personalInfo.availableForWork ?? true) && (
               <span className="inline-flex items-center gap-1.5 text-stone-700 bg-stone-200/70 px-2.5 py-0.5 rounded-full text-[11px] font-sans font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-                Disponible para Asesorías
+                <span>Disponibilidad Inmediata</span>
               </span>
             )}
             <span className="text-stone-400 font-sans">@{profile.username}</span>

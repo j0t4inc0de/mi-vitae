@@ -107,6 +107,8 @@ export default function DashboardPage() {
   const fetchRemoteProfile = useProfileStore((state) => state.fetchRemoteProfile)
   const resetToDefaults = useProfileStore((state) => state.resetToDefaults)
   const openFlowModal = useProfileStore((state) => state.openFlowModal)
+  const dashboardSaveTrigger = useProfileStore((state) => state.dashboardSaveTrigger)
+  const setIsDashboardSaving = useProfileStore((state) => state.setIsDashboardSaving)
 
   // Current active profile from store
   const storeProfile = profiles[activeUsername] || Object.values(profiles)[0]
@@ -264,6 +266,7 @@ export default function DashboardPage() {
     if (!profileData || !profileData.username) return
 
     setIsSaving(true)
+    setIsDashboardSaving(true)
     // 1. Guardar en store local para reactividad inmediata
     updateProfile(profileData.username, profileData)
 
@@ -280,11 +283,21 @@ export default function DashboardPage() {
       console.warn('[Dashboard] Error al sincronizar perfil con Supabase:', err)
     } finally {
       setIsSaving(false)
+      setIsDashboardSaving(false)
     }
 
     setSavedAlert(true)
     setTimeout(() => setSavedAlert(false), 3500)
   }
+
+  // Listen to Navbar Save Trigger
+  const lastSaveTriggerRef = useRef(dashboardSaveTrigger)
+  useEffect(() => {
+    if (dashboardSaveTrigger > 0 && dashboardSaveTrigger !== lastSaveTriggerRef.current) {
+      lastSaveTriggerRef.current = dashboardSaveTrigger
+      handleSave()
+    }
+  }, [dashboardSaveTrigger])
 
   // Reset to initial mock profiles with production safety checks
   const DEMO_ARCHETYPES = ['carlos_dev', 'antonia_ux', 'valeria_psico', 'rodrigo_ops', 'abogado_consultor']
@@ -617,23 +630,6 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-palette-gradient text-white shadow-md shadow-palette-glow shrink-0">
                 <LayoutDashboard className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-base sm:text-lg font-extrabold tracking-tight text-white flex items-center gap-1.5">
-                    <span>Mi Vitae</span>
-                    <span className="text-palette-primary font-mono font-normal text-[11px] px-2 py-0.5 rounded-md bg-palette-primary/10 border border-palette-primary/30">
-                      Studio
-                    </span>
-                  </h1>
-                  <span className="flex h-2 w-2 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-400 hidden sm:block">
-                  Editor polimórfico en tiempo real con compresión nativa de imágenes
-                </p>
               </div>
             </div>
 

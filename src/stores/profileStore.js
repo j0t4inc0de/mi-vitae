@@ -19,6 +19,12 @@ export const useProfileStore = create(
       profiles: INITIAL_MOCK_PROFILES,
       activeUsername: 'carlos_dev', // Default active profile for editor/dashboard
 
+      // Dashboard Save Coordination State (Navbar <-> DashboardPage)
+      isDashboardSaving: false,
+      dashboardSaveTrigger: 0,
+      triggerDashboardSave: () => set((state) => ({ dashboardSaveTrigger: state.dashboardSaveTrigger + 1 })),
+      setIsDashboardSaving: (val) => set({ isDashboardSaving: val }),
+
       // Global Modal States for instant activation from any view
       isRegisterModalOpen: false,
       registerModalPrefill: {},
@@ -438,6 +444,8 @@ export const useProfileStore = create(
           ...persistedState,
           isGlobalLoading: false,
           loadingMessage: '',
+          isDashboardSaving: false,
+          dashboardSaveTrigger: 0,
           profiles: {
             ...INITIAL_MOCK_PROFILES,
             ...(persistedState?.profiles || {})

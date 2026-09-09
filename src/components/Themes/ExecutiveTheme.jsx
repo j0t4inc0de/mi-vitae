@@ -133,7 +133,7 @@ export default function ExecutiveTheme({ profile, onRecordClick }) {
               <div className="absolute -bottom-3 inset-x-0 flex justify-center">
                 <AvailableBadge
                   available={personalInfo.availableForWork ?? true}
-                  text="Disponible para Consejos & Directorios"
+                  text="Disponibilidad Inmediata"
                   compact={false}
                   size="sm"
                   className="bg-[#0B132B] text-[#93C5FD] border-[#3B82F6]/40 shadow-lg text-[10px]"

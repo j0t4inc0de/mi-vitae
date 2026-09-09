@@ -73,9 +73,12 @@ export default function TechTheme({ profile, onRecordClick }) {
                   className="w-full h-full object-cover rounded-lg"
                 />
               </div>
-              <div className="absolute -bottom-2 -right-1 bg-[#10B981] text-[#0A0E17] text-[10px] font-black px-2 py-0.5 rounded font-mono shadow">
-                STAFF_DEV
-              </div>
+              {(personalInfo.availableForWork ?? true) && (
+                <div className="absolute -bottom-2 -right-1 bg-[#10B981] text-[#0A0E17] text-[10px] font-black px-2 py-0.5 rounded font-mono shadow flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#0A0E17] animate-pulse" />
+                  <span>Disponibilidad Inmediata</span>
+                </div>
+              )}
             </div>
 
             {/* Info and Links */}
