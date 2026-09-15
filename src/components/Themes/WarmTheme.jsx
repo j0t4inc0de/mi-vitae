@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { 
   MapPin, Mail, Globe, Linkedin, Github, 
   Briefcase, GraduationCap, Award, ExternalLink, 
-  Sparkles, CheckCircle2,
+  CheckCircle2,
   QrCode, BookOpen
 } from 'lucide-react'
 import AvailableBadge from '../Common/AvailableBadge'
@@ -92,10 +92,6 @@ export default function WarmTheme({ profile, onRecordClick }) {
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                 <span className="text-xs font-semibold uppercase tracking-wider text-[#D97706] bg-[#FEF3C7] px-3 py-0.5 rounded-full border border-[#FDE68A]">
                   @{profile.username}
-                </span>
-                <span className="text-xs text-[#78350F] flex items-center gap-1 font-medium">
-                  <Sparkles className="w-3.5 h-3.5 text-[#D97706]" />
-                  Perfil Verificado
                 </span>
               </div>
 

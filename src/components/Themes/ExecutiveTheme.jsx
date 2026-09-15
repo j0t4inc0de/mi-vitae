@@ -3,7 +3,7 @@ import {
   MapPin, Mail, Globe, Linkedin, Github, 
   Briefcase, GraduationCap, Award, ExternalLink, 
   CheckCircle2, Target,
-  QrCode, ShieldCheck, Building2
+  QrCode, Building2
 } from 'lucide-react'
 import AvailableBadge from '../Common/AvailableBadge'
 import ViralFooter from '../Common/ViralFooter'
@@ -90,10 +90,6 @@ export default function ExecutiveTheme({ profile, onRecordClick }) {
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
                 <span className="text-xs font-mono font-bold tracking-wider uppercase text-[#93C5FD] bg-[#0B132B] px-3 py-0.5 rounded-full border border-[#334155]">
                   @{profile.username}
-                </span>
-                <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1">
-                  <ShieldCheck className="w-4 h-4" />
-                  Ejecutivo Verificado
                 </span>
               </div>
 
