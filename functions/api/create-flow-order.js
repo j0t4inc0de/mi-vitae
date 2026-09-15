@@ -66,13 +66,13 @@ export async function onRequestPost(context) {
     const params = {
       apiKey: flowApiKey,
       commerceOrder,
-      subject,
       currency: 'CLP',
       amount: String(amount),
       email,
+      optional: JSON.stringify({ username }),
+      subject,
       urlConfirmation: `${appUrl}/api/flow-webhook`,
-      urlReturn: `${appUrl}/dashboard?payment=complete&order=${commerceOrder}`,
-      'optional[username]': username
+      urlReturn: `${appUrl}/dashboard?payment=complete&order=${commerceOrder}`
     }
 
     const signature = await signFlowParams(flowSecretKey, params)
