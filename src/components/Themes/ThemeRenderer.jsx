@@ -14,11 +14,17 @@ const THEME_COMPONENTS = {
   executive: ExecutiveTheme,
 }
 
-// ponytail: Sort experience chronologically (most recent / current first) across all themes in 1 line
+// ponytail: Sort experience and education chronologically (most recent first) across all themes
 const sortExperience = (list = []) => [...list].sort((a, b) => {
   if (a.current && !b.current) return -1
   if (!a.current && b.current) return 1
   return (b.startDate || '').localeCompare(a.startDate || '')
+})
+
+const sortEducation = (list = []) => [...list].sort((a, b) => {
+  const dateA = a.year || a.endDate || a.startDate || ''
+  const dateB = b.year || b.endDate || b.startDate || ''
+  return dateB.localeCompare(dateA)
 })
 
 /**
@@ -30,7 +36,11 @@ export default function ThemeRenderer({ profile, themeOverride, onRecordClick })
 
   const resolvedTheme = (themeOverride || profile.theme || 'minimalist').toLowerCase().trim()
   const SelectedTheme = THEME_COMPONENTS[resolvedTheme] || MinimalistTheme
-  const normalizedProfile = profile.experience ? { ...profile, experience: sortExperience(profile.experience) } : profile
+  const normalizedProfile = {
+    ...profile,
+    ...(profile.experience && { experience: sortExperience(profile.experience) }),
+    ...(profile.education && { education: sortEducation(profile.education) })
+  }
 
   return (
     <div key={resolvedTheme} className="transition-opacity duration-200 animate-fadeIn">
