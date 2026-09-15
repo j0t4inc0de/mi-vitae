@@ -2222,8 +2222,8 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* Plan Action or Status */}
-            {planInfo.isExpired || planInfo.daysRemaining <= 5 ? (
+            {/* Plan Action: Only rendered when expired or <= 5 days remaining */}
+            {(planInfo.isExpired || planInfo.daysRemaining <= 5) && (
               <button
                 type="button"
                 onClick={() => openFlowModal({ username: profileData.username, planName: 'Suscripción Mi Vitae ($3.490 CLP/mes)', amount: 3490 })}
@@ -2232,11 +2232,6 @@ export default function DashboardPage() {
                 <CreditCard className="w-4 h-4" />
                 <span>{planInfo.isExpired ? 'Renovar Suscripción con Flow.cl ($3.490 CLP)' : 'Renovar Ahora ($3.490 CLP/mes)'}</span>
               </button>
-            ) : (
-              <div className="w-full py-2 px-3 rounded-xl bg-slate-50 border border-slate-200/80 text-center flex items-center justify-center gap-2 text-xs font-semibold text-slate-600">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                <span>Mes pagado y al día · La renovación estará disponible 5 días antes de vencer</span>
-              </div>
             )}
           </div>
 
