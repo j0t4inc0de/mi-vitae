@@ -33,6 +33,9 @@ export default function AuthPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
+  // Real-time username verification against Supabase & local store
+  const [usernameStatus, setUsernameStatus] = useState({ checked: false, available: null, checking: false })
+
   // Store hooks
   const isUsernameAvailable = useProfileStore((state) => state.isUsernameAvailable)
   const addProfile = useProfileStore((state) => state.addProfile)
@@ -46,7 +49,34 @@ export default function AuthPage() {
   }, [initialMode])
 
   const cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '')
-  const isHandleAvailable = cleanUsername.length >= 3 ? isUsernameAvailable(cleanUsername) : null
+
+  // Live debounce check in Supabase Cloud
+  useEffect(() => {
+    if (mode !== 'register' || cleanUsername.length < 3) {
+      setUsernameStatus({ checked: false, available: null, checking: false })
+      return
+    }
+
+    setUsernameStatus((prev) => ({ ...prev, checking: true }))
+
+    const timer = setTimeout(async () => {
+      // 1. Check local Zustand store & reserved routes
+      if (!isUsernameAvailable(cleanUsername)) {
+        setUsernameStatus({ checked: true, available: false, checking: false })
+        return
+      }
+
+      // 2. Check remote Supabase Cloud table
+      try {
+        const isRemoteAvailable = await checkUsernameAvailableInSupabase(cleanUsername)
+        setUsernameStatus({ checked: true, available: isRemoteAvailable, checking: false })
+      } catch {
+        setUsernameStatus({ checked: true, available: true, checking: false })
+      }
+    }, 250)
+
+    return () => clearTimeout(timer)
+  }, [cleanUsername, mode, isUsernameAvailable])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -64,14 +94,15 @@ export default function AuthPage() {
           throw new Error('El nombre de usuario debe tener al menos 3 caracteres.')
         }
 
-        if (!isHandleAvailable) {
-          throw new Error(`El enlace @${cleanUsername} ya está ocupado. Elige otro.`)
+        // Validar disponibilidad local
+        if (!isUsernameAvailable(cleanUsername)) {
+          throw new Error('Este nombre de usuario ya está ocupado.')
         }
 
         // Consultar Supabase Cloud directamente para evitar colisiones en producción
         const isRemoteAvailable = await checkUsernameAvailableInSupabase(cleanUsername)
         if (!isRemoteAvailable) {
-          throw new Error(`El nombre de usuario @${cleanUsername} ya se encuentra registrado en la nube. Por favor selecciona otro.`)
+          throw new Error('Este nombre de usuario ya está ocupado.')
         }
 
         if (password.length < 6) {
@@ -303,8 +334,8 @@ export default function AuthPage() {
                     Enlace Personal Deseado
                   </label>
                   <div className={`flex items-center px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border transition-all ${
-                    cleanUsername.length >= 3
-                      ? isHandleAvailable
+                    cleanUsername.length >= 3 && usernameStatus.checked
+                      ? usernameStatus.available
                         ? 'border-emerald-500 ring-2 ring-emerald-500/20'
                         : 'border-rose-500 ring-2 ring-rose-500/20'
                       : 'border-slate-200 dark:border-slate-800 focus-within:border-palette-primary focus-within:ring-2 focus-within:ring-palette-primary/20'
@@ -318,14 +349,23 @@ export default function AuthPage() {
                       placeholder="tu_nombre_profesional"
                       className="w-full bg-transparent text-slate-900 dark:text-white text-sm font-semibold focus:outline-none placeholder:text-slate-400 dark:placeholder:text-slate-600"
                     />
+                    {usernameStatus.checking && (
+                      <Loader2 className="w-4 h-4 text-slate-400 animate-spin shrink-0 ml-2" />
+                    )}
                   </div>
                   {cleanUsername.length >= 3 && (
                     <p className={`text-[11px] font-semibold mt-1 flex items-center gap-1 ${
-                      isHandleAvailable ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                      usernameStatus.checking
+                        ? 'text-slate-400'
+                        : usernameStatus.available
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-rose-600 dark:text-rose-400'
                     }`}>
-                      {isHandleAvailable 
-                        ? `✓ mi-vitae.wearesamod.com/${cleanUsername} disponible` 
-                        : `✕ @${cleanUsername} ya está en uso`}
+                      {usernameStatus.checking
+                        ? 'Verificando disponibilidad...'
+                        : usernameStatus.available
+                        ? `✓ mi-vitae.wearesamod.com/${cleanUsername} disponible`
+                        : `✕ Este nombre de usuario ya está ocupado.`}
                     </p>
                   )}
 
