@@ -13,9 +13,9 @@
 +---------------------------------------+-----------------------------+-----------------------------------+
 |               ✅ COMPLETADO           |        🚧 EN CURSO          |           📋 POR HACER            |
 +---------------------------------------+-----------------------------+-----------------------------------+
-| [X] Paso 1: Código en GitHub          | [ ] Paso 7: Secretos GitHub | [ ] Paso 8: Verificación E2E en   |
-|     (Rama main al día y limpia)       |     Actions (Keep-Alive)    |     producción (Health & Flow)    |
-|                                       |                             |                                   |
+| [X] Paso 1: Código en GitHub          | [ ] Paso 8: Verificación    |                                   |
+|     (Rama main al día y limpia)       |     E2E en producción       |                                   |
+|                                       |     (Health, Auth y Flow)   |                                   |
 | [X] Paso 2: Proyecto Cloudflare Pages |                             |                                   |
 |     (Build Vite + Functions)          |                             |                                   |
 |                                       |                             |                                   |
@@ -30,6 +30,9 @@
 |                                       |                             |                                   |
 | [X] Paso 6: Integración Flow.cl       |                             |                                   |
 |     (API Keys cargadas en Cloudflare) |                             |                                   |
+|                                       |                             |                                   |
+| [X] Paso 7: GitHub Actions Keep-Alive |                             |                                   |
+|     (Cron cada 5 días verificado)     |                             |                                   |
 +---------------------------------------+-----------------------------+-----------------------------------+
 ```
 
