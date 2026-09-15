@@ -156,7 +156,7 @@ export default function MinimalistTheme({ profile, onRecordClick }) {
           <div className="md:col-span-4 flex justify-center md:justify-end">
             <div className="relative p-1.5 bg-white border border-stone-300 shadow-sm max-w-[200px]">
               <UserAvatar
-                username={profile.username}
+                username={profile.username || 'minimalista'}
                 avatarUrl={personalInfo.avatar}
                 alt={personalInfo.name}
                 size={192}

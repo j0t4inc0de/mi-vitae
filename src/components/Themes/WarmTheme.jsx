@@ -64,7 +64,7 @@ export default function WarmTheme({ profile, onRecordClick }) {
             <div className="relative group shrink-0">
               <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-full p-1.5 bg-gradient-to-tr from-[#D97706] via-[#FBBF24] to-[#FDE68A] shadow-lg shadow-amber-900/10">
                 <UserAvatar
-                  username={profile.username}
+                  username={profile.username || 'calido'}
                   avatarUrl={personalInfo.avatar}
                   alt={personalInfo.name}
                   size={176}

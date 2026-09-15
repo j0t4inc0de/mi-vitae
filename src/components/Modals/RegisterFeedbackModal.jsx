@@ -723,6 +723,13 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                             : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 hover:border-slate-300'
                         }`}
                       >
+                        <div className="flex justify-center mb-1.5">
+                          <UserAvatar
+                            username={th.label}
+                            size={36}
+                            className="rounded-xl shadow-xs"
+                          />
+                        </div>
                         <div 
                           className="font-bold text-xs"
                           style={isSelected ? { color: 'var(--primary, #4d5eb3)' } : {}}

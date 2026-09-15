@@ -69,7 +69,7 @@ export default function CreativeTheme({ profile, onRecordClick }) {
               <div className="relative group/avatar shrink-0">
                 <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl sm:rounded-3xl p-[3px] bg-gradient-to-tr from-[#8B5CF6] via-[#EC4899] to-[#06B6D4] shadow-xl shadow-purple-900/30">
                   <UserAvatar
-                    username={profile.username}
+                    username={profile.username || 'creativo'}
                     avatarUrl={personalInfo.avatar}
                     alt={personalInfo.name}
                     size={112}

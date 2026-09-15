@@ -48,7 +48,8 @@ import {
   ChevronUp,
   ChevronLeft,
   ChevronRight,
-  Maximize2
+  Maximize2,
+  HelpCircle
 } from 'lucide-react'
 
 // Available Themes Definition
@@ -1153,14 +1154,17 @@ export default function DashboardPage() {
                       }`}
                     >
                       <div className="flex items-center gap-3.5">
-                        {/* Theme Swatch Pill */}
-                        <div
-                          className="w-12 h-12 rounded-xl border flex items-center justify-center shadow-inner shrink-0"
-                          style={{ backgroundColor: theme.bgColor, borderColor: theme.accentColor }}
-                        >
-                          <div
-                            className="w-4 h-4 rounded-full"
+                        {/* Theme Avatar Blobatar */}
+                        <div className="relative shrink-0">
+                          <UserAvatar
+                            username={theme.name}
+                            size={48}
+                            className="rounded-2xl shadow-sm ring-2 ring-slate-100"
+                          />
+                          <span
+                            className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white shadow-xs"
                             style={{ backgroundColor: theme.accentColor }}
+                            title={theme.name}
                           />
                         </div>
 
@@ -2047,9 +2051,18 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-2 gap-3">
                   
                   {/* Metric 1: Views */}
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <div className="relative group p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-slate-300 transition-all">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-medium text-slate-500">Visitas Totales</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[11px] font-medium text-slate-500">Visitas Totales</span>
+                        <div className="relative group/tooltip inline-flex">
+                          <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-help transition-colors" />
+                          <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tooltip:block w-44 p-2 rounded-xl bg-slate-900 text-white text-[10px] leading-snug font-normal shadow-xl z-30 text-center">
+                            Total de veces que han abierto y visto tu portafolio web interactivo.
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+                          </div>
+                        </div>
+                      </div>
                       <Eye className="w-4 h-4 text-palette-primary" />
                     </div>
                     <div className="text-2xl font-black text-slate-900">
@@ -2068,9 +2081,18 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Metric 2: WhatsApp Clicks */}
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <div className="relative group p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-slate-300 transition-all">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-medium text-slate-500">Clics WhatsApp</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[11px] font-medium text-slate-500">Clics WhatsApp</span>
+                        <div className="relative group/tooltip inline-flex">
+                          <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-help transition-colors" />
+                          <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tooltip:block w-44 p-2 rounded-xl bg-slate-900 text-white text-[10px] leading-snug font-normal shadow-xl z-30 text-center">
+                            Personas interesadas que hicieron clic en tu botón de WhatsApp para contactarte.
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+                          </div>
+                        </div>
+                      </div>
                       <MessageCircle className="w-4 h-4 text-emerald-600" />
                     </div>
                     <div className="text-2xl font-black text-slate-900">
@@ -2089,23 +2111,41 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Metric 3: QR Scans */}
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <div className="relative group p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-slate-300 transition-all">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-medium text-slate-500">Escaneos QR</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[11px] font-medium text-slate-500">Escaneos QR</span>
+                        <div className="relative group/tooltip inline-flex">
+                          <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-help transition-colors" />
+                          <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tooltip:block w-44 p-2 rounded-xl bg-slate-900 text-white text-[10px] leading-snug font-normal shadow-xl z-30 text-center">
+                            Veces que han escaneado tu código QR con un teléfono para abrir tu perfil.
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+                          </div>
+                        </div>
+                      </div>
                       <QrCode className="w-4 h-4 text-palette-primary" />
                     </div>
                     <div className="text-2xl font-black text-slate-900">
                       {realQrScans.toLocaleString('es-CL')}
                     </div>
                     <div className="text-[10px] text-slate-500 font-semibold mt-1">
-                      {realQrScans > 0 ? 'Tarjetas & networking' : 'Sin escaneos aún'}
+                      {realQrScans > 0 ? 'Networking & compartir' : 'Sin escaneos aún'}
                     </div>
                   </div>
 
                   {/* Metric 4: Conversion Rate */}
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <div className="relative group p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-slate-300 transition-all">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-[11px] font-medium text-slate-500">Tasa de Conversión</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[11px] font-medium text-slate-500">Tasa Conversión</span>
+                        <div className="relative group/tooltip inline-flex">
+                          <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-help transition-colors" />
+                          <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tooltip:block w-44 p-2 rounded-xl bg-slate-900 text-white text-[10px] leading-snug font-normal shadow-xl z-30 text-center">
+                            Porcentaje de visitantes que decidieron contactarte o escanear tu QR.
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+                          </div>
+                        </div>
+                      </div>
                       <Sparkles className="w-4 h-4 text-palette-primary" />
                     </div>
                     <div className="text-2xl font-black text-palette-primary">
@@ -2119,22 +2159,6 @@ export default function DashboardPage() {
                 </div>
               )
             })()}
-
-            {/* Profile Content Summary */}
-            <div className="pt-2 border-t border-slate-200 text-xs text-slate-500 space-y-2">
-              <div className="flex items-center justify-between">
-                <span>Experiencias registradas:</span>
-                <strong className="text-slate-900">{profileData.experience?.length || 0}</strong>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Proyectos destacados:</span>
-                <strong className="text-slate-900">{profileData.projects?.length || 0}</strong>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Competencias / Stack:</span>
-                <strong className="text-slate-900">{profileData.skills?.length || 0}</strong>
-              </div>
-            </div>
 
           </div>
 

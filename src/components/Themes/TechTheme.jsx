@@ -69,7 +69,7 @@ export default function TechTheme({ profile, onRecordClick }) {
             <div className="relative group shrink-0">
               <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-xl overflow-hidden border-2 border-[#10B981]/50 bg-[#0B0F19] p-1 shadow-lg shadow-emerald-950/40">
                 <UserAvatar
-                  username={profile.username}
+                  username={profile.username || 'tecnico'}
                   avatarUrl={personalInfo.avatar}
                   alt={personalInfo.name}
                   size={128}

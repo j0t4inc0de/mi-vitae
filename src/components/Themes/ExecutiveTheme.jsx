@@ -63,7 +63,7 @@ export default function ExecutiveTheme({ profile, onRecordClick }) {
             <div className="relative group shrink-0">
               <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-2xl overflow-hidden border-2 border-[#3A86FF]/50 shadow-xl shadow-blue-950/40 relative">
                 <UserAvatar
-                  username={profile.username}
+                  username={profile.username || 'ejecutivo'}
                   avatarUrl={personalInfo.avatar}
                   alt={personalInfo.name}
                   size={176}
