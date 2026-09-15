@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none">
+  <defs>
+    <linearGradient id="mivitae-bg-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#1E293B" />
+    </linearGradient>
+    <linearGradient id="mivitae-v-accent" x1="12" y1="12" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#E2E8F0" />
+    </linearGradient>
+  </defs>
+  <!-- Base squircle de alto contraste -->
+  <rect width="40" height="40" rx="11" fill="url(#mivitae-bg-grad)" />
+  <!-- Monograma geométrico en 'V' -->
+  <path d="M11.5 12.5L20 28.5L28.5 12.5" stroke="url(#mivitae-v-accent)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Punto focal interactivo -->
+  <circle cx="20" cy="15" r="2.4" fill="#cf7d30" />
+</svg>
