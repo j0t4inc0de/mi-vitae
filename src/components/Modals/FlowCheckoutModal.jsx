@@ -262,13 +262,6 @@ Soporte técnico: contacto@wearesamod.com
               </div>
             </div>
           </div>
-
-          {/* Secure SSL Indicator Pill */}
-          <div className="absolute top-2 right-12 hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-bold uppercase">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span>Pasarela Oficial 256-bit SSL</span>
-          </div>
-
         </div>
 
         {/* Modal Scrollable Body */}
