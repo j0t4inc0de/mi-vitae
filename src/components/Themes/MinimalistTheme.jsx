@@ -143,10 +143,10 @@ export default function MinimalistTheme({ profile, onRecordClick }) {
               <button
                 onClick={() => setIsQrOpen(true)}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded bg-stone-900 hover:bg-stone-800 text-stone-50 transition-colors shadow-sm cursor-pointer"
-                title="Código QR para tarjetas de presentación"
+                title="Código QR"
               >
                 <QrCode className="w-3.5 h-3.5 text-stone-200" />
-                <span>Tarjeta QR</span>
+                <span>Código QR</span>
               </button>
             </div>
 

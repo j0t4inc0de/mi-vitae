@@ -144,7 +144,7 @@ export default function QrModal({ isOpen, onClose, profile, username: propUserna
               Código QR de tu Portafolio
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Escanea con la cámara de tu smartphone o imprime para tus tarjetas de presentación.
+              Escanea con la cámara de tu smartphone o descárgalo para compartir.
             </p>
           </div>
         </div>

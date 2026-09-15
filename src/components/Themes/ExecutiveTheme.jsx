@@ -162,7 +162,7 @@ export default function ExecutiveTheme({ profile, onRecordClick }) {
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0B132B] border border-[#334155] text-xs font-bold text-slate-200 hover:border-[#3A86FF] transition-all hover:scale-102 cursor-pointer shadow-md"
                 >
                   <QrCode className="w-4 h-4 text-[#3A86FF]" />
-                  <span>Código QR Tarjeta</span>
+                  <span>Código QR</span>
                 </button>
               </div>
 

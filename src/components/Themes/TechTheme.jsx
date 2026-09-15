@@ -158,7 +158,7 @@ export default function TechTheme({ profile, onRecordClick }) {
                 <button
                   onClick={() => setIsQrOpen(true)}
                   className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-[#1F2937] hover:bg-[#374151] text-xs font-mono font-semibold text-white border border-[#374151] transition-all cursor-pointer"
-                  title="Código QR Tarjeta"
+                  title="Código QR"
                 >
                   <QrCode className="w-4 h-4 text-[#06B6D4]" />
                   <span>qr_matrix.sh</span>

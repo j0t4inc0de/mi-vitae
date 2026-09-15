@@ -165,7 +165,7 @@ export default function WarmTheme({ profile, onRecordClick }) {
                   className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#FDF8F5] border border-[#F3E8E2] text-xs font-bold text-[#78350F] hover:bg-[#FEF3C7] hover:border-[#FDE68A] transition-all hover:scale-102 cursor-pointer shadow-sm"
                 >
                   <QrCode className="w-4 h-4 text-[#D97706]" />
-                  <span>Código QR Tarjeta</span>
+                  <span>Código QR</span>
                 </button>
               </div>
 

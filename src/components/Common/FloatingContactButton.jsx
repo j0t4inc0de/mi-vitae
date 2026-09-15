@@ -75,8 +75,8 @@ export default function FloatingContactButton({ profile, onOpenQr }) {
       {onOpenQr && (
         <button
           onClick={onOpenQr}
-          title="Ver código QR para tarjetas"
-          aria-label="Ver código QR para tarjetas"
+          title="Ver código QR"
+          aria-label="Ver código QR"
           className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center p-2.5 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 shadow-md hover:scale-110 hover:bg-indigo-50 dark:hover:bg-slate-700 transition-all duration-300 opacity-90 group-hover:opacity-100"
         >
           <QrCode className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />

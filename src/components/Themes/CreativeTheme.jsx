@@ -170,10 +170,10 @@ export default function CreativeTheme({ profile, onRecordClick }) {
               <button
                 onClick={() => setIsQrOpen(true)}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#2E2D44]/80 hover:bg-[#8B5CF6]/20 text-slate-200 hover:text-white border border-[#2E2D44] hover:border-purple-500/40 text-xs font-bold transition-all hover:scale-105 cursor-pointer shadow-md"
-                title="Código QR Tarjeta"
+                title="Código QR"
               >
                 <QrCode className="w-4 h-4 text-pink-400" />
-                <span>Tarjeta QR</span>
+                <span>Código QR</span>
               </button>
             </div>
           </div>
