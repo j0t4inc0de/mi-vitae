@@ -93,7 +93,7 @@ export default function Navbar() {
                   rel="noopener noreferrer"
                   title="Ver portafolio en vivo en nueva pestaña"
                   aria-label="Ver en vivo"
-                  className="h-9 sm:h-10 px-2.5 sm:px-3.5 rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm cursor-pointer no-underline shrink-0"
+                  className="h-9 sm:h-10 px-2.5 sm:px-3.5 rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-[0.98] transition-all hidden sm:flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm cursor-pointer no-underline shrink-0"
                 >
                   <Eye className="w-4 h-4 text-palette-primary shrink-0" />
                   <span className="hidden sm:inline">Ver en Vivo</span>
