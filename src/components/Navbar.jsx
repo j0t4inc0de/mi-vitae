@@ -37,7 +37,7 @@ export default function Navbar() {
             <MiVitaeLogo className="w-9 h-9" />
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-extrabold text-xl tracking-tight text-slate-900 dark:text-white no-underline">
+            <span className="hidden sm:inline font-extrabold text-xl tracking-tight text-slate-900 dark:text-white no-underline">
               Mi Vitae
             </span>
             {isDashboard && (
