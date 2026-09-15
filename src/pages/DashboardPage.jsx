@@ -405,13 +405,13 @@ export default function DashboardPage() {
     const newId = `exp-${Date.now()}`
     const newExp = {
       id: newId,
-      role: 'Nuevo Cargo',
-      company: 'Empresa / Organización',
+      role: '',
+      company: '',
       startDate: new Date().toISOString().slice(0, 7),
       endDate: null,
       current: true,
-      description: 'Describe las responsabilidades principales y el impacto de tu labor...',
-      achievements: ['Primer logro o hito clave alcanzado']
+      description: '',
+      achievements: []
     }
     setProfileData((prev) => ({
       ...prev,
@@ -443,7 +443,7 @@ export default function DashboardPage() {
         if (exp.id === expId) {
           return {
             ...exp,
-            achievements: [...(exp.achievements || []), 'Nuevo hito o logro']
+            achievements: ['', ...(exp.achievements || [])]
           }
         }
         return exp
@@ -483,10 +483,10 @@ export default function DashboardPage() {
     const newId = `edu-${Date.now()}`
     const newEdu = {
       id: newId,
-      degree: 'Título o Grado Académico',
-      institution: 'Universidad o Instituto',
-      year: new Date().getFullYear().toString(),
-      details: 'Mención de honor, proyectos de investigación o especialidad...'
+      degree: '',
+      institution: '',
+      year: new Date().toISOString().slice(0, 7),
+      details: ''
     }
     setProfileData((prev) => ({
       ...prev,
@@ -515,13 +515,13 @@ export default function DashboardPage() {
   const handleAddSkill = () => {
     const newSkill = {
       id: `sk-${Date.now()}`,
-      name: 'Nueva Habilidad',
-      level: 90,
-      category: 'Especialidad'
+      name: '',
+      level: 80,
+      category: ''
     }
     setProfileData((prev) => ({
       ...prev,
-      skills: [...(prev.skills || []), newSkill]
+      skills: [newSkill, ...(prev.skills || [])]
     }))
   }
 
@@ -546,11 +546,11 @@ export default function DashboardPage() {
     const newId = `proj-${Date.now()}`
     const newProj = {
       id: newId,
-      title: 'Nuevo Proyecto / Caso de Éxito',
-      description: 'Breve explicación del problema, solución implementada y resultados medibles.',
-      image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=80',
-      tags: ['Innovación', 'Estrategia'],
-      liveUrl: 'https://ejemplo.com',
+      title: '',
+      description: '',
+      image: '',
+      tags: [],
+      liveUrl: '',
       repoUrl: ''
     }
     setProfileData((prev) => ({
@@ -603,12 +603,12 @@ export default function DashboardPage() {
   const handleAddLanguage = () => {
     const newLang = {
       id: `lang-${Date.now()}`,
-      name: 'Idioma',
-      level: 'Avanzado Profesional (C1)'
+      name: '',
+      level: ''
     }
     setProfileData((prev) => ({
       ...prev,
-      languages: [...(prev.languages || []), newLang]
+      languages: [newLang, ...(prev.languages || [])]
     }))
   }
 
