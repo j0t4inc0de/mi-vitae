@@ -2,8 +2,8 @@ import React, { useState } from 'react'
 import { 
   MapPin, Mail, Globe, Linkedin, Github, 
   Briefcase, GraduationCap, Award, ExternalLink, 
-  Sparkles, CheckCircle2, Heart, MessageSquare, Quote, Star,
-  QrCode, BookOpen, Smile, ShieldCheck
+  Sparkles, CheckCircle2,
+  QrCode, BookOpen
 } from 'lucide-react'
 import AvailableBadge from '../Common/AvailableBadge'
 import ViralFooter from '../Common/ViralFooter'
@@ -11,7 +11,7 @@ import FloatingContactButton from '../Common/FloatingContactButton'
 import QrModal from '../Common/QrModal'
 import UserAvatar from '../Common/UserAvatar'
 
-// ponytail: Warm humanist theme with terracotta accents, zero external UI libs & native accessible structure
+// ponytail: Warm humanist theme aligned with Studio configurable data fields
 /**
  * WarmTheme - Tema Cálido & Humanista
  * Diseñado en tonos tierra, marfil y terracota (#FDF8F5, #D97706, #43281C)
@@ -30,51 +30,6 @@ export default function WarmTheme({ profile, onRecordClick }) {
     projects = [],
     languages = []
   } = profile
-
-  // Filosofía y Enfoque Personal (por defecto o datos personalizados)
-  const defaultPhilosophy = {
-    quote: "Creo firmemente en el poder de la empatía, el autoconocimiento y el acompañamiento respetuoso para desbloquear el bienestar integral de cada persona y equipo de trabajo.",
-    pillars: [
-      {
-        icon: <Heart className="w-5 h-5 text-[#D97706]" />,
-        title: "Espacio Seguro & Empático",
-        description: "Ambiente libre de juicios donde la escucha activa y la confidencialidad absoluta son el pilar fundamental de cada sesión."
-      },
-      {
-        icon: <ShieldCheck className="w-5 h-5 text-[#D97706]" />,
-        title: "Enfoque Basado en Evidencia",
-        description: "Metodologías clínicas y psicoeducativas con respaldo científico y adaptadas al ritmo de cada persona."
-      },
-      {
-        icon: <Smile className="w-5 h-5 text-[#D97706]" />,
-        title: "Herramientas Prácticas y Reales",
-        description: "Estrategias concretas para la vida cotidiana: manejo del estrés, comunicación asertiva y regulación somática."
-      }
-    ]
-  }
-
-  // Testimonios destacados para el perfil cálido
-  const defaultTestimonials = [
-    {
-      id: "test-1",
-      quote: "El acompañamiento de Valeria marcó un antes y un después en la cultura de prevención de burnout de nuestro equipo directivo. Su calidez y metodología práctica son invaluables.",
-      author: "Camila Henríquez",
-      role: "Gerente de Personas & Cultura",
-      organization: "Fintech LatAm",
-      rating: 5
-    },
-    {
-      id: "test-2",
-      quote: "Encontré un espacio de total confianza y claridad emocional en momentos de alta incertidumbre. Totalmente recomendada por su calidad humana y profesionalismo.",
-      author: "Matías Soto",
-      role: "Consultor & Emprendedor",
-      organization: "Paciente Clínico",
-      rating: 5
-    }
-  ]
-
-  const philosophy = profile.philosophy || defaultPhilosophy
-  const testimonials = profile.testimonials || defaultTestimonials
 
   const handleContactClick = (channel) => {
     if (onRecordClick) {
@@ -220,110 +175,7 @@ export default function WarmTheme({ profile, onRecordClick }) {
 
         </header>
 
-        {/* ======================================================== */}
-        {/* 2. SECTION: FILOSOFÍA & ENFOQUE HUMANO (WARM EXCLUSIVE) */}
-        {/* ======================================================== */}
-        <section className="bg-gradient-to-br from-[#FEF3C7]/40 via-white to-[#FDF8F5] rounded-3xl p-6 sm:p-8 border border-[#FDE68A]/60 shadow-sm shadow-amber-950/5">
-          <div className="flex items-center gap-2.5 mb-4">
-            <div className="p-2 rounded-xl bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]">
-              <Heart className="w-5 h-5 text-[#D97706]" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-[#43281C]">
-                Mi Enfoque & Filosofía de Trabajo
-              </h2>
-              <p className="text-xs text-[#78350F]">
-                Los principios que guían mi práctica y relación con las personas.
-              </p>
-            </div>
-          </div>
-
-          {/* Quote Block */}
-          <div className="relative p-5 sm:p-6 rounded-2xl bg-white border border-[#F3E8E2] shadow-sm mb-6">
-            <Quote className="w-8 h-8 text-[#FDE68A] absolute top-4 right-4 opacity-70" />
-            <p className="text-sm sm:text-base italic text-[#43281C] font-medium leading-relaxed max-w-2xl">
-              "{philosophy.quote}"
-            </p>
-          </div>
-
-          {/* 3 Pillars Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {philosophy.pillars?.map((pillar, idx) => (
-              <div
-                key={idx}
-                className="p-4 rounded-2xl bg-white/80 border border-[#F3E8E2] hover:border-[#D97706]/40 transition-colors shadow-xs"
-              >
-                <div className="mb-2 p-2 rounded-xl bg-[#FEF3C7] w-fit">
-                  {pillar.icon}
-                </div>
-                <h3 className="font-bold text-sm text-[#43281C] mb-1">
-                  {pillar.title}
-                </h3>
-                <p className="text-xs text-[#78350F] leading-relaxed">
-                  {pillar.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ======================================================== */}
-        {/* 3. SECTION: TESTIMONIOS & RECOMENDACIONES (WARM EXCLUSIVE) */}
-        {/* ======================================================== */}
-        {testimonials.length > 0 && (
-          <section className="bg-white rounded-3xl p-6 sm:p-8 border border-[#F3E8E2] shadow-sm shadow-amber-950/5">
-            <div className="flex items-center gap-2.5 mb-6">
-              <div className="p-2 rounded-xl bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]">
-                <MessageSquare className="w-5 h-5 text-[#D97706]" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-[#43281C]">
-                  Testimonios & Recomendaciones
-                </h2>
-                <p className="text-xs text-[#78350F]">
-                  Experiencias compartidas por pacientes, alumnos y líderes de equipo.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {testimonials.map((test) => (
-                <div
-                  key={test.id}
-                  className="p-5 rounded-2xl bg-[#FDF8F5] border border-[#F3E8E2] flex flex-col justify-between hover:shadow-md transition-shadow"
-                >
-                  <div>
-                    {/* 5 Stars */}
-                    <div className="flex items-center gap-1 mb-3 text-amber-500">
-                      {[...Array(test.rating || 5)].map((_, i) => (
-                        <Star key={i} className="w-4 h-4 fill-current" />
-                      ))}
-                    </div>
-                    <p className="text-xs sm:text-sm text-[#43281C]/90 italic leading-relaxed mb-4">
-                      "{test.quote}"
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-3 pt-3 border-t border-[#F3E8E2]">
-                    <div className="w-9 h-9 rounded-full bg-[#D97706] text-white font-bold text-xs flex items-center justify-center shadow-sm">
-                      {test.author?.charAt(0) || 'U'}
-                    </div>
-                    <div>
-                      <h3 className="text-xs font-bold text-[#43281C]">{test.author}</h3>
-                      <p className="text-[11px] text-[#78350F]">
-                        {test.role} • <span className="font-semibold">{test.organization}</span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* ======================================================== */}
-        {/* 4. GRID: EXPERIENCIA, PROYECTOS & HABILIDADES */}
-        {/* ======================================================== */}
+        {/* Main Grid: Experiencia, Proyectos & Habilidades */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           {/* Main 2-Col Column (Experience & Projects) */}

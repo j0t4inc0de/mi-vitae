@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { 
   MapPin, Mail, Globe, Linkedin, Github, 
   Briefcase, GraduationCap, Award, ExternalLink, 
-  CheckCircle2, TrendingUp, DollarSign, Users, Target,
+  CheckCircle2, Target,
   QrCode, ShieldCheck, Building2
 } from 'lucide-react'
 import AvailableBadge from '../Common/AvailableBadge'
@@ -11,7 +11,7 @@ import FloatingContactButton from '../Common/FloatingContactButton'
 import QrModal from '../Common/QrModal'
 import UserAvatar from '../Common/UserAvatar'
 
-// ponytail: Premium Executive Dossier with high-ROI metric cards & zero bloated abstractions
+// ponytail: Premium Executive Dossier aligned with Studio configurable data fields
 /**
  * ExecutiveTheme - Tema Ejecutivo & Corporativo Premium
  * Diseñado en azul marino profundo, slate y azul real (#0B132B, #1C2541, #3A86FF, #48E5C2)
@@ -30,66 +30,6 @@ export default function ExecutiveTheme({ profile, onRecordClick }) {
     projects = [],
     languages = []
   } = profile
-
-  // Executive Impact KPIs (default metrics or custom from profile)
-  const defaultKpis = [
-    {
-      id: 'kpi-1',
-      value: '15+ Años',
-      label: 'Liderazgo & Operaciones',
-      sublabel: 'Retail, FinTech & Logística',
-      icon: <Briefcase className="w-5 h-5 text-[#3A86FF]" />,
-    },
-    {
-      id: 'kpi-2',
-      value: '+$45M USD',
-      label: 'Presupuesto & P&L',
-      sublabel: 'Gestionado en 5 países LatAm',
-      icon: <DollarSign className="w-5 h-5 text-emerald-400" />,
-    },
-    {
-      id: 'kpi-3',
-      value: '650+ Personas',
-      label: 'Talento Humano',
-      sublabel: 'Estructura organizacional directa',
-      icon: <Users className="w-5 h-5 text-[#3A86FF]" />,
-    },
-    {
-      id: 'kpi-4',
-      value: '+18.7%',
-      label: 'Margen EBITDA',
-      sublabel: 'Optimización de rentabilidad',
-      icon: <TrendingUp className="w-5 h-5 text-emerald-400" />,
-    },
-  ]
-
-  // Executive Certifications & Board Advisory credentials
-  const defaultCertifications = [
-    {
-      id: 'cert-1',
-      title: 'Executive MBA — Operations & Private Equity',
-      issuer: 'INSEAD Business School (Fontainebleau, Francia)',
-      year: '2015',
-      badge: 'Honor Graduate',
-    },
-    {
-      id: 'cert-2',
-      title: 'Certificación en Gobierno Corporativo & Directorios',
-      issuer: 'Instituto de Directores de Chile (IdDC)',
-      year: '2021',
-      badge: 'Directorio Acreditado',
-    },
-    {
-      id: 'cert-3',
-      title: 'Lean Six Sigma Black Belt & Supply Chain 4.0',
-      issuer: 'MIT Sloan Executive Education',
-      year: '2019',
-      badge: 'Certified Master',
-    },
-  ]
-
-  const kpis = profile.kpis || defaultKpis
-  const certifications = profile.certifications || defaultCertifications
 
   const handleContactClick = (channel) => {
     if (onRecordClick) {
@@ -232,42 +172,7 @@ export default function ExecutiveTheme({ profile, onRecordClick }) {
 
         </header>
 
-        {/* ======================================================== */}
-        {/* 2. SECTION: EXECUTIVE IMPACT KPIS & METRICS BAR */}
-        {/* ======================================================== */}
-        <section aria-label="Métricas de Impacto" className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-          {kpis.map((kpi) => (
-            <div
-              key={kpi.id}
-              className="bg-[#1C2541] rounded-2xl p-4 sm:p-5 border border-[#334155] shadow-lg hover:border-[#3A86FF]/50 transition-colors flex flex-col justify-between"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="p-2 rounded-xl bg-[#0B132B] border border-[#334155]">
-                  {kpi.icon}
-                </span>
-                <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider">
-                  Impacto ROI
-                </span>
-              </div>
-
-              <div>
-                <div className="text-xl sm:text-2xl font-extrabold text-white tracking-tight mb-0.5">
-                  {kpi.value}
-                </div>
-                <div className="text-xs font-bold text-[#93C5FD] truncate">
-                  {kpi.label}
-                </div>
-                <div className="text-[10px] text-[#94A3B8] truncate mt-0.5">
-                  {kpi.sublabel}
-                </div>
-              </div>
-            </div>
-          ))}
-        </section>
-
-        {/* ======================================================== */}
-        {/* 3. GRID: EXPERIENCIA, CASOS DE ÉXITO & CERTIFICACIONES */}
-        {/* ======================================================== */}
+        {/* Main Grid: Experiencia, Proyectos y Habilidades */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           {/* Main 7-Col Area (Executive Timeline & Strategic Initiatives) */}
@@ -409,37 +314,8 @@ export default function ExecutiveTheme({ profile, onRecordClick }) {
 
           </div>
 
-          {/* Sidebar 4-Col Area (Certifications, Competencies, Education) */}
+          {/* Sidebar 4-Col Area (Competencies, Education, Languages) */}
           <div className="lg:col-span-4 space-y-8">
-            
-            {/* Executive Certifications & Board Advisory (Executive Exclusive) */}
-            {certifications.length > 0 && (
-              <section className="bg-[#1C2541] rounded-3xl p-6 border border-[#334155] shadow-xl">
-                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-[#334155]">
-                  <div className="p-1.5 rounded-xl bg-[#0B132B] text-[#3A86FF] border border-[#334155]">
-                    <ShieldCheck className="w-4 h-4" />
-                  </div>
-                  <h2 className="text-sm font-bold text-white uppercase tracking-wider">
-                    Certificaciones & Gobierno
-                  </h2>
-                </div>
-
-                <div className="space-y-3.5">
-                  {certifications.map((cert) => (
-                    <div key={cert.id} className="p-3 rounded-2xl bg-[#0B132B] border border-[#334155]">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-800/40">
-                          {cert.badge || 'Acreditado'}
-                        </span>
-                        <span className="text-[10px] text-[#94A3B8] font-mono">{cert.year}</span>
-                      </div>
-                      <h3 className="font-bold text-xs text-white leading-snug">{cert.title}</h3>
-                      <p className="text-[11px] text-[#94A3B8] mt-1">{cert.issuer}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
 
             {/* Executive Competencies & Skills */}
             {skills.length > 0 && (

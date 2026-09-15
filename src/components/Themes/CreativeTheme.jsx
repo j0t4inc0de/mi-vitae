@@ -3,7 +3,7 @@ import {
   Sparkles, Github, Linkedin, MapPin, 
   Mail, Globe, ArrowUpRight, 
   Briefcase, GraduationCap, Layers, 
-  Heart, Palette, QrCode
+  Heart, QrCode
 } from 'lucide-react'
 import FloatingContactButton from '../Common/FloatingContactButton'
 import QrModal from '../Common/QrModal'
@@ -52,181 +52,128 @@ export default function CreativeTheme({ profile, onRecordClick }) {
       {/* Main Bento Grid Container */}
       <main className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 space-y-6">
 
-        {/* Bento Row 1: Hero Identity + Creative Vibe Hub */}
-        <section aria-label="Introducción y perfil" className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Bento Row 1: Hero Identity */}
+        <section aria-label="Introducción y perfil" className="bg-[#1B1A28]/80 backdrop-blur-xl border border-[#2E2D44] rounded-3xl p-6 sm:p-8 sm:p-10 shadow-2xl relative overflow-hidden flex flex-col justify-between group hover:border-purple-500/40 transition-all duration-300">
           
-          {/* Hero Card (Span 8) */}
-          <div className="lg:col-span-8 bg-[#1B1A28]/80 backdrop-blur-xl border border-[#2E2D44] rounded-3xl p-6 sm:p-8 sm:p-10 shadow-2xl relative overflow-hidden flex flex-col justify-between group hover:border-purple-500/40 transition-all duration-300">
-            
-            {/* Subtle card glow overlay */}
-            <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-bl from-purple-500/10 via-pink-500/5 to-transparent rounded-full blur-2xl pointer-events-none" />
+          {/* Subtle card glow overlay */}
+          <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-bl from-purple-500/10 via-pink-500/5 to-transparent rounded-full blur-2xl pointer-events-none" />
 
-            <div className="relative space-y-6">
+          <div className="relative space-y-6">
+            
+            {/* Header with Avatar & Availability */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-6">
               
-              {/* Header with Avatar & Availability */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-6">
-                
-                {/* Avatar with Gradient Border */}
-                <div className="relative group/avatar shrink-0">
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl sm:rounded-3xl p-[3px] bg-gradient-to-tr from-[#8B5CF6] via-[#EC4899] to-[#06B6D4] shadow-xl shadow-purple-900/30">
-                    <UserAvatar
-                      username={profile.username}
-                      avatarUrl={personalInfo.avatar}
-                      alt={personalInfo.name}
-                      size={112}
-                      className="w-full h-full object-cover rounded-[21px] sm:rounded-[21px]"
-                    />
-                  </div>
+              {/* Avatar with Gradient Border */}
+              <div className="relative group/avatar shrink-0">
+                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl sm:rounded-3xl p-[3px] bg-gradient-to-tr from-[#8B5CF6] via-[#EC4899] to-[#06B6D4] shadow-xl shadow-purple-900/30">
+                  <UserAvatar
+                    username={profile.username}
+                    avatarUrl={personalInfo.avatar}
+                    alt={personalInfo.name}
+                    size={112}
+                    className="w-full h-full object-cover rounded-[21px] sm:rounded-[21px]"
+                  />
+                </div>
+                {(personalInfo.availableForWork ?? true) && (
+                  <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-[#1B1A28]"></span>
+                  </span>
+                )}
+              </div>
+
+              {/* Identity Info */}
+              <div className="space-y-1.5 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-200 border border-purple-500/30 flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3 text-pink-400" />
+                    <span>@{profile.username}</span>
+                  </span>
                   {(personalInfo.availableForWork ?? true) && (
-                    <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-[#1B1A28]"></span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-950/60 text-emerald-300 border border-emerald-500/30">
+                      Disponibilidad Inmediata
                     </span>
                   )}
                 </div>
 
-                {/* Identity Info */}
-                <div className="space-y-1.5 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-200 border border-purple-500/30 flex items-center gap-1.5">
-                      <Sparkles className="w-3 h-3 text-pink-400" />
-                      <span>@{profile.username}</span>
-                    </span>
-                    {(personalInfo.availableForWork ?? true) && (
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-950/60 text-emerald-300 border border-emerald-500/30">
-                        Disponibilidad Inmediata
-                      </span>
-                    )}
-                  </div>
+                <h1 className="font-display font-extrabold text-2xl sm:text-4xl text-white tracking-tight leading-tight">
+                  {personalInfo.name}
+                </h1>
 
-                  <h1 className="font-display font-extrabold text-2xl sm:text-4xl text-white tracking-tight leading-tight">
-                    {personalInfo.name}
-                  </h1>
-
-                  <p className="text-sm sm:text-base font-semibold bg-gradient-to-r from-purple-300 via-pink-300 to-amber-200 bg-clip-text text-transparent">
-                    {personalInfo.title}
-                  </p>
-                </div>
-
-              </div>
-
-              {/* Bio Statement */}
-              {personalInfo.bio && (
-                <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl font-sans">
-                  {personalInfo.bio}
+                <p className="text-sm sm:text-base font-semibold bg-gradient-to-r from-purple-300 via-pink-300 to-amber-200 bg-clip-text text-transparent">
+                  {personalInfo.title}
                 </p>
-              )}
-
-              {/* Quick Contacts */}
-              <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-xs text-slate-400 pt-2 border-t border-[#2E2D44]/80">
-                {personalInfo.location && (
-                  <span className="flex items-center gap-1.5 text-slate-300">
-                    <MapPin className="w-3.5 h-3.5 text-purple-400" />
-                    {personalInfo.location}
-                  </span>
-                )}
-                {personalInfo.email && (
-                  <a 
-                    href={`mailto:${personalInfo.email}`} 
-                    onClick={() => handleContactClick('email')}
-                    className="flex items-center gap-1.5 text-slate-300 hover:text-pink-300 transition-colors"
-                  >
-                    <Mail className="w-3.5 h-3.5 text-pink-400" />
-                    {personalInfo.email}
-                  </a>
-                )}
               </div>
 
             </div>
 
-            {/* Action Bar */}
-            <div className="relative flex flex-wrap items-center justify-between gap-3 pt-6 mt-6 border-t border-[#2E2D44]/80">
-              
-              <div className="flex flex-wrap items-center gap-2">
-                {personalInfo.linkedin && (
-                  <a
-                    href={personalInfo.linkedin}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => handleContactClick('linkedin')}
-                    className="p-2.5 rounded-xl bg-[#2E2D44]/60 hover:bg-[#8B5CF6]/20 text-slate-300 hover:text-white border border-[#2E2D44] hover:border-purple-500/40 transition-all hover:scale-105"
-                    title="LinkedIn"
-                  >
-                    <Linkedin className="w-4 h-4" />
-                  </a>
-                )}
-                {personalInfo.github && (
-                  <a
-                    href={personalInfo.github}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => handleContactClick('github')}
-                    className="p-2.5 rounded-xl bg-[#2E2D44]/60 hover:bg-[#8B5CF6]/20 text-slate-300 hover:text-white border border-[#2E2D44] hover:border-purple-500/40 transition-all hover:scale-105"
-                    title="GitHub"
-                  >
-                    <Github className="w-4 h-4" />
-                  </a>
-                )}
+            {/* Bio Statement */}
+            {personalInfo.bio && (
+              <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-3xl font-sans">
+                {personalInfo.bio}
+              </p>
+            )}
 
-                <button
-                  onClick={() => setIsQrOpen(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#2E2D44]/80 hover:bg-[#8B5CF6]/20 text-slate-200 hover:text-white border border-[#2E2D44] hover:border-purple-500/40 text-xs font-bold transition-all hover:scale-105 cursor-pointer shadow-md"
-                  title="Código QR Tarjeta"
+            {/* Quick Contacts */}
+            <div className="flex flex-wrap items-center gap-y-2 gap-x-4 text-xs text-slate-400 pt-2 border-t border-[#2E2D44]/80">
+              {personalInfo.location && (
+                <span className="flex items-center gap-1.5 text-slate-300">
+                  <MapPin className="w-3.5 h-3.5 text-purple-400" />
+                  {personalInfo.location}
+                </span>
+              )}
+              {personalInfo.email && (
+                <a 
+                  href={`mailto:${personalInfo.email}`} 
+                  onClick={() => handleContactClick('email')}
+                  className="flex items-center gap-1.5 text-slate-300 hover:text-pink-300 transition-colors"
                 >
-                  <QrCode className="w-4 h-4 text-pink-400" />
-                  <span>Tarjeta QR</span>
-                </button>
-              </div>
+                  <Mail className="w-3.5 h-3.5 text-pink-400" />
+                  {personalInfo.email}
+                </a>
+              )}
             </div>
 
           </div>
 
-          {/* Vibe & Quick Metrics Hub (Span 4) */}
-          <div className="lg:col-span-4 flex flex-col gap-6">
+          {/* Action Bar */}
+          <div className="relative flex flex-wrap items-center justify-between gap-3 pt-6 mt-6 border-t border-[#2E2D44]/80">
             
-            {/* Design Philosophy Card */}
-            <div className="bg-[#1B1A28]/80 backdrop-blur-xl border border-[#2E2D44] rounded-3xl p-6 shadow-xl flex-1 flex flex-col justify-between hover:border-pink-500/30 transition-all">
-              <div className="space-y-3">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-pink-500/30 flex items-center justify-center text-pink-400">
-                  <Palette className="w-5 h-5" />
-                </div>
-                <h2 className="text-xs uppercase tracking-widest font-bold text-slate-400">
-                  Design Manifesto
-                </h2>
-                <p className="text-sm font-display font-semibold text-slate-200 italic leading-relaxed">
-                  "El buen diseño no solo soluciona problemas, crea deseos y experiencias memorables que conectan marcas con personas."
-                </p>
-              </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {personalInfo.linkedin && (
+                <a
+                  href={personalInfo.linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => handleContactClick('linkedin')}
+                  className="p-2.5 rounded-xl bg-[#2E2D44]/60 hover:bg-[#8B5CF6]/20 text-slate-300 hover:text-white border border-[#2E2D44] hover:border-purple-500/40 transition-all hover:scale-105"
+                  title="LinkedIn"
+                >
+                  <Linkedin className="w-4 h-4" />
+                </a>
+              )}
+              {personalInfo.github && (
+                <a
+                  href={personalInfo.github}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => handleContactClick('github')}
+                  className="p-2.5 rounded-xl bg-[#2E2D44]/60 hover:bg-[#8B5CF6]/20 text-slate-300 hover:text-white border border-[#2E2D44] hover:border-purple-500/40 transition-all hover:scale-105"
+                  title="GitHub"
+                >
+                  <Github className="w-4 h-4" />
+                </a>
+              )}
 
-              <div className="pt-4 mt-4 border-t border-[#2E2D44] flex items-center justify-between text-xs text-slate-400">
-                <span>Enfoque</span>
-                <span className="font-semibold text-purple-300">UX / UI / Systems</span>
-              </div>
+              <button
+                onClick={() => setIsQrOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#2E2D44]/80 hover:bg-[#8B5CF6]/20 text-slate-200 hover:text-white border border-[#2E2D44] hover:border-purple-500/40 text-xs font-bold transition-all hover:scale-105 cursor-pointer shadow-md"
+                title="Código QR Tarjeta"
+              >
+                <QrCode className="w-4 h-4 text-pink-400" />
+                <span>Tarjeta QR</span>
+              </button>
             </div>
-
-            {/* Quick Stats Bento */}
-            <div className="grid grid-cols-2 gap-4">
-              
-              <div className="bg-[#1B1A28]/80 backdrop-blur-xl border border-[#2E2D44] rounded-2xl p-4 text-center hover:border-purple-500/30 transition-all">
-                <div className="text-2xl font-extrabold font-display bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  {experience.length > 0 ? `${experience.length * 3}+` : '5+'}
-                </div>
-                <div className="text-[11px] font-medium text-slate-400 mt-0.5">
-                  Años Experiencia
-                </div>
-              </div>
-
-              <div className="bg-[#1B1A28]/80 backdrop-blur-xl border border-[#2E2D44] rounded-2xl p-4 text-center hover:border-pink-500/30 transition-all">
-                <div className="text-2xl font-extrabold font-display bg-gradient-to-r from-pink-400 to-amber-300 bg-clip-text text-transparent">
-                  {projects.length > 0 ? `${projects.length * 10}+` : '20+'}
-                </div>
-                <div className="text-[11px] font-medium text-slate-400 mt-0.5">
-                  Proyectos & UIs
-                </div>
-              </div>
-
-            </div>
-
           </div>
 
         </section>
@@ -406,24 +353,6 @@ export default function CreativeTheme({ profile, onRecordClick }) {
                   ))}
                 </div>
               </div>
-
-              {/* Creative tag pills */}
-              <div className="pt-6 mt-6 border-t border-[#2E2D44]">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2.5">
-                  Especialidades Clave
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {['Design Systems', 'UX Research', 'Figma Pro', 'Micro-interactions', 'Tailwind CSS', 'Design Tokens'].map((badge, idx) => (
-                    <span 
-                      key={idx} 
-                      className="text-[10px] font-medium px-2.5 py-1 rounded-lg bg-[#2E2D44]/80 text-purple-200 border border-purple-500/20"
-                    >
-                      {badge}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
             </section>
           )}
 
