@@ -143,9 +143,6 @@ export default function QrModal({ isOpen, onClose, profile, username: propUserna
             <h2 id="qr-modal-title" className="text-xl font-bold text-slate-900 dark:text-white">
               Código QR de tu Portafolio
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Escanea con la cámara de tu smartphone o descárgalo para compartir.
-            </p>
           </div>
         </div>
 
@@ -164,7 +161,7 @@ export default function QrModal({ isOpen, onClose, profile, username: propUserna
             </div>
           </div>
 
-          <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 text-center">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-3 text-center">
             Apunta con la cámara de tu móvil para abrir el portafolio instantáneamente.
           </p>
         </div>
