@@ -54,7 +54,6 @@ const PAYMENT_METHODS = [
 export default function FlowCheckoutModal({ isOpen, onClose, username, planName = 'Suscripción Mi Vitae ($3.490 CLP/mes)', amount = 3490 }) {
   const profiles = useProfileStore((state) => state.profiles)
   const activeUsername = useProfileStore((state) => state.activeUsername)
-  const upgradeToPremium = useProfileStore((state) => state.upgradeToPremium)
   const closeFlowModal = useProfileStore((state) => state.closeFlowModal)
 
   const targetUsername = username || activeUsername
@@ -68,6 +67,7 @@ export default function FlowCheckoutModal({ isOpen, onClose, username, planName 
   const [processingMessage, setProcessingMessage] = useState('')
   const [transactionVoucher, setTransactionVoucher] = useState(null)
   const [voucherCopied, setVoucherCopied] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
   // Sync payer email if profile changes
   useEffect(() => {
@@ -98,15 +98,16 @@ export default function FlowCheckoutModal({ isOpen, onClose, username, planName 
     }, 200)
   }
 
-  // Flow.cl Payment Execution & Simulation
-  const handleSimulateSuccess = async () => {
+  // Flow.cl Real Gateway Payment Execution
+  const handleProcessPayment = async () => {
     setPaymentState('processing')
-    setProcessingMessage('Iniciando orden segura en pasarela Flow.cl...')
+    setProcessingMessage('Conectando con la pasarela oficial Flow.cl...')
+    setErrorMessage('')
 
     const selectedMethod = PAYMENT_METHODS.find((m) => m.id === selectedMethodId)
 
     try {
-      // 1. Contact Cloudflare Pages Function /api/create-flow-order
+      // Contact Cloudflare Pages Function /api/create-flow-order
       const response = await fetch('/api/create-flow-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -120,8 +121,7 @@ export default function FlowCheckoutModal({ isOpen, onClose, username, planName 
 
       const result = await response.json().catch(() => ({}))
 
-      // 2. If live production credentials are present, redirect to Flow.cl payment screen
-      if (response.ok && result.redirectUrl && result.isSimulation === false) {
+      if (response.ok && result.redirectUrl && result.isSimulation !== true) {
         // Record initiated transaction in Supabase
         await saveTransactionToSupabase({
           transactionId: result.commerceOrder,
@@ -133,82 +133,24 @@ export default function FlowCheckoutModal({ isOpen, onClose, username, planName 
           status: 'PENDIENTE',
           paymentMethod: selectedMethod?.name || 'Flow.cl Webpay',
           payerEmail
-        })
+        }).catch(() => {})
 
         // Redirect user to official Flow.cl portal
         window.location.href = result.redirectUrl
         return
       }
+
+      setErrorMessage(
+        result.error ||
+        result.message ||
+        'No se pudo generar la orden de pago en Flow.cl. Por favor verifica tus credenciales o intenta nuevamente.'
+      )
+      setPaymentState('error')
     } catch (err) {
-      console.warn('[FlowModal] /api/create-flow-order notice, proceeding with interactive sandbox mode:', err)
+      console.error('[FlowModal] Error connecting to payment gateway:', err)
+      setErrorMessage('Error de conexión con el servicio de pagos. Por favor intenta nuevamente.')
+      setPaymentState('error')
     }
-
-    // 3. Interactive Sandbox / Local Demo execution
-    setTimeout(() => {
-      setProcessingMessage('Validando autorización bancaria y generando token de seguridad...')
-    }, 600)
-
-    setTimeout(async () => {
-      const randomFlwId = `FLW-${Math.floor(100000 + Math.random() * 900000)}`
-      const randomAuthCode = String(Math.floor(100000 + Math.random() * 900000))
-      const now = new Date()
-      
-      const formattedDate = now.toLocaleDateString('es-CL', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-
-      const transactionData = {
-        transactionId: randomFlwId,
-        authorizationCode: randomAuthCode,
-        amount,
-        currency: 'CLP',
-        paymentMethod: selectedMethod?.name || 'Webpay Plus (Transbank)',
-        payerEmail,
-        payerRut,
-        dateFormatted: formattedDate,
-        dateIso: now.toISOString(),
-        orderNumber: `ORD-${Date.now().toString().slice(-6)}`,
-        status: 'APROBADO',
-        commerceName: 'Mi Vitae by We Are Samod'
-      }
-
-      // Upgrade in Zustand store
-      upgradeToPremium(targetUsername, transactionData)
-
-      // Explicitly save transaction to Supabase transactions table
-      await saveTransactionToSupabase({
-        ...transactionData,
-        username: targetUsername
-      })
-
-      // Send transactional payment receipt email
-      sendPaymentReceiptEmail({
-        to: payerEmail,
-        orderNumber: transactionData.orderNumber,
-        amount: transactionData.amount,
-        paymentMethod: transactionData.paymentMethod,
-        authorizationCode: transactionData.authorizationCode
-      }).catch((err) => {
-        console.warn('[FlowModal] Notice: Receipt email delivery deferred:', err)
-      })
-
-      setTransactionVoucher(transactionData)
-      setPaymentState('approved')
-    }, 1400)
-  }
-
-  // Simulation: Rejected Payment
-  const handleSimulateRejected = () => {
-    setPaymentState('processing')
-    setProcessingMessage('Conectando con la entidad bancaria emisora...')
-
-    setTimeout(() => {
-      setPaymentState('rejected')
-    }, 1200)
   }
 
   // Download printable text voucher
@@ -321,10 +263,10 @@ Soporte técnico: contacto@wearesamod.com
             </div>
           </div>
 
-          {/* Sandbox Indicator Pill */}
-          <div className="absolute top-2 right-12 hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[10px] font-bold uppercase">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-            <span>Sandbox Mode</span>
+          {/* Secure SSL Indicator Pill */}
+          <div className="absolute top-2 right-12 hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-bold uppercase">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span>Pasarela Oficial 256-bit SSL</span>
           </div>
 
         </div>
@@ -338,11 +280,11 @@ Soporte técnico: contacto@wearesamod.com
           {paymentState === 'select' && (
             <div className="space-y-6">
               
-              {/* Sandbox Notice Banner */}
-              <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2.5">
-                <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              {/* Official Flow Security Banner */}
+              <div className="p-3.5 rounded-2xl bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-800 text-xs text-cyan-900 dark:text-cyan-200 flex items-start gap-2.5">
+                <ShieldCheck className="w-4 h-4 text-[#00A3E0] shrink-0 mt-0.5" />
                 <div className="text-[11px] leading-relaxed">
-                  <strong>Entorno de Pruebas Flow.cl:</strong> Esta es una simulación interactiva oficial. Puedes probar la pasarela sin ingresar tarjetas reales haciendo clic en el botón de simulación abajo.
+                  <strong>Pago Seguro con Flow.cl:</strong> Serás redirigido a los servidores seguros y oficiales de Flow para procesar tu pago de forma encriptada vía Webpay, BancoEstado o transferencias electrónicas.
                 </div>
               </div>
 
@@ -438,27 +380,19 @@ Soporte técnico: contacto@wearesamod.com
                 </div>
               </div>
 
-              {/* Interactive Sandbox Action Buttons */}
+              {/* Official Payment Action Buttons */}
               <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
                 <button
                   type="button"
-                  onClick={handleSimulateSuccess}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-sm sm:text-base shadow-xl shadow-emerald-500/25 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  onClick={handleProcessPayment}
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#00A3E0] via-[#0082B4] to-[#0F265C] hover:from-[#0082B4] hover:to-[#0F265C] text-white font-black text-sm sm:text-base shadow-xl shadow-[#00A3E0]/25 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <ShieldCheck className="w-5 h-5" />
-                  <span>Simular Pago Exitoso ($3.490 CLP)</span>
+                  <Lock className="w-5 h-5" />
+                  <span>Continuar a Flow.cl ($3.490 CLP)</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
 
-                <div className="flex items-center justify-between gap-3 text-xs pt-1">
-                  <button
-                    type="button"
-                    onClick={handleSimulateRejected}
-                    className="text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 transition-colors font-medium cursor-pointer"
-                  >
-                    Simular Pago Rechazado
-                  </button>
-
+                <div className="flex items-center justify-center pt-1 text-xs">
                   <button
                     type="button"
                     onClick={handleModalClose}
@@ -600,6 +534,48 @@ Soporte técnico: contacto@wearesamod.com
           )}
 
           {/* ========================================================================= */}
+          {/* STATE: ERROR / GATEWAY ISSUE */}
+          {/* ========================================================================= */}
+          {paymentState === 'error' && (
+            <div className="text-center py-6 space-y-5">
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-100 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400 flex items-center justify-center shadow-lg">
+                <AlertCircle className="w-8 h-8" />
+              </div>
+
+              <div>
+                <span className="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                  Aviso de Pasarela
+                </span>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white mt-1">
+                  No se pudo iniciar el pago
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 max-w-sm mx-auto mt-2 leading-relaxed">
+                  {errorMessage || 'Ocurrió un error al contactar con la pasarela Flow.cl. Por favor intenta de nuevo en unos momentos.'}
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentState('select')}
+                  className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-[#00A3E0] hover:bg-[#0082B4] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Volver a intentar</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleModalClose}
+                  className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs sm:text-sm hover:bg-slate-200 transition-colors"
+                >
+                  <span>Cerrar</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
           {/* STATE: REJECTED PAYMENT */}
           {/* ========================================================================= */}
           {paymentState === 'rejected' && (
@@ -616,7 +592,7 @@ Soporte técnico: contacto@wearesamod.com
                   El pago no pudo ser procesado
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto mt-2 leading-relaxed">
-                  La entidad bancaria rechazó la solicitud (código de rechazo simulado #05). Puedes intentar nuevamente o seleccionar otro medio de pago.
+                  La entidad bancaria rechazó la solicitud. Puedes intentar nuevamente o seleccionar otro medio de pago.
                 </p>
               </div>
 
