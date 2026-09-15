@@ -342,7 +342,7 @@ export default function UserAccountModal({ isOpen, onClose }) {
                     />
                   </div>
                   <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
-                    Tu Blobatar oficial e hipervínculo público (<span className="font-mono text-slate-700 dark:text-slate-300">mivitae.wearesamod.com/@{newUsername || 'usuario'}</span>) se recalculan automáticamente.
+                    Tu hipervínculo público (<span className="font-mono text-slate-700 dark:text-slate-300">mivitae.wearesamod.com/@{newUsername || 'usuario'}</span>)
                   </p>
                 </div>
 
@@ -409,7 +409,7 @@ export default function UserAccountModal({ isOpen, onClose }) {
                   className="w-full py-3 px-4 rounded-xl bg-palette-primary hover:bg-palette-accent text-white text-xs font-extrabold shadow-md shadow-palette-primary/20 transition-all flex items-center justify-center gap-2"
                 >
                   <CreditCard className="w-4 h-4" />
-                  <span>Renovar / Pagar con Flow.cl ($3.490 CLP)</span>
+                  <span>Renovar ($3.490 CLP)</span>
                 </button>
 
                 {/* Cancel / Reactivate Subscription */}
@@ -436,9 +436,6 @@ export default function UserAccountModal({ isOpen, onClose }) {
                       >
                         Cancelar suscripción mensual
                       </button>
-                      <p className="text-[10px] text-slate-400 mt-0.5">
-                        Conserva tu portafolio activo hasta el {formattedExpiration}.
-                      </p>
                     </div>
                   )}
                 </div>

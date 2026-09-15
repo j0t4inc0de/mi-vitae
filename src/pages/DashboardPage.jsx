@@ -936,17 +936,9 @@ export default function DashboardPage() {
                       onClick={() => updatePersonalInfo('avatar', '')}
                       className="text-xs text-rose-500 hover:text-rose-700 font-medium"
                     >
-                      Quitar foto personalizada
+                      Quitar foto
                     </button>
                   )}
-
-                  <button
-                    type="button"
-                    onClick={openAccountModal}
-                    className="text-xs text-palette-primary hover:underline font-medium ml-auto"
-                  >
-                    ⚙️ Gestionar cuenta y contraseña
-                  </button>
                 </div>
 
               </div>
