@@ -154,8 +154,16 @@ export default function PortfolioPage() {
     )
   }
 
+  const THEME_BG = {
+    creative: 'bg-[#0F0E17]',
+    tech: 'bg-[#0A0E17]',
+    executive: 'bg-[#0B132B]',
+    warm: 'bg-[#FDF8F5]',
+    minimalist: 'bg-[#FAFAF9]'
+  }
+
   return (
-    <div className="min-h-screen relative">
+    <div className={`min-h-screen relative ${THEME_BG[profile.theme] || 'bg-slate-50 dark:bg-slate-950'}`}>
       {/* Polymorphic Dynamic Theme Renderer */}
       {/* ponytail: clean delegation to polymorphic ThemeRenderer with smooth 60fps live transition */}
       <ThemeRenderer

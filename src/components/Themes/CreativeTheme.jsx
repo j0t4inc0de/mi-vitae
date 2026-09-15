@@ -33,24 +33,26 @@ export default function CreativeTheme({ profile, onRecordClick }) {
   }
 
   return (
-    <article className="min-h-screen bg-[#0F0E17] text-[#FFFFFE] font-sans antialiased selection:bg-pink-500 selection:text-white relative overflow-x-clip pb-24">
+    <article className="min-h-screen bg-[#0F0E17] text-[#FFFFFE] font-sans antialiased selection:bg-pink-500 selection:text-white relative overflow-hidden">
       
       {/* Background Animated Gradient Orbs */}
-      <div 
-        aria-hidden="true" 
-        className="pointer-events-none absolute -top-32 -left-32 w-[550px] h-[550px] bg-gradient-to-tr from-[#8B5CF6]/25 via-[#EC4899]/15 to-transparent rounded-full blur-3xl animate-pulse-slow" 
-      />
-      <div 
-        aria-hidden="true" 
-        className="pointer-events-none absolute top-1/3 -right-32 w-[500px] h-[500px] bg-gradient-to-bl from-[#EC4899]/20 via-[#6366F1]/20 to-transparent rounded-full blur-3xl animate-float" 
-      />
-      <div 
-        aria-hidden="true" 
-        className="pointer-events-none absolute -bottom-32 left-1/4 w-[600px] h-[600px] bg-gradient-to-tr from-[#8B5CF6]/20 via-[#06B6D4]/15 to-transparent rounded-full blur-3xl" 
-      />
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div 
+          aria-hidden="true" 
+          className="absolute -top-32 -left-32 w-[550px] h-[550px] bg-gradient-to-tr from-[#8B5CF6]/25 via-[#EC4899]/15 to-transparent rounded-full blur-3xl animate-pulse-slow" 
+        />
+        <div 
+          aria-hidden="true" 
+          className="absolute top-1/3 -right-32 w-[500px] h-[500px] bg-gradient-to-bl from-[#EC4899]/20 via-[#6366F1]/20 to-transparent rounded-full blur-3xl animate-float" 
+        />
+        <div 
+          aria-hidden="true" 
+          className="absolute -bottom-32 left-1/4 w-[600px] h-[600px] bg-gradient-to-tr from-[#8B5CF6]/20 via-[#06B6D4]/15 to-transparent rounded-full blur-3xl" 
+        />
+      </div>
 
       {/* Main Bento Grid Container */}
-      <main className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 space-y-6">
+      <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 space-y-6">
 
         {/* Bento Row 1: Hero Identity */}
         <section aria-label="Introducción y perfil" className="bg-[#1B1A28]/80 backdrop-blur-xl border border-[#2E2D44] rounded-3xl p-6 sm:p-8 sm:p-10 shadow-2xl relative overflow-hidden flex flex-col justify-between group hover:border-purple-500/40 transition-all duration-300">
@@ -451,7 +453,7 @@ export default function CreativeTheme({ profile, onRecordClick }) {
       </main>
 
       {/* Viral Conversion Footer */}
-      <ViralFooter theme="creative" dark={true} />
+      <ViralFooter theme="creative" dark={true} className="relative z-10" />
 
       {/* Floating Action Button */}
       <FloatingContactButton profile={profile} onOpenQr={() => setIsQrOpen(true)} />
