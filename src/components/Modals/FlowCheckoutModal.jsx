@@ -58,7 +58,7 @@ export default function FlowCheckoutModal({ isOpen, onClose, username, planName 
   const closeFlowModal = useProfileStore((state) => state.closeFlowModal)
 
   const targetUsername = username || activeUsername
-  const currentProfile = profiles[targetUsername] || Object.values(profiles)[0]
+  const currentProfile = (targetUsername && profiles[targetUsername]) || {}
 
   // Flow payment states: 'select' | 'processing' | 'approved' | 'rejected'
   const [paymentState, setPaymentState] = useState('select')

@@ -9,6 +9,7 @@ import AvailableBadge from '../Common/AvailableBadge'
 import ViralFooter from '../Common/ViralFooter'
 import FloatingContactButton from '../Common/FloatingContactButton'
 import QrModal from '../Common/QrModal'
+import UserAvatar from '../Common/UserAvatar'
 
 // ponytail: Premium Executive Dossier with high-ROI metric cards & zero bloated abstractions
 /**
@@ -121,9 +122,11 @@ export default function ExecutiveTheme({ profile, onRecordClick }) {
             {/* Executive Portrait */}
             <div className="relative group shrink-0">
               <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-2xl overflow-hidden border-2 border-[#3A86FF]/50 shadow-xl shadow-blue-950/40 relative">
-                <img
-                  src={personalInfo.avatar || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80'}
+                <UserAvatar
+                  username={profile.username}
+                  avatarUrl={personalInfo.avatar}
                   alt={personalInfo.name}
+                  size={176}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0B132B]/80 via-transparent to-transparent" />

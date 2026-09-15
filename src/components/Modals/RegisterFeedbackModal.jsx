@@ -9,6 +9,7 @@ import {
 } from '../../lib/supabaseClient'
 import { sendWelcomeEmail } from '../../lib/emailService'
 import MiVitaeLogo from '../Common/MiVitaeLogo'
+import UserAvatar from '../Common/UserAvatar'
 import { 
   X, Sparkles, CheckCircle2, AlertCircle, ArrowRight, 
   ArrowLeft, Check, ShieldCheck, HeartHandshake,
@@ -337,7 +338,7 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
           name: name.trim(),
           title: selectedAreas.map(id => PROFESSIONAL_AREAS.find(a => a.id === id)?.label).join(' / ') || 'Profesional en Mi Vitae',
           bio: 'Bienvenido a mi portafolio online en Mi Vitae. Especialista enfocado en soluciones de alto impacto y resultados profesionales.',
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
+          avatar: 'blobatar',
           location: 'Chile / Remoto',
           email: email.trim(),
           whatsapp: '+56912345678',
@@ -666,6 +667,29 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                     usernameStatus.available ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'
                   }`}>
                     <span>{usernameStatus.message}</span>
+                  </div>
+                )}
+
+                {/* Live Blobatar Preview generated from @username */}
+                {username.trim().length >= 2 && (
+                  <div className="mt-2.5 p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center gap-3">
+                    <UserAvatar
+                      username={username.trim()}
+                      avatarUrl="blobatar"
+                      size={40}
+                      className="w-10 h-10 rounded-xl shadow-sm border border-palette-primary/30 shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                        <span>Tu Blobatar automático</span>
+                        <span className="text-[10px] text-palette-primary font-mono bg-palette-primary/10 px-1.5 py-0.5 rounded">
+                          @{username.trim()}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                        Generado automáticamente según tu @username al crear tu cuenta.
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>

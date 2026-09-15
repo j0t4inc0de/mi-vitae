@@ -1,7 +1,8 @@
 import React from 'react'
 import { Link, useRouter } from '../router/Router'
-import { LogIn, Eye, Save, RefreshCw, ExternalLink } from 'lucide-react'
+import { LogIn, Eye, Save, RefreshCw, ExternalLink, Sparkles, ChevronDown } from 'lucide-react'
 import MiVitaeLogo from './Common/MiVitaeLogo'
+import UserAvatar from './Common/UserAvatar'
 import { useProfileStore } from '../stores/profileStore'
 
 // Re-export for compatibility
@@ -13,10 +14,14 @@ export default function Navbar() {
   const isDashboard = currentPath === '/dashboard'
 
   // Dashboard store coordination
+  const profiles = useProfileStore((state) => state.profiles)
   const activeUsername = useProfileStore((state) => state.activeUsername)
   const isDashboardSaving = useProfileStore((state) => state.isDashboardSaving)
   const triggerDashboardSave = useProfileStore((state) => state.triggerDashboardSave)
   const triggerDashboardReset = useProfileStore((state) => state.triggerDashboardReset)
+  const openAccountModal = useProfileStore((state) => state.openAccountModal)
+
+  const currentProfile = (activeUsername && profiles[activeUsername]) || {}
 
   const liveProfileUrl = typeof window !== 'undefined' && window.location?.origin && !window.location.origin.includes('localhost') && !window.location.origin.includes('127.0.0.1')
     ? `${window.location.origin}/${activeUsername || ''}`
@@ -48,13 +53,26 @@ export default function Navbar() {
           <div className="flex items-center gap-2 sm:gap-3">
             {isDashboard ? (
               <>
-                {/* Active Username Badge (hidden on smaller screens) */}
-                {activeUsername && (
-                  <div className="hidden lg:flex items-center gap-1.5 h-9 sm:h-10 px-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-300/80 dark:border-slate-800 text-xs font-mono font-bold text-slate-700 dark:text-slate-300 shrink-0 shadow-sm">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                    <span>@{activeUsername}</span>
+                {/* Interactive Profile Avatar & Settings Button */}
+                <button
+                  type="button"
+                  onClick={openAccountModal}
+                  title="Administrar cuenta, membresía y Blobatar"
+                  aria-label="Perfil y cuenta"
+                  className="flex items-center gap-2 h-9 sm:h-10 px-2 sm:px-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-300/90 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:border-indigo-500 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/20 active:scale-[0.98] transition-all shadow-sm cursor-pointer shrink-0"
+                >
+                  <div className="relative">
+                    <UserAvatar
+                      username={activeUsername}
+                      avatarUrl={currentProfile?.personalInfo?.avatar}
+                      size={26}
+                      showBorder={false}
+                    />
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-1 ring-white dark:ring-slate-900" />
                   </div>
-                )}
+                  <span className="hidden sm:inline font-mono text-[11px]">@{activeUsername}</span>
+                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                </button>
 
                 {/* Restablecer Valores button */}
                 <button
@@ -104,6 +122,30 @@ export default function Navbar() {
                   )}
                 </button>
               </>
+            ) : activeUsername ? (
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Link
+                  to="/dashboard"
+                  className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm cursor-pointer no-underline"
+                >
+                  <span>Studio</span>
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={openAccountModal}
+                  title="Administrar cuenta y membresía"
+                  className="flex items-center gap-2 h-9 sm:h-10 px-2 sm:px-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-300/90 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:border-indigo-500 transition-all shadow-sm cursor-pointer"
+                >
+                  <UserAvatar
+                    username={activeUsername}
+                    avatarUrl={currentProfile?.personalInfo?.avatar}
+                    size={26}
+                    showBorder={false}
+                  />
+                  <span className="hidden sm:inline font-mono text-[11px]">@{activeUsername}</span>
+                </button>
+              </div>
             ) : (
               <Link
                 to="/login"

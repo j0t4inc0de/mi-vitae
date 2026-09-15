@@ -8,6 +8,7 @@ import {
 import FloatingContactButton from '../Common/FloatingContactButton'
 import QrModal from '../Common/QrModal'
 import ViralFooter from '../Common/ViralFooter'
+import UserAvatar from '../Common/UserAvatar'
 
 // ponytail: Creative Bento Glassmorphic layout with hardware-accelerated gradients & fluid 60fps transitions
 export default function CreativeTheme({ profile, onRecordClick }) {
@@ -68,9 +69,11 @@ export default function CreativeTheme({ profile, onRecordClick }) {
                 {/* Avatar with Gradient Border */}
                 <div className="relative group/avatar shrink-0">
                   <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl sm:rounded-3xl p-[3px] bg-gradient-to-tr from-[#8B5CF6] via-[#EC4899] to-[#06B6D4] shadow-xl shadow-purple-900/30">
-                    <img
-                      src={personalInfo.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80'}
+                    <UserAvatar
+                      username={profile.username}
+                      avatarUrl={personalInfo.avatar}
                       alt={personalInfo.name}
+                      size={112}
                       className="w-full h-full object-cover rounded-[21px] sm:rounded-[21px]"
                     />
                   </div>

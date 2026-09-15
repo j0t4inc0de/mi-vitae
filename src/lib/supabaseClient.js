@@ -96,7 +96,8 @@ export async function signUpWithSupabase({ email, password, username, fullName }
       options: {
         data: {
           username: username.toLowerCase().trim(),
-          full_name: fullName.trim()
+          full_name: fullName.trim(),
+          avatar_url: 'blobatar'
         }
       }
     })
@@ -118,6 +119,7 @@ export async function signUpWithSupabase({ email, password, username, fullName }
           personal_info: {
             name: fullName.trim(),
             email: email.trim(),
+            avatar: 'blobatar',
             title: 'Profesional en Mi Vitae',
             bio: 'Bienvenido a mi portafolio profesional en línea.',
             availableForWork: true
@@ -193,7 +195,77 @@ export async function signInWithSupabase({ email, password }) {
 export async function signOutFromSupabase() {
   await initSupabase()
   if (isSupabaseConfigured && supabase) {
-    await supabase.auth.signOut()
+    try {
+      await supabase.auth.signOut()
+    } catch (e) {
+      console.warn('Supabase signOut error:', e)
+    }
+  }
+  // ponytail: Purge all session and auth keys from browser storage
+  try {
+    sessionStorage.clear()
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('sb-') || key.includes('auth-token')) {
+        localStorage.removeItem(key)
+      }
+    })
+  } catch {}
+}
+
+/**
+ * Update user password in Supabase Auth
+ */
+export async function updateUserPasswordInSupabase(newPassword) {
+  await initSupabase()
+  if (!isSupabaseConfigured || !supabase) {
+    return { success: true, isMock: true, message: 'Contraseña actualizada en modo local.' }
+  }
+
+  try {
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword
+    })
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, user: data.user }
+  } catch (err) {
+    return { success: false, error: err.message || 'Error al actualizar la contraseña' }
+  }
+}
+
+/**
+ * Update username in Supabase Auth and profiles table
+ */
+export async function updateUsernameInSupabase(oldUsername, newUsername) {
+  await initSupabase()
+  if (!isSupabaseConfigured || !supabase) return true
+
+  const cleanOld = oldUsername.toLowerCase().trim()
+  const cleanNew = newUsername.toLowerCase().trim()
+
+  try {
+    // 1. Update profiles table
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ username: cleanNew, updated_at: new Date().toISOString() })
+      .eq('username', cleanOld)
+
+    if (profileError) {
+      console.warn('[Supabase] Error updating profile username:', profileError.message)
+    }
+
+    // 2. Update user metadata in auth.users
+    await supabase.auth.updateUser({
+      data: { username: cleanNew }
+    })
+
+    return true
+  } catch (err) {
+    console.warn('[Supabase] Exception updating username:', err)
+    return false
   }
 }
 
@@ -252,6 +324,94 @@ export async function getCurrentUser() {
     return data?.user || null
   } catch {
     return null
+  }
+}
+
+/**
+ * Get the currently authenticated user's real profile from Supabase
+ */
+export async function getCurrentUserProfile() {
+  await initSupabase()
+  if (!isSupabaseConfigured || !supabase) return null
+  try {
+    const { data: authData } = await supabase.auth.getUser()
+    const user = authData?.user
+    if (!user) return null
+
+    // 1. Try finding profile by user.id
+    const { data: profileById } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (profileById) {
+      return formatProfileRow(profileById, user)
+    }
+
+    // 2. Try by username in metadata
+    const username = user.user_metadata?.username
+    if (username) {
+      const { data: profileByName } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('username', username.toLowerCase().trim())
+        .maybeSingle()
+
+      if (profileByName) {
+        return formatProfileRow(profileByName, user)
+      }
+    }
+
+    // 3. Construct minimal profile from user if row not yet ready
+    const fallbackUsername = (username || user.email?.split('@')[0] || 'usuario').toLowerCase().trim()
+    return {
+      id: user.id,
+      username: fallbackUsername,
+      theme: user.user_metadata?.theme || 'tech',
+      plan: 'free_trial',
+      planName: '1er Mes Gratis ($0 CLP)',
+      planStatus: 'active',
+      personalInfo: {
+        name: user.user_metadata?.full_name || fallbackUsername,
+        email: user.email || '',
+        avatar: 'blobatar',
+        title: 'Profesional en Mi Vitae',
+        availableForWork: true
+      }
+    }
+  } catch (err) {
+    console.warn('[Supabase] Error getting current user profile:', err)
+    return null
+  }
+}
+
+function formatProfileRow(data, user) {
+  return {
+    id: data.id || user?.id,
+    username: data.username,
+    theme: data.theme || 'tech',
+    plan: data.plan || 'free_trial',
+    planName: data.plan_name || '1er Mes Gratis ($0 CLP)',
+    planStatus: data.plan_status || 'active',
+    trialActivatedAt: data.trial_activated_at,
+    planExpiresAt: data.plan_expires_at,
+    personalInfo: {
+      avatar: 'blobatar',
+      ...(data.personal_info || {}),
+      email: data.personal_info?.email || user?.email || '',
+      name: data.personal_info?.name || user?.user_metadata?.full_name || data.username
+    },
+    floatingButton: data.floating_button || {},
+    socialLinks: data.social_links || data.personal_info?.socialLinks || [],
+    experience: data.experience || [],
+    education: data.education || [],
+    projects: data.projects || [],
+    skills: data.skills || [],
+    certifications: data.certifications || data.personal_info?.certifications || [],
+    languages: data.languages || [],
+    qrCode: data.qr_code || data.personal_info?.qrCode || {},
+    analytics: data.analytics || { views: 0, contactClicks: 0, cvDownloads: 0 }
   }
 }
 

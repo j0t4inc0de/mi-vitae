@@ -6,6 +6,7 @@ import {
 import FloatingContactButton from '../Common/FloatingContactButton'
 import QrModal from '../Common/QrModal'
 import ViralFooter from '../Common/ViralFooter'
+import UserAvatar from '../Common/UserAvatar'
 
 // ponytail: Minimalist editorial layout with zero superfluous dependencies
 export default function MinimalistTheme({ profile, onRecordClick }) {
@@ -154,9 +155,11 @@ export default function MinimalistTheme({ profile, onRecordClick }) {
           {/* Portrait Photo (Editorial frame) */}
           <div className="md:col-span-4 flex justify-center md:justify-end">
             <div className="relative p-1.5 bg-white border border-stone-300 shadow-sm max-w-[200px]">
-              <img
-                src={personalInfo.avatar || 'https://images.unsplash.com/photo-1556157382-97eda2d62296?auto=format&fit=crop&w=600&q=80'}
+              <UserAvatar
+                username={profile.username}
+                avatarUrl={personalInfo.avatar}
                 alt={personalInfo.name}
+                size={192}
                 className="w-40 h-48 sm:w-44 sm:h-52 object-cover grayscale contrast-105"
               />
               <div className="text-[10px] font-mono text-center text-stone-400 pt-1.5 uppercase tracking-wider">

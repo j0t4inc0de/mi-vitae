@@ -9,6 +9,7 @@ import AvailableBadge from '../Common/AvailableBadge'
 import ViralFooter from '../Common/ViralFooter'
 import FloatingContactButton from '../Common/FloatingContactButton'
 import QrModal from '../Common/QrModal'
+import UserAvatar from '../Common/UserAvatar'
 
 // ponytail: Warm humanist theme with terracotta accents, zero external UI libs & native accessible structure
 /**
@@ -107,9 +108,11 @@ export default function WarmTheme({ profile, onRecordClick }) {
             {/* Friendly Large Circular Avatar */}
             <div className="relative group shrink-0">
               <div className="w-36 h-36 sm:w-44 sm:h-44 rounded-full p-1.5 bg-gradient-to-tr from-[#D97706] via-[#FBBF24] to-[#FDE68A] shadow-lg shadow-amber-900/10">
-                <img
-                  src={personalInfo.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80'}
+                <UserAvatar
+                  username={profile.username}
+                  avatarUrl={personalInfo.avatar}
                   alt={personalInfo.name}
+                  size={176}
                   className="w-full h-full rounded-full object-cover border-4 border-white"
                 />
               </div>

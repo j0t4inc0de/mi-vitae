@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Link } from '../router/Router'
 import { useProfileStore } from '../stores/profileStore'
-import { saveProfileToSupabase, fetchProfileFromSupabase, getCurrentUser } from '../lib/supabaseClient'
+import { saveProfileToSupabase, fetchProfileFromSupabase, getCurrentUser, getCurrentUserProfile } from '../lib/supabaseClient'
 import QrModal from '../components/Common/QrModal'
+import UserAvatar from '../components/Common/UserAvatar'
 import ThemeRenderer from '../components/Themes/ThemeRenderer'
 import { compressImage, getApproximateDataUrlBytes, formatBytes } from '../utils/imageCompressor'
 import {
@@ -107,12 +108,13 @@ export default function DashboardPage() {
   const fetchRemoteProfile = useProfileStore((state) => state.fetchRemoteProfile)
   const resetToDefaults = useProfileStore((state) => state.resetToDefaults)
   const openFlowModal = useProfileStore((state) => state.openFlowModal)
+  const openAccountModal = useProfileStore((state) => state.openAccountModal)
   const dashboardSaveTrigger = useProfileStore((state) => state.dashboardSaveTrigger)
   const dashboardResetTrigger = useProfileStore((state) => state.dashboardResetTrigger)
   const setIsDashboardSaving = useProfileStore((state) => state.setIsDashboardSaving)
 
-  // Current active profile from store
-  const storeProfile = profiles[activeUsername] || Object.values(profiles)[0]
+  // Current active profile from store (only real user profile, no mock fallback)
+  const storeProfile = (activeUsername && profiles[activeUsername]) || null
 
   // Deep clone helper to prevent direct store mutation
   const getInitialProfileState = (source) => {
@@ -131,6 +133,7 @@ export default function DashboardPage() {
   const [avatarDragOver, setAvatarDragOver] = useState(false)
   const [isQrOpen, setIsQrOpen] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
+  const [paymentSuccessNotice, setPaymentSuccessNotice] = useState(false)
 
   // Collapsible Accordion States for items
   const [collapsedExp, setCollapsedExp] = useState({})
@@ -141,12 +144,14 @@ export default function DashboardPage() {
   const tabsContainerRef = useRef(null)
   const savedAlertTimerRef = useRef(null)
   const copiedLinkTimerRef = useRef(null)
+  const paymentNoticeTimerRef = useRef(null)
 
   // Clean up timer references on unmount to prevent memory leaks
   useEffect(() => {
     return () => {
       if (savedAlertTimerRef.current) clearTimeout(savedAlertTimerRef.current)
       if (copiedLinkTimerRef.current) clearTimeout(copiedLinkTimerRef.current)
+      if (paymentNoticeTimerRef.current) clearTimeout(paymentNoticeTimerRef.current)
     }
   }, [])
 
@@ -217,46 +222,50 @@ export default function DashboardPage() {
 
   const planInfo = calculatePlanStatus()
 
-  // Detect authenticated Supabase user and sync
+  // Detect authenticated Supabase user and hydrate real profile
   useEffect(() => {
     let isMounted = true
-    getCurrentUser().then((user) => {
-      if (user && isMounted) {
-        setAuthUser(user)
-        const authUsername = user.user_metadata?.username
-        if (authUsername && !sessionStorage.getItem('manual_archetype_selected')) {
-          setActiveUsername(authUsername)
-          fetchProfileFromSupabase(authUsername).then((remote) => {
-            if (remote && isMounted) {
-              setProfileData(getInitialProfileState(remote))
-            }
-          }).catch(() => {})
-        }
+
+    getCurrentUserProfile().then((realProf) => {
+      if (realProf && isMounted) {
+        setAuthUser(realProf)
+        useProfileStore.getState().setRemoteProfile(realProf)
+        setProfileData(getInitialProfileState(realProf))
       }
     }).catch(() => {})
+
     return () => { isMounted = false }
   }, [])
 
-  // Sync local state and hydrate from Supabase Cloud if available
+  // Sync local state when storeProfile updates
   useEffect(() => {
-    let isMounted = true
-    if (activeUsername) {
-      fetchProfileFromSupabase(activeUsername).then((remote) => {
-        if (remote && isMounted) {
-          setProfileData(getInitialProfileState(remote))
-        } else if (storeProfile && isMounted) {
-          setProfileData(getInitialProfileState(storeProfile))
-        }
-      }).catch(() => {
-        if (storeProfile && isMounted) {
-          setProfileData(getInitialProfileState(storeProfile))
-        }
-      })
-    } else if (storeProfile && isMounted) {
+    if (storeProfile) {
       setProfileData(getInitialProfileState(storeProfile))
     }
-    return () => { isMounted = false }
-  }, [activeUsername])
+  }, [storeProfile])
+
+  // Detect Flow.cl successful payment return in URL: ?payment=complete&order=...
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location?.search?.includes('payment=complete')) {
+      setPaymentSuccessNotice(true)
+      // Clean up URL query parameters without reloading
+      const cleanUrl = window.location.pathname
+      window.history.replaceState({}, '', cleanUrl)
+      
+      // Auto-hide notice after 8 seconds
+      if (paymentNoticeTimerRef.current) clearTimeout(paymentNoticeTimerRef.current)
+      paymentNoticeTimerRef.current = setTimeout(() => setPaymentSuccessNotice(false), 8000)
+
+      // Refresh profile immediately from Supabase Cloud to reflect active subscription
+      if (activeUsername) {
+        fetchRemoteProfile(activeUsername).then((remote) => {
+          if (remote) {
+            setProfileData(getInitialProfileState(remote))
+          }
+        }).catch(() => {})
+      }
+    }
+  }, [activeUsername, fetchRemoteProfile])
 
   if (!profileData) {
     return (
@@ -680,6 +689,70 @@ export default function DashboardPage() {
           className="lg:col-span-7 xl:col-span-7 bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-6 shadow-sm flex flex-col gap-6"
         >
 
+          {/* Payment Success Notification Banner */}
+          {paymentSuccessNotice && (
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20 flex items-center justify-between gap-3 animate-fade-in">
+              <div className="flex items-center gap-3">
+                <Sparkles className="w-5 h-5 text-emerald-100 shrink-0" />
+                <div>
+                  <div className="font-extrabold text-sm">¡Pago Verificado con Éxito! 🎉</div>
+                  <div className="text-emerald-100 text-xs mt-0.5">
+                    Tu suscripción Mi Vitae Pro ($3.490 CLP/mes) ya está activa. Tu enlace está blindado por 30 días.
+                  </div>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setPaymentSuccessNotice(false)} 
+                className="text-white/80 hover:text-white p-1.5 cursor-pointer rounded-lg hover:bg-white/10"
+                aria-label="Cerrar confirmación"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Urgent Paywall Banner: Expired */}
+          {planInfo.isExpired && (
+            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl shrink-0">⚠️</span>
+                <div>
+                  <div className="font-extrabold text-xs sm:text-sm text-rose-950">Portafolio Temporalmente Pausado</div>
+                  <div className="text-[11px] text-rose-700 mt-0.5">Tu periodo gratuito venció. Reanuda tu visibilidad ante reclutadores y clientes.</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => openFlowModal({ username: profileData.username, planName: 'Suscripción Mi Vitae ($3.490 CLP/mes)', amount: 3490 })}
+                className="shrink-0 w-full sm:w-auto px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-600/20 transition-transform active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <CreditCard className="w-4 h-4" />
+                <span>Reactivar Link ($3.490 CLP)</span>
+              </button>
+            </div>
+          )}
+
+          {/* Trial Urgency Banner: Ending Soon (<= 7 days) */}
+          {!planInfo.isExpired && !planInfo.isPremium && planInfo.daysRemaining <= 7 && (
+            <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+              <div className="flex items-center gap-2.5">
+                <span className="text-xl shrink-0">⏳</span>
+                <div className="text-xs">
+                  <span className="font-extrabold text-amber-900">Últimos {planInfo.daysRemaining} {planInfo.daysRemaining === 1 ? 'día' : 'días'} de prueba:</span> Asegura tu enlace antes de que se pause.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => openFlowModal({ username: profileData.username, planName: 'Suscripción Mi Vitae ($3.490 CLP/mes)', amount: 3490 })}
+                className="shrink-0 w-full sm:w-auto px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-sm shadow-amber-600/20 transition-transform active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Activar Pro ($3.490 CLP)</span>
+              </button>
+            </div>
+          )}
+
           {/* Editor Header & Tab Switcher */}
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -788,10 +861,11 @@ export default function DashboardPage() {
                   
                   {/* Current Avatar Preview */}
                   <div className="relative group shrink-0">
-                    <img
-                      src={profileData.personalInfo?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80'}
-                      alt="Avatar Preview"
-                      className="w-20 h-20 rounded-2xl object-cover border-2 border-palette-primary/30 shadow-sm"
+                    <UserAvatar
+                      username={profileData.username}
+                      avatarUrl={profileData.personalInfo?.avatar}
+                      size={80}
+                      className="w-20 h-20 rounded-2xl border-2 border-palette-primary/30 shadow-sm"
                     />
                     {isCompressingAvatar && (
                       <div className="absolute inset-0 bg-white/80 rounded-2xl flex items-center justify-center">
@@ -847,11 +921,32 @@ export default function DashboardPage() {
                   </label>
                   <input
                     type="url"
-                    value={profileData.personalInfo?.avatar || ''}
+                    value={profileData.personalInfo?.avatar === 'blobatar' ? '' : (profileData.personalInfo?.avatar || '')}
                     onChange={(e) => updatePersonalInfo('avatar', e.target.value)}
                     placeholder="https://..."
                     className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary font-mono transition-colors"
                   />
+                </div>
+
+                {/* Custom Photo Clear & Account Link */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                  {profileData.personalInfo?.avatar && profileData.personalInfo.avatar !== 'blobatar' && (
+                    <button
+                      type="button"
+                      onClick={() => updatePersonalInfo('avatar', '')}
+                      className="text-xs text-rose-500 hover:text-rose-700 font-medium"
+                    >
+                      Quitar foto personalizada
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={openAccountModal}
+                    className="text-xs text-palette-primary hover:underline font-medium ml-auto"
+                  >
+                    ⚙️ Gestionar cuenta y contraseña
+                  </button>
                 </div>
 
               </div>
@@ -1864,11 +1959,20 @@ export default function DashboardPage() {
 
             {/* User Overview */}
             <div className="flex items-center gap-4 mb-5">
-              <img
-                src={profileData.personalInfo?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80'}
-                alt={profileData.personalInfo?.name}
-                className="w-16 h-16 rounded-2xl object-cover border-2 border-palette-primary/30 shadow-sm shrink-0"
-              />
+              <button
+                type="button"
+                onClick={openAccountModal}
+                title="Configurar cuenta y avatar"
+                className="relative group shrink-0 focus:outline-none focus:ring-2 focus:ring-palette-primary rounded-2xl"
+              >
+                <UserAvatar
+                  username={profileData.username}
+                  avatarUrl={profileData.personalInfo?.avatar}
+                  alt={profileData.personalInfo?.name}
+                  size={64}
+                  className="w-16 h-16 rounded-2xl border-2 border-palette-primary/30 shadow-sm shrink-0 transition-transform group-hover:scale-105"
+                />
+              </button>
               <div className="min-w-0">
                 <h3 className="font-extrabold text-base sm:text-lg text-slate-900 truncate">
                   {profileData.personalInfo?.name || 'Tu Nombre'}

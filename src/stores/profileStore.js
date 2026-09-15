@@ -8,7 +8,9 @@ import {
   checkUsernameAvailableInSupabase,
   saveFeedbackToSupabase,
   saveTransactionToSupabase,
-  incrementAnalyticsInSupabase
+  incrementAnalyticsInSupabase,
+  updateUserPasswordInSupabase,
+  updateUsernameInSupabase
 } from '../lib/supabaseClient'
 import { sendWelcomeEmail } from '../lib/emailService'
 
@@ -17,7 +19,7 @@ export const useProfileStore = create(
     (set, get) => ({
       // State
       profiles: INITIAL_MOCK_PROFILES,
-      activeUsername: 'carlos_dev', // Default active profile for editor/dashboard
+      activeUsername: null, // Initialized from authenticated session or explicit navigation
 
       // Dashboard Save & Reset Coordination State (Navbar <-> DashboardPage)
       isDashboardSaving: false,
@@ -59,6 +61,35 @@ export const useProfileStore = create(
 
       closeFlowModal: () => {
         set({ isFlowModalOpen: false })
+      },
+
+      // User Account & Membership Modal State
+      isAccountModalOpen: false,
+      openAccountModal: () => {
+        set({ isAccountModalOpen: true })
+      },
+      closeAccountModal: () => {
+        set({ isAccountModalOpen: false })
+      },
+      // ponytail: Clear user session on logout
+      logout: () => {
+        set({ activeUsername: null, isAccountModalOpen: false })
+      },
+      // ponytail: Synchronize remote authenticated user profile into store
+      setRemoteProfile: (profile) => {
+        if (!profile || !profile.username) return
+        const normalized = profile.username.toLowerCase().trim()
+        set((state) => ({
+          profiles: {
+            ...state.profiles,
+            [normalized]: {
+              ...(state.profiles[normalized] || {}),
+              ...profile,
+              username: normalized
+            }
+          },
+          activeUsername: normalized
+        }))
       },
 
       // Getters & Lookups
@@ -141,7 +172,7 @@ export const useProfileStore = create(
 
       getActiveProfile: () => {
         const { profiles, activeUsername } = get()
-        return profiles[activeUsername] || Object.values(profiles)[0] || null
+        return (activeUsername && profiles[activeUsername]) || null
       },
 
       setActiveUsername: (username) => {
@@ -296,7 +327,11 @@ export const useProfileStore = create(
           planStatus: 'active',
           trialActivatedAt: new Date().toISOString(),
           ...newProfile,
-          username: normalized
+          username: normalized,
+          personalInfo: {
+            ...newProfile.personalInfo,
+            avatar: newProfile.personalInfo?.avatar || 'blobatar'
+          }
         }
 
         set((state) => ({
@@ -412,6 +447,94 @@ export const useProfileStore = create(
           saveTransactionToSupabase({ ...transaction, username: normalized })
         }
         return transaction
+      },
+
+      // Cancel recurring subscription (keeps benefits until planExpiresAt)
+      cancelSubscription: (username) => {
+        const normalized = (username || get().activeUsername).toLowerCase().trim()
+        const currentProfile = get().profiles[normalized]
+        if (!currentProfile) return false
+
+        set((state) => ({
+          profiles: {
+            ...state.profiles,
+            [normalized]: {
+              ...currentProfile,
+              planStatus: 'canceled'
+            }
+          }
+        }))
+
+        if (isSupabaseConfigured) {
+          const updated = get().profiles[normalized]
+          if (updated) saveProfileToSupabase(updated)
+        }
+        return true
+      },
+
+      // Reactivate subscription back to active
+      reactivateSubscription: (username) => {
+        const normalized = (username || get().activeUsername).toLowerCase().trim()
+        const currentProfile = get().profiles[normalized]
+        if (!currentProfile) return false
+
+        set((state) => ({
+          profiles: {
+            ...state.profiles,
+            [normalized]: {
+              ...currentProfile,
+              planStatus: 'active'
+            }
+          }
+        }))
+
+        if (isSupabaseConfigured) {
+          const updated = get().profiles[normalized]
+          if (updated) saveProfileToSupabase(updated)
+        }
+        return true
+      },
+
+      // Change username and migrate entire profile seamlessly
+      changeUsername: async (oldUsername, newUsername) => {
+        const cleanOld = (oldUsername || '').toLowerCase().trim()
+        const cleanNew = (newUsername || '').toLowerCase().trim().replace(/[^a-z0-9_-]/g, '')
+
+        if (!cleanOld || !cleanNew || cleanOld === cleanNew || cleanNew.length < 3) {
+          return { success: false, error: 'El nombre de usuario debe tener al menos 3 caracteres válidos.' }
+        }
+
+        const isAvail = await get().checkUsernameAvailability(cleanNew)
+        if (!isAvail) {
+          return { success: false, error: `El enlace @${cleanNew} ya está en uso. Elige otro.` }
+        }
+
+        const profiles = get().profiles
+        const oldProfile = profiles[cleanOld]
+        if (!oldProfile) {
+          return { success: false, error: 'Perfil de origen no encontrado.' }
+        }
+
+        const newProfile = {
+          ...oldProfile,
+          username: cleanNew
+        }
+
+        const updatedProfiles = { ...profiles }
+        delete updatedProfiles[cleanOld]
+        updatedProfiles[cleanNew] = newProfile
+
+        set({
+          profiles: updatedProfiles,
+          activeUsername: cleanNew
+        })
+
+        if (isSupabaseConfigured) {
+          await updateUsernameInSupabase(cleanOld, cleanNew)
+          await saveProfileToSupabase(newProfile)
+        }
+
+        return { success: true, username: cleanNew }
       },
 
       // Reset mock profiles to defaults while preserving real custom user profiles

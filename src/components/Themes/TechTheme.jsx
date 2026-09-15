@@ -8,6 +8,7 @@ import {
 import FloatingContactButton from '../Common/FloatingContactButton'
 import QrModal from '../Common/QrModal'
 import ViralFooter from '../Common/ViralFooter'
+import UserAvatar from '../Common/UserAvatar'
 
 // ponytail: Terminal hacker aesthetic with zero bloat, native shell simulator & high-perf vector QR
 export default function TechTheme({ profile, onRecordClick }) {
@@ -67,9 +68,11 @@ export default function TechTheme({ profile, onRecordClick }) {
             {/* Avatar with IDE badge */}
             <div className="relative group shrink-0">
               <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-xl overflow-hidden border-2 border-[#10B981]/50 bg-[#0B0F19] p-1 shadow-lg shadow-emerald-950/40">
-                <img
-                  src={personalInfo.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80'}
+                <UserAvatar
+                  username={profile.username}
+                  avatarUrl={personalInfo.avatar}
                   alt={personalInfo.name}
+                  size={128}
                   className="w-full h-full object-cover rounded-lg"
                 />
               </div>

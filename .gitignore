@@ -2,7 +2,9 @@
 node_modules/
 .pnp
 .pnp.js
-
+AGENTS.md
+SKILL.md
+.agents
 # Testing and coverage
 coverage/
 

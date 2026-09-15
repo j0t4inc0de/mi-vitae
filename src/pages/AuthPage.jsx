@@ -7,6 +7,7 @@ import {
   signInWithSupabase, 
   saveProfileToSupabase,
   checkUsernameAvailableInSupabase,
+  getCurrentUserProfile,
   isSupabaseConfigured 
 } from '../lib/supabaseClient'
 import { sendWelcomeEmail } from '../lib/emailService'
@@ -14,6 +15,7 @@ import {
   LogIn, UserPlus, Mail, Lock, User, AtSign, ArrowRight, 
   Sparkles, CheckCircle2, AlertCircle, Eye, EyeOff, Loader2, Database
 } from 'lucide-react'
+import UserAvatar from '../components/Common/UserAvatar'
 
 export default function AuthPage() {
   const { navigate } = useRouter()
@@ -95,6 +97,7 @@ export default function AuthPage() {
             name: fullName.trim(),
             title: 'Profesional en Mi Vitae',
             email: email.trim(),
+            avatar: 'blobatar',
             bio: 'Bienvenido a mi portafolio profesional en línea.',
             availableForWork: true
           },
@@ -148,22 +151,29 @@ export default function AuthPage() {
         }
 
         if (supabaseResult.success) {
-          authenticatedUsername = supabaseResult.profile?.username || supabaseResult.user?.user_metadata?.username
+          // ponytail: Load real user profile from Supabase and hydrate store
+          const realProfile = await getCurrentUserProfile()
+          if (realProfile) {
+            useProfileStore.getState().setRemoteProfile(realProfile)
+            authenticatedUsername = realProfile.username
+          } else {
+            authenticatedUsername = supabaseResult.profile?.username || supabaseResult.user?.user_metadata?.username
+          }
         }
 
-        const inputIdentifier = email.trim().toLowerCase()
-        const matchedProfile = Object.values(profiles).find(
-          (p) => (p.personalInfo?.email?.toLowerCase() === inputIdentifier || p.username?.toLowerCase() === inputIdentifier)
-        )
-
-        // Validar existencia de la cuenta en modo local
-        if (!isSupabaseConfigured && !matchedProfile && !profiles[inputIdentifier]) {
-          throw new Error('No encontramos una cuenta con ese correo o usuario. Si eres nuevo, selecciona "Crea tu cuenta gratis", o prueba con una cuenta demo (ej: carlos_dev).')
+        if (!authenticatedUsername) {
+          const inputIdentifier = email.trim().toLowerCase()
+          const matchedProfile = Object.values(profiles).find(
+            (p) => (p.personalInfo?.email?.toLowerCase() === inputIdentifier || p.username?.toLowerCase() === inputIdentifier)
+          )
+          if (matchedProfile) {
+            authenticatedUsername = matchedProfile.username
+          }
         }
 
-        const activeUser = authenticatedUsername || (matchedProfile ? matchedProfile.username : (profiles[inputIdentifier] ? inputIdentifier : 'carlos_dev'))
-        
-        setActiveUsername(activeUser)
+        if (authenticatedUsername) {
+          setActiveUsername(authenticatedUsername)
+        }
         setSuccessMessage('¡Inicio de sesión exitoso! Ingresando a tu panel...')
         
         setTimeout(() => {
@@ -317,6 +327,29 @@ export default function AuthPage() {
                         ? `✓ mi-vitae.wearesamod.com/${cleanUsername} disponible` 
                         : `✕ @${cleanUsername} ya está en uso`}
                     </p>
+                  )}
+
+                  {/* Live Blobatar Preview generated from @username */}
+                  {cleanUsername.length >= 2 && (
+                    <div className="mt-2.5 p-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center gap-2.5">
+                      <UserAvatar
+                        username={cleanUsername}
+                        avatarUrl="blobatar"
+                        size={36}
+                        className="w-9 h-9 rounded-lg border border-palette-primary/30 shrink-0"
+                      />
+                      <div className="min-w-0 text-left">
+                        <div className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                          <span>Tu Blobatar oficial</span>
+                          <span className="text-[10px] text-palette-primary font-mono bg-palette-primary/10 px-1.5 py-0.5 rounded">
+                            @{cleanUsername}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                          Se genera automáticamente según tu @username
+                        </p>
+                      </div>
+                    </div>
                   )}
                 </div>
               </>

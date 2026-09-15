@@ -175,6 +175,7 @@ BEGIN
     jsonb_build_object(
       'name', extracted_name,
       'email', NEW.email,
+      'avatar', 'blobatar',
       'title', 'Profesional en Mi Vitae',
       'bio', 'Bienvenido a mi portafolio profesional en línea.',
       'availableForWork', true

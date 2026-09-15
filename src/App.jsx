@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Router, useRouter } from './router/Router'
 import Navbar from './components/Navbar'
 import LandingPage from './pages/LandingPage'
@@ -9,8 +9,10 @@ import AuthPage from './pages/AuthPage'
 import NotFoundPage from './pages/NotFoundPage'
 import RegisterFeedbackModal from './components/Modals/RegisterFeedbackModal'
 import FlowCheckoutModal from './components/Modals/FlowCheckoutModal'
+import UserAccountModal from './components/Modals/UserAccountModal'
 import GlobalLoader from './components/Common/GlobalLoader'
 import { useProfileStore } from './stores/profileStore'
+import { getCurrentUserProfile, isSupabaseConfigured, supabase } from './lib/supabaseClient'
 
 function AppContent() {
   const { route } = useRouter()
@@ -23,8 +25,43 @@ function AppContent() {
   const flowModalData = useProfileStore((state) => state.flowModalData)
   const closeFlowModal = useProfileStore((state) => state.closeFlowModal)
 
+  const isAccountModalOpen = useProfileStore((state) => state.isAccountModalOpen)
+  const closeAccountModal = useProfileStore((state) => state.closeAccountModal)
+
   const isGlobalLoading = useProfileStore((state) => state.isGlobalLoading)
   const loadingMessage = useProfileStore((state) => state.loadingMessage)
+  const setRemoteProfile = useProfileStore((state) => state.setRemoteProfile)
+  const logout = useProfileStore((state) => state.logout)
+
+  // ponytail: Global sync with real authenticated Supabase session
+  useEffect(() => {
+    let isMounted = true
+
+    const syncAuth = async () => {
+      const realProfile = await getCurrentUserProfile()
+      if (realProfile && isMounted) {
+        setRemoteProfile(realProfile)
+      }
+    }
+
+    syncAuth()
+
+    if (isSupabaseConfigured && supabase) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
+          syncAuth()
+        } else if (event === 'SIGNED_OUT') {
+          logout()
+        }
+      })
+      return () => {
+        isMounted = false
+        subscription?.unsubscribe()
+      }
+    }
+
+    return () => { isMounted = false }
+  }, [])
 
   const renderRoute = () => {
     switch (route) {
@@ -63,6 +100,11 @@ function AppContent() {
         username={flowModalData?.username}
         planName={flowModalData?.planName}
         amount={flowModalData?.amount || 3490}
+      />
+
+      <UserAccountModal
+        isOpen={isAccountModalOpen}
+        onClose={closeAccountModal}
       />
 
       {/* Global Loader Overlay */}
