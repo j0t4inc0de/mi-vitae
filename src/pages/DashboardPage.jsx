@@ -1220,7 +1220,7 @@ export default function DashboardPage() {
                   className="px-3 py-1.5 rounded-xl bg-palette-primary hover:bg-palette-hover text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-palette-glow cursor-pointer transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>+ Agregar Experiencia</span>
+                  <span>Agregar Experiencia</span>
                 </button>
               </div>
 
@@ -1344,7 +1344,7 @@ export default function DashboardPage() {
                             className="px-2 py-0.5 rounded-lg bg-palette-primary/10 border border-palette-primary/30 text-palette-primary hover:bg-palette-primary/20 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
                           >
                             <Plus className="w-3 h-3" />
-                            <span>+ Agregar logro</span>
+                            <span>Agregar logro</span>
                           </button>
                         </div>
 
@@ -1394,7 +1394,7 @@ export default function DashboardPage() {
                   className="px-3 py-1.5 rounded-xl bg-palette-primary hover:bg-palette-hover text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-palette-glow cursor-pointer transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>+ Agregar Educación</span>
+                  <span>Agregar Educación</span>
                 </button>
               </div>
 
@@ -1500,7 +1500,7 @@ export default function DashboardPage() {
                   className="px-3 py-1.5 rounded-xl bg-palette-primary hover:bg-palette-hover text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-palette-glow cursor-pointer transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>+ Agregar Habilidad</span>
+                  <span>Agregar Habilidad</span>
                 </button>
               </div>
 
@@ -1588,13 +1588,13 @@ export default function DashboardPage() {
                   className="px-3 py-1.5 rounded-xl bg-palette-primary hover:bg-palette-hover text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-palette-glow cursor-pointer transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>+ Agregar Proyecto</span>
+                  <span>Agregar Proyecto</span>
                 </button>
               </div>
 
               {(!profileData.projects || profileData.projects.length === 0) ? (
                 <div className="p-8 text-center rounded-2xl bg-slate-50/80 border border-slate-200 text-slate-500 text-xs">
-                  No hay proyectos registrados. Haz clic en "+ Agregar Proyecto".
+                  No hay proyectos registrados. Haz clic en "Agregar Proyecto".
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -1764,7 +1764,7 @@ export default function DashboardPage() {
                   className="px-3 py-1.5 rounded-xl bg-palette-primary hover:bg-palette-hover text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-palette-glow cursor-pointer transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>+ Agregar Idioma</span>
+                  <span>Agregar Idioma</span>
                 </button>
               </div>
 
