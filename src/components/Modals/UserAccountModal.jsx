@@ -120,7 +120,7 @@ export default function UserAccountModal({ isOpen, onClose }) {
     try {
       const res = await changeUsername(currentProfile.username, clean)
       if (res && res.success) {
-        setSaveSuccessMsg('¡Nombre de usuario y Blobatar actualizados!')
+        setSaveSuccessMsg('¡Nombre de usuario actualizado!')
         setTimeout(() => setSaveSuccessMsg(''), 3000)
       } else {
         setUsernameStatus({ state: 'error', message: res?.error || 'No se pudo actualizar el usuario.' })
