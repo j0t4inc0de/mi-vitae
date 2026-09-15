@@ -13,11 +13,11 @@
 +---------------------------------------+-----------------------------+-----------------------------------+
 |               ✅ COMPLETADO           |        🚧 EN CURSO          |           📋 POR HACER            |
 +---------------------------------------+-----------------------------+-----------------------------------+
-| [X] Paso 1: Código en GitHub          | [ ] Paso 6: Configurar      | [ ] Paso 7: Secretos GitHub       |
-|     (Rama main al día y limpia)       |     Webhook en Flow.cl      |     Actions (Supabase Keep-Alive) |
-|                                       |     (100% Gratis - $0 CLP)  |                                   |
-| [X] Paso 2: Proyecto Cloudflare Pages |                             | [ ] Paso 8: Verificación E2E en   |
-|     (Build Vite + Functions)          |                             |     producción (Health & Flow)    |
+| [X] Paso 1: Código en GitHub          | [ ] Paso 7: Secretos GitHub | [ ] Paso 8: Verificación E2E en   |
+|     (Rama main al día y limpia)       |     Actions (Keep-Alive)    |     producción (Health & Flow)    |
+|                                       |                             |                                   |
+| [X] Paso 2: Proyecto Cloudflare Pages |                             |                                   |
+|     (Build Vite + Functions)          |                             |                                   |
 |                                       |                             |                                   |
 | [X] Paso 3: Subdominio Personalizado  |                             |                                   |
 |     (mi-vitae.wearesamod.com + SSL)   |                             |                                   |
@@ -27,6 +27,9 @@
 |                                       |                             |                                   |
 | [X] Paso 5: Variables de Entorno      |                             |                                   |
 |     (Cloudflare Pages cargadas)       |                             |                                   |
+|                                       |                             |                                   |
+| [X] Paso 6: Integración Flow.cl       |                             |                                   |
+|     (API Keys cargadas en Cloudflare) |                             |                                   |
 +---------------------------------------+-----------------------------+-----------------------------------+
 ```
 
@@ -70,22 +73,12 @@ Variables configuradas en **Cloudflare Pages** &rarr; **Settings** &rarr; **Envi
 
 ## 📌 Próximos Pasos (Desde el Paso 6)
 
-### 🚧 Paso 6: Configurar el Webhook en Flow.cl (Chile)
-> **¿Tiene algún costo?:** **NO, es 100% GRATIS.** Flow.cl no cobra mantención mensual ni cobro de inscripción por usar la API ni por configurar Webhooks. Solo descuenta comisión por venta exitosa (aprox. 2,89% a 3,19% + IVA) cuando un usuario hace un pago real.
-
-#### Instrucciones de Configuración:
-1. Inicia sesión en tu cuenta de comercio en [Flow.cl](https://www.flow.cl).
-2. Dirígete a **Configuración** &rarr; **Plataforma de Integración** (o **Mis Datos** / **Integración API**).
-3. En la sección de URLs de retorno y confirmación:
-   - **URL de Confirmación (Webhook / Notificación Server-to-Server):**
-     ```
-     https://mi-vitae.wearesamod.com/api/flow-webhook
-     ```
-   - **URL de Retorno del Cliente:**
-     ```
-     https://mi-vitae.wearesamod.com/dashboard
-     ```
-4. Guarda los cambios.
+### ✅ Paso 6: Integración Oficial Flow.cl (Chile) (Completado)
+> **¿Por qué no se necesita configurar la URL en el panel de Flow?:** Según la documentación oficial de la API de Flow (`payment/create`), Flow **no requiere** configurar la URL en el panel web. En su lugar, nuestro backend en [`functions/api/create-flow-order.js`](../functions/api/create-flow-order.js) le envía automáticamente a Flow en cada transacción:
+> - `urlConfirmation`: `https://mi-vitae.wearesamod.com/api/flow-webhook`
+> - `urlReturn`: `https://mi-vitae.wearesamod.com/dashboard?payment=complete&order=...`
+> 
+> Al haber cargado tus variables `FLOW_API_KEY`, `FLOW_SECRET_KEY` y `FLOW_SANDBOX` en Cloudflare Pages, **este paso queda 100% operativo y listo para cobrar.**
 
 #### ¿Cómo funciona este Webhook?:
 - Cuando el cliente paga con Webpay (Transbank), Servipag, Mach, o tarjetas de crédito/débito, Flow realiza una petición `POST` automática a `https://mi-vitae.wearesamod.com/api/flow-webhook`.
