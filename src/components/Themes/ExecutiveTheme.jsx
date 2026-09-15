@@ -187,7 +187,7 @@ export default function ExecutiveTheme({ profile, onRecordClick }) {
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-white tracking-tight">
-                      Línea de Tiempo Formal de Carrera
+                      Experiencia Laboral
                     </h2>
                     <p className="text-xs text-[#94A3B8]">
                       Hitos ejecutivos, responsabilidades directivas y resultados cuantificables.
@@ -247,7 +247,7 @@ export default function ExecutiveTheme({ profile, onRecordClick }) {
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-white tracking-tight">
-                      Iniciativas Estratégicas & Casos de Éxito
+                      Proyectos
                     </h2>
                     <p className="text-xs text-[#94A3B8]">
                       Proyectos de transformación digital, M&A y escalado regional de operaciones.
@@ -325,7 +325,7 @@ export default function ExecutiveTheme({ profile, onRecordClick }) {
                     <Award className="w-4 h-4" />
                   </div>
                   <h2 className="text-sm font-bold text-white uppercase tracking-wider">
-                    Competencias Directivas
+                    Habilidades & Competencias
                   </h2>
                 </div>
 
@@ -356,7 +356,7 @@ export default function ExecutiveTheme({ profile, onRecordClick }) {
                     <GraduationCap className="w-4 h-4" />
                   </div>
                   <h2 className="text-sm font-bold text-white uppercase tracking-wider">
-                    Formación Ejecutiva
+                    Educación & Formación
                   </h2>
                 </div>
 
@@ -383,7 +383,7 @@ export default function ExecutiveTheme({ profile, onRecordClick }) {
                     <Globe className="w-4 h-4" />
                   </div>
                   <h2 className="text-sm font-bold text-white uppercase tracking-wider">
-                    Idiomas & Negociación
+                    Idiomas
                   </h2>
                 </div>
 

@@ -183,7 +183,7 @@ export default function MinimalistTheme({ profile, onRecordClick }) {
                 01.
               </span>
               <h2 id="section-experience" className="font-serif text-xl sm:text-2xl font-bold text-stone-900 tracking-tight">
-                Experiencia Profesional & Trayectoria
+                Experiencia Laboral
               </h2>
             </div>
 
@@ -240,7 +240,7 @@ export default function MinimalistTheme({ profile, onRecordClick }) {
                 02.
               </span>
               <h2 id="section-education" className="font-serif text-xl sm:text-2xl font-bold text-stone-900 tracking-tight">
-                Educación & Formación Académica
+                Educación & Formación
               </h2>
             </div>
 
@@ -282,7 +282,7 @@ export default function MinimalistTheme({ profile, onRecordClick }) {
                 03.
               </span>
               <h2 id="section-projects" className="font-serif text-xl sm:text-2xl font-bold text-stone-900 tracking-tight">
-                Casos de Estudio & Publicaciones
+                Proyectos
               </h2>
             </div>
 
@@ -366,7 +366,7 @@ export default function MinimalistTheme({ profile, onRecordClick }) {
                 04.
               </span>
               <h2 id="section-skills" className="font-serif text-xl sm:text-2xl font-bold text-stone-900 tracking-tight">
-                Áreas de Práctica & Competencias
+                Habilidades & Competencias
               </h2>
             </div>
 
@@ -400,7 +400,7 @@ export default function MinimalistTheme({ profile, onRecordClick }) {
                 05.
               </span>
               <h2 id="section-languages" className="font-serif text-xl sm:text-2xl font-bold text-stone-900 tracking-tight">
-                Idiomas & Certificaciones
+                Idiomas
               </h2>
             </div>
 

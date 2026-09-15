@@ -180,7 +180,7 @@ export default function TechTheme({ profile, onRecordClick }) {
                   <Cpu className="w-4 h-4" />
                 </div>
                 <h2 id="tech-stack-heading" className="text-base sm:text-lg font-bold text-white">
-                  Tech Stack & Engine Architecture
+                  Habilidades & Competencias
                 </h2>
               </div>
               <span className="text-xs text-slate-500 font-mono">
@@ -231,7 +231,7 @@ export default function TechTheme({ profile, onRecordClick }) {
                   <FolderGit2 className="w-4 h-4" />
                 </div>
                 <h2 id="tech-projects-heading" className="text-base sm:text-lg font-bold text-white">
-                  Production Deployments & Open Source Repos
+                  Proyectos
                 </h2>
               </div>
               <span className="text-xs text-[#10B981] font-mono flex items-center gap-1">
@@ -323,7 +323,7 @@ export default function TechTheme({ profile, onRecordClick }) {
                   <GitBranch className="w-4 h-4" />
                 </div>
                 <h2 id="tech-experience-heading" className="text-base sm:text-lg font-bold text-white">
-                  git log --stat (Career Milestones & Engineering Impact)
+                  Experiencia Laboral
                 </h2>
               </div>
               <span className="text-xs text-slate-500 font-mono">{"HEAD -> origin/master"}</span>
@@ -381,7 +381,7 @@ export default function TechTheme({ profile, onRecordClick }) {
                 <div className="flex items-center gap-2 border-b border-[#1F2937] pb-3 mb-4">
                   <ShieldCheck className="w-4 h-4 text-[#10B981]" />
                   <h2 id="tech-education-heading" className="text-sm font-bold text-white">
-                    cat /etc/credentials.json
+                    Educación & Formación
                   </h2>
                 </div>
 
@@ -409,7 +409,7 @@ export default function TechTheme({ profile, onRecordClick }) {
                   <div className="flex items-center gap-2 border-b border-[#1F2937] pb-3 mb-4">
                     <Globe className="w-4 h-4 text-[#06B6D4]" />
                     <h2 id="tech-languages-heading" className="text-sm font-bold text-white">
-                      netstat --languages
+                      Idiomas
                     </h2>
                   </div>
 

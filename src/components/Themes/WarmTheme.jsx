@@ -189,7 +189,7 @@ export default function WarmTheme({ profile, onRecordClick }) {
                     <Briefcase className="w-5 h-5 text-[#D97706]" />
                   </div>
                   <h2 className="text-xl font-bold text-[#43281C]">
-                    Trayectoria Profesional
+                    Experiencia Laboral
                   </h2>
                 </div>
 
@@ -238,7 +238,7 @@ export default function WarmTheme({ profile, onRecordClick }) {
                     <BookOpen className="w-5 h-5 text-[#D97706]" />
                   </div>
                   <h2 className="text-xl font-bold text-[#43281C]">
-                    Programas, Talleres & Recursos
+                    Proyectos
                   </h2>
                 </div>
 
@@ -311,7 +311,7 @@ export default function WarmTheme({ profile, onRecordClick }) {
                     <Award className="w-4 h-4 text-[#D97706]" />
                   </div>
                   <h2 className="text-base font-bold text-[#43281C]">
-                    Especialidades & Enfoque
+                    Habilidades & Competencias
                   </h2>
                 </div>
 
@@ -342,7 +342,7 @@ export default function WarmTheme({ profile, onRecordClick }) {
                     <GraduationCap className="w-4 h-4 text-[#D97706]" />
                   </div>
                   <h2 className="text-base font-bold text-[#43281C]">
-                    Educación & Grados
+                    Educación & Formación
                   </h2>
                 </div>
 

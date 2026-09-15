@@ -189,7 +189,7 @@ export default function CreativeTheme({ profile, onRecordClick }) {
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <h2 id="creative-projects-heading" className="text-lg sm:text-xl font-bold font-display text-white">
-                  Proyectos & Casos de Diseño
+                  Proyectos
                 </h2>
               </div>
               <span className="text-xs text-slate-400">
@@ -279,7 +279,7 @@ export default function CreativeTheme({ profile, onRecordClick }) {
                   <Briefcase className="w-4 h-4" />
                 </div>
                 <h2 id="creative-experience-heading" className="text-lg sm:text-xl font-bold font-display text-white">
-                  Trayectoria & Experiencia
+                  Experiencia Laboral
                 </h2>
               </div>
 
@@ -334,7 +334,7 @@ export default function CreativeTheme({ profile, onRecordClick }) {
                     <Layers className="w-4 h-4" />
                   </div>
                   <h2 id="creative-skills-heading" className="text-lg sm:text-xl font-bold font-display text-white">
-                    Arsenal & Habilidades
+                    Habilidades & Competencias
                   </h2>
                 </div>
 
@@ -409,7 +409,7 @@ export default function CreativeTheme({ profile, onRecordClick }) {
                     <Globe className="w-4 h-4" />
                   </div>
                   <h2 id="creative-languages-heading" className="text-base sm:text-lg font-bold font-display text-white">
-                    Idiomas & Alcance Global
+                    Idiomas
                   </h2>
                 </div>
 
@@ -426,13 +426,6 @@ export default function CreativeTheme({ profile, onRecordClick }) {
                     </div>
                   ))}
                 </div>
-              </div>
-
-              <div className="pt-6 mt-6 border-t border-[#2E2D44] text-center">
-                <span className="text-xs text-slate-400 flex items-center justify-center gap-1.5">
-                  <Heart className="w-3.5 h-3.5 text-pink-500 fill-current" />
-                  <span>Listo para colaborar en equipos remotos internacionales</span>
-                </span>
               </div>
             </section>
           )}
