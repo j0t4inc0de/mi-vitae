@@ -30,6 +30,27 @@ const sortEducation = (list = []) => [...list].map((edu) => ({
   return (b.startDate || b.endDate || b.year || '').localeCompare(a.startDate || a.endDate || a.year || '')
 })
 
+// ponytail: Guarantee external URLs have http/https protocol so browser doesn't treat 'www.site.com' as relative internal route
+const ensureExternalUrl = (url) => {
+  if (!url || typeof url !== 'string') return url
+  const trimmed = url.trim()
+  if (!trimmed) return ''
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+}
+
+const normalizeProjects = (list = []) => list.map((proj) => ({
+  ...proj,
+  ...(proj.liveUrl && { liveUrl: ensureExternalUrl(proj.liveUrl) }),
+  ...(proj.repoUrl && { repoUrl: ensureExternalUrl(proj.repoUrl) })
+}))
+
+const normalizePersonalInfo = (info = {}) => ({
+  ...info,
+  ...(info.linkedin && { linkedin: ensureExternalUrl(info.linkedin) }),
+  ...(info.github && { github: ensureExternalUrl(info.github) }),
+  ...(info.website && { website: ensureExternalUrl(info.website) })
+})
+
 /**
  * Polymorphic Theme Renderer component
  * Dynamically resolves and mounts the corresponding theme layout with smooth 60fps transitions
@@ -41,6 +62,8 @@ export default function ThemeRenderer({ profile, themeOverride, onRecordClick })
   const SelectedTheme = THEME_COMPONENTS[resolvedTheme] || MinimalistTheme
   const normalizedProfile = {
     ...profile,
+    ...(profile.personalInfo && { personalInfo: normalizePersonalInfo(profile.personalInfo) }),
+    ...(profile.projects && { projects: normalizeProjects(profile.projects) }),
     ...(profile.experience && { experience: sortExperience(profile.experience) }),
     ...(profile.education && { education: sortEducation(profile.education) })
   }
