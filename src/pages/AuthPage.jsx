@@ -237,9 +237,9 @@ export default function AuthPage() {
             <div className="group-hover:scale-105 transition-transform">
               <MiVitaeLogo className="w-10 h-10" />
             </div>
-            <span className="font-black text-2xl tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-white dark:via-slate-200 dark:to-white bg-clip-text text-transparent">
+            {/* <span className="font-black text-2xl tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-white dark:via-slate-200 dark:to-white bg-clip-text text-transparent">
               Mi Vitae
-            </span>
+            </span> */}
           </Link>
 
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
@@ -496,24 +496,6 @@ export default function AuthPage() {
           </div>
 
         </div>
-
-        {/* Backend Status Indicator */}
-        <div className="mt-5 flex items-center justify-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-          <Database className="w-3.5 h-3.5 text-indigo-500" />
-          <span>Backend:</span>
-          {isSupabaseConfigured ? (
-            <span className="inline-flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Supabase Cloud Conectado
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-              Supabase Ready (Configura .env)
-            </span>
-          )}
-        </div>
-
       </div>
     </div>
   )

@@ -765,7 +765,7 @@ export default function DashboardPage() {
                   <span>Editor de Contenido</span>
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Edita cada sección modularmente con actualización inmediata en el Live Preview.
+                  Edita cada sección modularmente con actualización inmediata.
                 </p>
               </div>
 
@@ -858,7 +858,7 @@ export default function DashboardPage() {
               {/* Avatar Dropzone with Auto-Compression */}
               <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200 space-y-3">
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                  Foto de Perfil / Avatar (Compresión Nativa &lt; 200 KB)
+                  Foto de Perfil
                 </label>
 
                 <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -911,25 +911,8 @@ export default function DashboardPage() {
                     <div className="text-xs font-bold text-slate-800">
                       Arrastra tu foto o haz clic para subir
                     </div>
-                    <div className="text-[10px] text-slate-500">
-                      Escalado y compresión automática mediante Canvas nativo ({formatBytes(avatarSize)})
-                    </div>
                   </div>
 
-                </div>
-
-                {/* Manual Avatar URL Input as fallback */}
-                <div className="pt-2">
-                  <label className="text-[11px] text-slate-600 font-medium mb-1 block">
-                    O ingresa una URL de imagen directa:
-                  </label>
-                  <input
-                    type="url"
-                    value={profileData.personalInfo?.avatar === 'blobatar' ? '' : (profileData.personalInfo?.avatar || '')}
-                    onChange={(e) => updatePersonalInfo('avatar', e.target.value)}
-                    placeholder="https://..."
-                    className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary font-mono transition-colors"
-                  />
                 </div>
 
                 {/* Custom Photo Clear & Account Link */}
@@ -2036,15 +2019,17 @@ export default function DashboardPage() {
 
             {/* Action Buttons Grid */}
             <div className="grid grid-cols-2 gap-2.5">
-              <a
-                href={getLiveProfileUrl()}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-3 rounded-2xl bg-palette-gradient hover:opacity-95 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-palette-glow transition-all hover:scale-[1.02] active:scale-[0.98] no-underline"
+              <button
+                type="button"
+                onClick={async () => {
+                  await handleSave()
+                  window.open(getLiveProfileUrl(), '_blank', 'noopener,noreferrer')
+                }}
+                className="px-4 py-3 rounded-2xl bg-palette-gradient hover:opacity-95 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-palette-glow transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
               >
                 <Eye className="w-4 h-4" />
                 <span>Ver en Vivo ↗</span>
-              </a>
+              </button>
 
               <button
                 type="button"

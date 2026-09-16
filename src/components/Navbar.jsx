@@ -91,6 +91,7 @@ export default function Navbar() {
                   href={liveProfileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => triggerDashboardSave()}
                   title="Ver portafolio en vivo en nueva pestaña"
                   aria-label="Ver en vivo"
                   className="h-9 sm:h-10 px-2.5 sm:px-3.5 rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-[0.98] transition-all hidden sm:flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm cursor-pointer no-underline shrink-0"
