@@ -456,6 +456,25 @@ it('verifies GitHub Actions Supabase keep-alive cron workflow', () => {
   assert.ok(content.includes('VITE_SUPABASE_URL'), 'workflow must use Supabase URL secret');
 });
 
+it('verifies SEO infrastructure for Google Search Console (robots.txt, sitemap, meta)', () => {
+  const robotsPath = path.join(ROOT, 'public', 'robots.txt');
+  const sitemapPath = path.join(ROOT, 'public', 'sitemap.xml');
+  const indexPath = path.join(ROOT, 'index.html');
+  const sitemapFnPath = path.join(ROOT, 'functions', 'api', 'sitemap.js');
+
+  assert.ok(fs.existsSync(robotsPath), 'public/robots.txt must exist');
+  assert.ok(fs.existsSync(sitemapPath), 'public/sitemap.xml must exist');
+  assert.ok(fs.existsSync(sitemapFnPath), 'functions/api/sitemap.js must exist');
+
+  const robotsContent = fs.readFileSync(robotsPath, 'utf-8');
+  assert.ok(robotsContent.includes('Sitemap: https://mi-vitae.wearesamod.com/sitemap.xml'), 'robots.txt must declare sitemap URL');
+  assert.ok(robotsContent.includes('Disallow: /dashboard'), 'robots.txt must disallow private dashboard');
+
+  const indexContent = fs.readFileSync(indexPath, 'utf-8');
+  assert.ok(indexContent.includes('rel="canonical"'), 'index.html must have canonical link');
+  assert.ok(indexContent.includes('name="robots" content="index, follow"'), 'index.html must have robots index/follow meta');
+});
+
 // -------------------------------------------------------------
 // SUITE 7: DASHBOARD PAGE AUDIT (FUNCTIONAL & NON-FUNCTIONAL)
 // -------------------------------------------------------------

@@ -8,6 +8,7 @@ import { onRequestPost as handleSendEmail } from './functions/api/send-email.js'
 import { onRequestPost as handleUploadAvatar } from './functions/api/upload-avatar.js'
 import { onRequestGet as handleHealth } from './functions/api/health.js'
 import { onRequestGet as handleConfig } from './functions/api/config.js'
+import { onRequestGet as handleSitemap } from './functions/api/sitemap.js'
 
 export default {
   async fetch(request, env, ctx) {
@@ -33,6 +34,21 @@ export default {
     if (pathname === '/api/health') {
       return handleHealth({ request, env })
     }
+    if (pathname === '/sitemap.xml' || pathname === '/api/sitemap') {
+      return handleSitemap({ request, env })
+    }
+
+    // Google Search Console automatic HTML verification file handler
+    if (/^\/google[a-zA-Z0-9_-]+\.html$/.test(pathname)) {
+      const filename = pathname.slice(1)
+      return new Response(`google-site-verification: ${filename}`, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'public, max-age=86400'
+        }
+      })
+    }
 
     // Serve static assets with Single Page Application fallback (React SPA)
     if (env.ASSETS) {
@@ -50,6 +66,9 @@ export default {
         return new HTMLRewriter()
           .on('head', {
             element(e) {
+              if (env.GOOGLE_SITE_VERIFICATION) {
+                e.append(`<meta name="google-site-verification" content="${env.GOOGLE_SITE_VERIFICATION}" />`, { html: true })
+              }
               e.append(`<script>window.__ENV__ = ${JSON.stringify(clientEnv)};</script>`, { html: true })
             }
           })

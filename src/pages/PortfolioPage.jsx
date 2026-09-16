@@ -69,6 +69,37 @@ export default function PortfolioPage() {
     }
   }, [profile?.username, recordView, recordClick])
 
+  // ponytail: Dynamic document title & meta tags for Google Search Console & SEO indexing
+  useEffect(() => {
+    if (!profile) return
+
+    const prevTitle = document.title
+    const name = profile.personalInfo?.name || cleanUsername
+    const title = profile.personalInfo?.title || 'Portafolio Profesional'
+    const bio = profile.personalInfo?.bio || `Conoce el portafolio digital y trayectoria profesional de ${name} en Mi Vitae.`
+
+    document.title = `${name} — ${title} | Mi Vitae`
+
+    const descMeta = document.querySelector('meta[name="description"]')
+    const prevDesc = descMeta ? descMeta.getAttribute('content') : ''
+    if (descMeta) {
+      descMeta.setAttribute('content', bio.slice(0, 160))
+    }
+
+    const ogTitle = document.querySelector('meta[property="og:title"]')
+    if (ogTitle) ogTitle.setAttribute('content', `${name} — ${title} | Mi Vitae`)
+
+    const ogDesc = document.querySelector('meta[property="og:description"]')
+    if (ogDesc) ogDesc.setAttribute('content', bio.slice(0, 160))
+
+    return () => {
+      document.title = prevTitle || 'Mi Vitae — Tu CV Online como Portafolio Web Profesional'
+      if (descMeta && prevDesc) {
+        descMeta.setAttribute('content', prevDesc)
+      }
+    }
+  }, [profile, cleanUsername])
+
   if (isLoading) {
     return (
       <div className="min-h-[80vh] flex flex-col items-center justify-center px-4">
