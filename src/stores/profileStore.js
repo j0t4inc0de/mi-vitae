@@ -25,9 +25,11 @@ export const useProfileStore = create(
       isDashboardSaving: false,
       dashboardSaveTrigger: 0,
       dashboardResetTrigger: 0,
+      hasUnsavedChanges: false,
       triggerDashboardSave: () => set((state) => ({ dashboardSaveTrigger: state.dashboardSaveTrigger + 1 })),
       triggerDashboardReset: () => set((state) => ({ dashboardResetTrigger: state.dashboardResetTrigger + 1 })),
       setIsDashboardSaving: (val) => set({ isDashboardSaving: val }),
+      setHasUnsavedChanges: (val) => set({ hasUnsavedChanges: val }),
 
       // Global Modal States for instant activation from any view
       isRegisterModalOpen: false,

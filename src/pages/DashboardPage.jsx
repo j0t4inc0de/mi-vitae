@@ -113,6 +113,7 @@ export default function DashboardPage() {
   const dashboardSaveTrigger = useProfileStore((state) => state.dashboardSaveTrigger)
   const dashboardResetTrigger = useProfileStore((state) => state.dashboardResetTrigger)
   const setIsDashboardSaving = useProfileStore((state) => state.setIsDashboardSaving)
+  const setHasUnsavedChanges = useProfileStore((state) => state.setHasUnsavedChanges)
 
   // Current active profile from store (only real user profile, no mock fallback)
   const storeProfile = (activeUsername && profiles[activeUsername]) || null
@@ -312,9 +313,52 @@ export default function DashboardPage() {
     }
 
     setSavedAlert(true)
+    setHasUnsavedChanges(false)
     if (savedAlertTimerRef.current) clearTimeout(savedAlertTimerRef.current)
     savedAlertTimerRef.current = setTimeout(() => setSavedAlert(false), 3500)
   }
+
+  // Ref to always access latest profileData and handleSave without recreating timers
+  const profileDataRef = useRef(profileData)
+  useEffect(() => {
+    profileDataRef.current = profileData
+  }, [profileData])
+
+  // ponytail: Auto-save debounced at 1.5s after user stops typing or changing state
+  const isInitialMount = useRef(true)
+  const autoSaveTimerRef = useRef(null)
+
+  useEffect(() => {
+    // Skip auto-save on initial mount / hydration
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return
+    }
+
+    if (!profileData || !profileData.username) return
+
+    setHasUnsavedChanges(true)
+
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+    autoSaveTimerRef.current = setTimeout(() => {
+      handleSave()
+    }, 1500)
+
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+    }
+  }, [profileData])
+
+  // ponytail: Save immediately when switching tabs or browser window loses focus
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && useProfileStore.getState().hasUnsavedChanges) {
+        handleSave()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [])
 
   // Listen to Navbar Save Trigger
   const lastSaveTriggerRef = useRef(dashboardSaveTrigger)

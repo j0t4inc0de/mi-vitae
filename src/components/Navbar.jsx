@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useRouter } from '../router/Router'
-import { LogIn, Eye, Save, RefreshCw, ExternalLink, Sparkles, ChevronDown } from 'lucide-react'
+import { LogIn, Eye, Save, RefreshCw, ExternalLink, Sparkles, ChevronDown, Check } from 'lucide-react'
 import MiVitaeLogo from './Common/MiVitaeLogo'
 import UserAvatar from './Common/UserAvatar'
 import { useProfileStore } from '../stores/profileStore'
@@ -17,6 +17,7 @@ export default function Navbar() {
   const profiles = useProfileStore((state) => state.profiles)
   const activeUsername = useProfileStore((state) => state.activeUsername)
   const isDashboardSaving = useProfileStore((state) => state.isDashboardSaving)
+  const hasUnsavedChanges = useProfileStore((state) => state.hasUnsavedChanges)
   const triggerDashboardSave = useProfileStore((state) => state.triggerDashboardSave)
   const triggerDashboardReset = useProfileStore((state) => state.triggerDashboardReset)
   const openAccountModal = useProfileStore((state) => state.openAccountModal)
@@ -101,24 +102,35 @@ export default function Navbar() {
                   <ExternalLink className="hidden md:inline w-3 h-3 text-slate-400 opacity-80 shrink-0" />
                 </a>
 
-                {/* Guardar Cambios button */}
+                {/* Guardar Cambios button / Auto-save status */}
                 <button
                   type="button"
                   onClick={() => triggerDashboardSave()}
                   disabled={isDashboardSaving}
-                  title="Guardar cambios en Supabase Cloud"
+                  title={hasUnsavedChanges ? "Guardando cambios en Supabase Cloud..." : "Todos los cambios están guardados"}
                   aria-label="Guardar cambios"
-                  className="h-9 sm:h-10 px-2.5 sm:px-3.5 rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm cursor-pointer disabled:opacity-75 shrink-0"
+                  className={`h-9 sm:h-10 px-2.5 sm:px-3.5 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm cursor-pointer shrink-0 ${
+                    isDashboardSaving
+                      ? 'bg-palette-primary text-white'
+                      : hasUnsavedChanges
+                      ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                      : 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 hover:opacity-90'
+                  }`}
                 >
                   {isDashboardSaving ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
                       <span className="hidden sm:inline">Guardando...</span>
                     </>
+                  ) : hasUnsavedChanges ? (
+                    <>
+                      <Save className="w-4 h-4 shrink-0 animate-pulse" />
+                      <span className="hidden sm:inline">Guardando...</span>
+                    </>
                   ) : (
                     <>
-                      <Save className="w-4 h-4 shrink-0" />
-                      <span className="hidden sm:inline">Guardar</span>
+                      <Check className="w-4 h-4 text-emerald-400 dark:text-emerald-600 shrink-0" />
+                      <span className="hidden sm:inline">Guardado</span>
                     </>
                   )}
                 </button>
