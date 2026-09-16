@@ -141,7 +141,7 @@ export default function QrModal({ isOpen, onClose, profile, username: propUserna
           </div>
           <div>
             <h2 id="qr-modal-title" className="text-xl font-bold text-slate-900 dark:text-white">
-              Código QR de tu Portafolio
+              QR de tu Portafolio
             </h2>
           </div>
         </div>
