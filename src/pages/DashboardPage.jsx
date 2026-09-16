@@ -2279,15 +2279,17 @@ export default function DashboardPage() {
           <span>{copiedLink ? 'Copiado' : 'Copiar Link'}</span>
         </button>
 
-        <a
-          href={getLiveProfileUrl()}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex-1 min-h-[44px] px-3 py-2 rounded-xl bg-palette-gradient hover:opacity-95 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm shadow-palette-glow transition-transform active:scale-[0.98] no-underline"
+        <button
+          type="button"
+          onClick={async () => {
+            await handleSave()
+            window.open(getLiveProfileUrl(), '_blank', 'noopener,noreferrer')
+          }}
+          className="flex-1 min-h-[44px] px-3 py-2 rounded-xl bg-palette-gradient hover:opacity-95 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm shadow-palette-glow transition-transform active:scale-[0.98] cursor-pointer"
         >
           <Eye className="w-4 h-4" />
           <span>En Vivo ↗</span>
-        </a>
+        </button>
       </aside>
 
       {/* QR Code Generator Modal */}
