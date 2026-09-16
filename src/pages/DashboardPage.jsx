@@ -147,6 +147,7 @@ export default function DashboardPage() {
   const savedAlertTimerRef = useRef(null)
   const copiedLinkTimerRef = useRef(null)
   const paymentNoticeTimerRef = useRef(null)
+  const lastSavedSnapshotRef = useRef(storeProfile ? JSON.stringify(storeProfile) : null)
 
   // Clean up timer references on unmount to prevent memory leaks
   useEffect(() => {
@@ -233,18 +234,22 @@ export default function DashboardPage() {
         setAuthUser(realProf)
         useProfileStore.getState().setRemoteProfile(realProf)
         setProfileData(getInitialProfileState(realProf))
+        lastSavedSnapshotRef.current = JSON.stringify(realProf)
+        setHasUnsavedChanges(false)
       }
     }).catch(() => {})
 
     return () => { isMounted = false }
   }, [])
 
-  // Sync local state when storeProfile updates
+  // Sync local state ONLY when switching active username/profile in store
   useEffect(() => {
-    if (storeProfile) {
+    if (storeProfile && storeProfile.username !== profileData?.username) {
       setProfileData(getInitialProfileState(storeProfile))
+      lastSavedSnapshotRef.current = JSON.stringify(storeProfile)
+      setHasUnsavedChanges(false)
     }
-  }, [storeProfile])
+  }, [storeProfile, profileData?.username])
 
   // Detect Flow.cl successful payment return in URL: ?payment=complete&order=...
   useEffect(() => {
@@ -287,9 +292,13 @@ export default function DashboardPage() {
   }
 
   // Save changes to Zustand Store AND sync directly with Supabase Cloud
-  const handleSave = async (e) => {
-    if (e) e.preventDefault()
+  const handleSave = async (e, { isManual = false } = {}) => {
+    if (e && e.preventDefault) e.preventDefault()
     if (!profileData || !profileData.username) return
+
+    // Update snapshot ref immediately so debounced timer doesn't re-trigger
+    lastSavedSnapshotRef.current = JSON.stringify(profileData)
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
 
     setIsSaving(true)
     setIsDashboardSaving(true)
@@ -310,12 +319,14 @@ export default function DashboardPage() {
     } finally {
       setIsSaving(false)
       setIsDashboardSaving(false)
+      setHasUnsavedChanges(false)
     }
 
-    setSavedAlert(true)
-    setHasUnsavedChanges(false)
-    if (savedAlertTimerRef.current) clearTimeout(savedAlertTimerRef.current)
-    savedAlertTimerRef.current = setTimeout(() => setSavedAlert(false), 3500)
+    if (isManual) {
+      setSavedAlert(true)
+      if (savedAlertTimerRef.current) clearTimeout(savedAlertTimerRef.current)
+      savedAlertTimerRef.current = setTimeout(() => setSavedAlert(false), 3500)
+    }
   }
 
   // Ref to always access latest profileData and handleSave without recreating timers
@@ -324,24 +335,33 @@ export default function DashboardPage() {
     profileDataRef.current = profileData
   }, [profileData])
 
-  // ponytail: Auto-save debounced at 1.5s after user stops typing or changing state
-  const isInitialMount = useRef(true)
+  // ponytail: Auto-save debounced at 1.5s ONLY when actual user changes occur
   const autoSaveTimerRef = useRef(null)
 
   useEffect(() => {
-    // Skip auto-save on initial mount / hydration
-    if (isInitialMount.current) {
-      isInitialMount.current = false
+    if (!profileData || !profileData.username) return
+
+    const currentJson = JSON.stringify(profileData)
+
+    // If no snapshot exists yet, initialize it
+    if (!lastSavedSnapshotRef.current) {
+      lastSavedSnapshotRef.current = currentJson
       return
     }
 
-    if (!profileData || !profileData.username) return
+    // If data is identical to what's already saved, do nothing!
+    if (currentJson === lastSavedSnapshotRef.current) {
+      setHasUnsavedChanges(false)
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+      return
+    }
 
+    // Actual change made by user:
     setHasUnsavedChanges(true)
 
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
     autoSaveTimerRef.current = setTimeout(() => {
-      handleSave()
+      handleSave(null, { isManual: false })
     }, 1500)
 
     return () => {
@@ -353,19 +373,19 @@ export default function DashboardPage() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden' && useProfileStore.getState().hasUnsavedChanges) {
-        handleSave()
+        handleSave(null, { isManual: false })
       }
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [])
 
-  // Listen to Navbar Save Trigger
+  // Listen to Navbar Save Trigger (Manual Save)
   const lastSaveTriggerRef = useRef(dashboardSaveTrigger)
   useEffect(() => {
     if (dashboardSaveTrigger > 0 && dashboardSaveTrigger !== lastSaveTriggerRef.current) {
       lastSaveTriggerRef.current = dashboardSaveTrigger
-      handleSave()
+      handleSave(null, { isManual: true })
     }
   }, [dashboardSaveTrigger])
 
@@ -391,7 +411,9 @@ export default function DashboardPage() {
       resetToDefaults()
       const defaultProf = profiles['carlos_dev'] || Object.values(profiles)[0]
       setProfileData(getInitialProfileState(defaultProf))
+      lastSavedSnapshotRef.current = JSON.stringify(defaultProf)
       setSavedAlert(false)
+      setHasUnsavedChanges(false)
     }
   }
 
