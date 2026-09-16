@@ -2144,35 +2144,49 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* Metric 2: WhatsApp Clicks */}
-                  <div className="relative group p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-slate-300 transition-all">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-1">
-                        <span className="text-[11px] font-medium text-slate-500">Clics WhatsApp</span>
-                        <div className="relative group/tooltip inline-flex">
-                          <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-help transition-colors" />
-                          <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tooltip:block w-44 p-2 rounded-xl bg-slate-900 text-white text-[10px] leading-snug font-normal shadow-xl z-30 text-center">
-                            Personas interesadas que hicieron clic en tu botón de WhatsApp para contactarte.
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+                  {/* Metric 2: Dynamic Contact Clicks (WhatsApp, LinkedIn, Email, Teléfono) */}
+                  {(() => {
+                    const fbType = profileData.floatingButton?.type || 'whatsapp'
+                    const channelConfig = {
+                      whatsapp: { label: 'WhatsApp', icon: MessageCircle, color: 'text-emerald-600' },
+                      linkedin: { label: 'LinkedIn', icon: Linkedin, color: 'text-[#0A66C2]' },
+                      email: { label: 'Email', icon: Mail, color: 'text-indigo-600' },
+                      phone: { label: 'Teléfono', icon: Phone, color: 'text-slate-800' }
+                    }[fbType] || { label: 'Contacto', icon: MessageCircle, color: 'text-emerald-600' }
+
+                    const ChannelIcon = channelConfig.icon
+
+                    return (
+                      <div className="relative group p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-slate-300 transition-all">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-1">
+                            <span className="text-[11px] font-medium text-slate-500">Clics {channelConfig.label}</span>
+                            <div className="relative group/tooltip inline-flex">
+                              <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-help transition-colors" />
+                              <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tooltip:block w-44 p-2 rounded-xl bg-slate-900 text-white text-[10px] leading-snug font-normal shadow-xl z-30 text-center">
+                                Personas interesadas que hicieron clic en tu botón de {channelConfig.label} para contactarte.
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+                              </div>
+                            </div>
                           </div>
+                          <ChannelIcon className={`w-4 h-4 ${channelConfig.color}`} />
+                        </div>
+                        <div className="text-2xl font-black text-slate-900">
+                          {realContactClicks.toLocaleString('es-CL')}
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-semibold mt-1 flex items-center gap-1">
+                          {realContactClicks > 0 ? (
+                            <>
+                              <TrendingUp className="w-3 h-3 text-emerald-600" />
+                              <span className="text-emerald-600">Contacto directo</span>
+                            </>
+                          ) : (
+                            <span>Sin contactos aún</span>
+                          )}
                         </div>
                       </div>
-                      <MessageCircle className="w-4 h-4 text-emerald-600" />
-                    </div>
-                    <div className="text-2xl font-black text-slate-900">
-                      {realContactClicks.toLocaleString('es-CL')}
-                    </div>
-                    <div className="text-[10px] text-slate-500 font-semibold mt-1 flex items-center gap-1">
-                      {realContactClicks > 0 ? (
-                        <>
-                          <TrendingUp className="w-3 h-3 text-emerald-600" />
-                          <span className="text-emerald-600">Contacto directo</span>
-                        </>
-                      ) : (
-                        <span>Sin contactos aún</span>
-                      )}
-                    </div>
-                  </div>
+                    )
+                  })()}
 
                   {/* Metric 3: QR Scans */}
                   <div className="relative group p-4 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-slate-300 transition-all">
