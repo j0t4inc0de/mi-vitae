@@ -13,4 +13,5 @@ Disallow: /signin*
 Disallow: /api/
 
 # Sitemap location
+Sitemap: https://mivitae.wearesamod.com/sitemap.xml
 Sitemap: https://mi-vitae.wearesamod.com/sitemap.xml

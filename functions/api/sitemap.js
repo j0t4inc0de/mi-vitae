@@ -15,9 +15,15 @@ const DEMO_ARCHETYPES = [
 ]
 
 export async function onRequestGet(context) {
-  const { env } = context
+  const { request, env } = context
 
-  const appUrl = (env?.APP_URL || 'https://mi-vitae.wearesamod.com').replace(/\/$/, '')
+  let origin = ''
+  if (request?.url) {
+    try {
+      origin = new URL(request.url).origin
+    } catch (_) {}
+  }
+  const appUrl = (origin || env?.APP_URL || 'https://mivitae.wearesamod.com').replace(/\/$/, '')
   const supabaseUrl = env?.VITE_SUPABASE_URL || env?.SUPABASE_URL || 'https://ewptcglzykqvnvxxwwhm.supabase.co'
   const supabaseAnonKey = env?.VITE_SUPABASE_ANON_KEY || 'sb_publishable_umvJDktvEJKBaLpUlSJ7gA_Dr0Zcz54'
 
