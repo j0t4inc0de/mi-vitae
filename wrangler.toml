@@ -11,7 +11,7 @@ not_found_handling = "single-page-application"
 
 [vars]
 ENVIRONMENT = "production"
-APP_URL = "https://mivitae.wearesamod.com"
+APP_URL = "https://mi-vitae.wearesamod.com"
 SUPABASE_URL = "https://ewptcglzykqvnvxxwwhm.supabase.co"
 VITE_SUPABASE_URL = "https://ewptcglzykqvnvxxwwhm.supabase.co"
 FLOW_API_KEY = "314F877D-49EF-418B-AC38-547DEL59E485"

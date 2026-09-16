@@ -453,11 +453,11 @@ export async function saveProfileToSupabase(profile) {
       plan_expires_at: profile.planExpiresAt || profile.plan_expires_at || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       personal_info: personalInfoWithMeta,
       floating_button: profile.floatingButton || {},
-      experience: profile.experience || [],
-      education: profile.education || [],
-      projects: profile.projects || [],
-      skills: profile.skills || [],
-      languages: profile.languages || [],
+      experience: (profile.experience || []).filter((e) => e?.role?.trim() || e?.company?.trim()),
+      education: (profile.education || []).filter((edu) => edu?.degree?.trim() || edu?.institution?.trim()),
+      projects: (profile.projects || []).filter((p) => p?.title?.trim() || p?.description?.trim()),
+      skills: (profile.skills || []).filter((s) => s?.name?.trim()),
+      languages: (profile.languages || []).filter((l) => l?.name?.trim()),
       analytics: profile.analytics || { views: 0, contactClicks: 0, cvDownloads: 0 },
       updated_at: new Date().toISOString()
     }

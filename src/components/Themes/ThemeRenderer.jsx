@@ -14,8 +14,26 @@ const THEME_COMPONENTS = {
   executive: ExecutiveTheme,
 }
 
+// ponytail: Filter empty records so web portfolio never displays ghost/blank cards
+export const filterEmptyProfileItems = (profile = {}) => {
+  if (!profile) return profile
+  return {
+    ...profile,
+    projects: (profile.projects || []).filter((p) => p.title?.trim() || p.description?.trim()),
+    experience: (profile.experience || []).filter((e) => e.role?.trim() || e.company?.trim()),
+    education: (profile.education || []).filter((edu) => edu.degree?.trim() || edu.institution?.trim()),
+    skills: (profile.skills || []).filter((s) => s.name?.trim()),
+    languages: (profile.languages || []).filter((l) => l.name?.trim())
+  }
+}
+
 // ponytail: Sort experience and education chronologically (most recent first) across all themes
-const sortExperience = (list = []) => [...list].sort((a, b) => {
+const sortExperience = (list = []) => [...list].map((exp) => ({
+  ...exp,
+  ...(exp.achievements && {
+    achievements: exp.achievements.filter((a) => typeof a === 'string' ? a.trim() : Boolean(a))
+  })
+})).sort((a, b) => {
   if (a.current && !b.current) return -1
   if (!a.current && b.current) return 1
   return (b.startDate || '').localeCompare(a.startDate || '')
@@ -60,12 +78,15 @@ export default function ThemeRenderer({ profile, themeOverride, onRecordClick })
 
   const resolvedTheme = (themeOverride || profile.theme || 'minimalist').toLowerCase().trim()
   const SelectedTheme = THEME_COMPONENTS[resolvedTheme] || MinimalistTheme
+  const cleanProfile = filterEmptyProfileItems(profile)
   const normalizedProfile = {
-    ...profile,
-    ...(profile.personalInfo && { personalInfo: normalizePersonalInfo(profile.personalInfo) }),
-    ...(profile.projects && { projects: normalizeProjects(profile.projects) }),
-    ...(profile.experience && { experience: sortExperience(profile.experience) }),
-    ...(profile.education && { education: sortEducation(profile.education) })
+    ...cleanProfile,
+    ...(cleanProfile.personalInfo && { personalInfo: normalizePersonalInfo(cleanProfile.personalInfo) }),
+    projects: normalizeProjects(cleanProfile.projects),
+    experience: sortExperience(cleanProfile.experience),
+    education: sortEducation(cleanProfile.education),
+    skills: cleanProfile.skills,
+    languages: cleanProfile.languages
   }
 
   return (

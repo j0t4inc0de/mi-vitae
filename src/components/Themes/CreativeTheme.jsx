@@ -193,7 +193,7 @@ export default function CreativeTheme({ profile, onRecordClick }) {
                 </h2>
               </div>
               <span className="text-xs text-slate-400">
-                {projects.length} {projects.length === 1 ? 'caso' : 'casos'} destacados
+                {projects.length} {projects.length === 1 ? 'proyecto destacado' : 'proyectos destacados'}
               </span>
             </div>
 
@@ -245,7 +245,7 @@ export default function CreativeTheme({ profile, onRecordClick }) {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 text-pink-400 hover:text-pink-300 transition-colors"
                       >
-                        <span>Explorar Prototipo</span>
+                        <span>Ver proyecto</span>
                         <ArrowUpRight className="w-3.5 h-3.5" />
                       </a>
                     )}
@@ -438,7 +438,7 @@ export default function CreativeTheme({ profile, onRecordClick }) {
               Portafolio en Construcción
             </h2>
             <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto">
-              Este portafolio creativo aún no cuenta con módulos añadidos de proyectos o trayectoria. Complétalos desde el editor para visualizarlos aquí.
+              Este portafolio aún no cuenta con módulos añadidos de proyectos o trayectoria. Complétalos desde el editor para visualizarlos aquí.
             </p>
           </section>
         )}

@@ -133,7 +133,7 @@ export default function ExecutiveTheme({ profile, onRecordClick }) {
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => handleContactClick('linkedin')}
-                    title="LinkedIn Ejecutivo"
+                    title="LinkedIn"
                     className="p-2.5 rounded-xl bg-[#0B132B] border border-[#334155] text-white hover:border-[#3A86FF] hover:text-[#3A86FF] transition-all hover:scale-105"
                   >
                     <Linkedin className="w-4 h-4" />
@@ -181,14 +181,9 @@ export default function ExecutiveTheme({ profile, onRecordClick }) {
                   <div className="p-2 rounded-xl bg-[#0B132B] text-[#3A86FF] border border-[#334155]">
                     <Briefcase className="w-5 h-5" />
                   </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-white tracking-tight">
-                      Experiencia Laboral
-                    </h2>
-                    <p className="text-xs text-[#94A3B8]">
-                      Hitos ejecutivos, responsabilidades directivas y resultados cuantificables.
-                    </p>
-                  </div>
+                  <h2 className="text-xl font-bold text-white tracking-tight">
+                    Experiencia Laboral
+                  </h2>
                 </div>
 
                 <div className="space-y-8 relative before:absolute before:left-4 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#334155] pl-9">
@@ -216,7 +211,7 @@ export default function ExecutiveTheme({ profile, onRecordClick }) {
                       {item.achievements?.length > 0 && (
                         <div className="bg-[#0B132B]/80 rounded-2xl p-3.5 border border-[#334155]/60 space-y-2 mt-2">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-                            Logros Clave & Impacto de Negocio:
+                            Logros Destacados:
                           </span>
                           <ul className="space-y-1.5">
                             {item.achievements.map((ach, idx) => (
@@ -241,14 +236,9 @@ export default function ExecutiveTheme({ profile, onRecordClick }) {
                   <div className="p-2 rounded-xl bg-[#0B132B] text-[#3A86FF] border border-[#334155]">
                     <Target className="w-5 h-5" />
                   </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-white tracking-tight">
-                      Proyectos
-                    </h2>
-                    <p className="text-xs text-[#94A3B8]">
-                      Proyectos de transformación digital, M&A y escalado regional de operaciones.
-                    </p>
-                  </div>
+                  <h2 className="text-xl font-bold text-white tracking-tight">
+                    Proyectos
+                  </h2>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -296,7 +286,7 @@ export default function ExecutiveTheme({ profile, onRecordClick }) {
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1 text-xs font-bold text-[#3A86FF] hover:underline"
                             >
-                              <span>Ver Resumen Ejecutivo / Caso</span>
+                              <span>Ver proyecto</span>
                               <ExternalLink className="w-3 h-3" />
                             </a>
                           )}
@@ -402,10 +392,10 @@ export default function ExecutiveTheme({ profile, onRecordClick }) {
         {skills.length === 0 && projects.length === 0 && experience.length === 0 && education.length === 0 && (
           <section className="bg-[#1C2541]/80 backdrop-blur-xl border border-[#334155] rounded-3xl p-8 sm:p-12 text-center space-y-3 shadow-xl">
             <h2 className="text-lg sm:text-xl font-bold text-white">
-              Dossier en Construcción
+              Perfil en Construcción
             </h2>
             <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
-              Este perfil directivo aún no cuenta con experiencia profesional o credenciales cargadas. Complétalos desde el editor para visualizarlos aquí.
+              Este perfil aún no cuenta con módulos añadidos de experiencia o proyectos. Complétalos desde el editor para visualizarlos aquí.
             </p>
           </section>
         )}

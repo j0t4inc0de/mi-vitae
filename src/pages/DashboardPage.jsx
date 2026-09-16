@@ -4,7 +4,7 @@ import { useProfileStore } from '../stores/profileStore'
 import { saveProfileToSupabase, fetchProfileFromSupabase, getCurrentUser, getCurrentUserProfile } from '../lib/supabaseClient'
 import QrModal from '../components/Common/QrModal'
 import UserAvatar from '../components/Common/UserAvatar'
-import ThemeRenderer from '../components/Themes/ThemeRenderer'
+import ThemeRenderer, { filterEmptyProfileItems } from '../components/Themes/ThemeRenderer'
 import { compressImage, getApproximateDataUrlBytes, formatBytes } from '../utils/imageCompressor'
 import {
   LayoutDashboard,
@@ -302,12 +302,17 @@ export default function DashboardPage() {
 
     setIsSaving(true)
     setIsDashboardSaving(true)
+
+    // ponytail: Filter empty records before saving to store & Supabase so ghost items aren't persisted,
+    // without altering profileData in component state so the user's active typing is never interrupted
+    const sanitizedProfile = filterEmptyProfileItems(profileData)
+
     // 1. Guardar en store local para reactividad inmediata
-    updateProfile(profileData.username, profileData)
+    updateProfile(profileData.username, sanitizedProfile)
 
     // 2. Guardar en la base de datos Supabase para que esté visible en todo el mundo
     try {
-      const saved = await saveProfileToSupabase(profileData)
+      const saved = await saveProfileToSupabase(sanitizedProfile)
       if (!saved) {
         const user = await getCurrentUser()
         if (!user) {
