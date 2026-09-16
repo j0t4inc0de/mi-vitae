@@ -442,9 +442,9 @@ it('verifies production APP_URL consistency across worker, wrangler and config',
   const workerContent = fs.readFileSync(path.join(ROOT, 'worker.js'), 'utf-8');
   const configContent = fs.readFileSync(path.join(ROOT, 'functions', 'api', 'config.js'), 'utf-8');
 
-  assert.ok(wranglerContent.includes('https://mi-vitae.wearesamod.com'), 'wrangler.toml must use production URL with hyphen');
-  assert.ok(workerContent.includes('https://mi-vitae.wearesamod.com'), 'worker.js must use production URL with hyphen');
-  assert.ok(configContent.includes('https://mi-vitae.wearesamod.com'), 'config.js must use production URL with hyphen');
+  assert.ok(wranglerContent.includes('https://mivitae.wearesamod.com'), 'wrangler.toml must use production URL');
+  assert.ok(workerContent.includes('https://mivitae.wearesamod.com'), 'worker.js must use production URL');
+  assert.ok(configContent.includes('https://mivitae.wearesamod.com'), 'config.js must use production URL');
 });
 
 it('verifies GitHub Actions Supabase keep-alive cron workflow', () => {
@@ -467,7 +467,7 @@ it('verifies SEO infrastructure for Google Search Console (robots.txt, sitemap, 
   assert.ok(fs.existsSync(sitemapFnPath), 'functions/api/sitemap.js must exist');
 
   const robotsContent = fs.readFileSync(robotsPath, 'utf-8');
-  assert.ok(robotsContent.includes('Sitemap: https://mi-vitae.wearesamod.com/sitemap.xml'), 'robots.txt must declare sitemap URL');
+  assert.ok(robotsContent.includes('Sitemap: https://mivitae.wearesamod.com/sitemap.xml'), 'robots.txt must declare sitemap URL');
   assert.ok(robotsContent.includes('Disallow: /dashboard'), 'robots.txt must disallow private dashboard');
 
   const indexContent = fs.readFileSync(indexPath, 'utf-8');

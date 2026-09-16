@@ -64,7 +64,7 @@ export default {
         const clientEnv = {
           VITE_SUPABASE_URL: env.VITE_SUPABASE_URL || env.SUPABASE_URL || 'https://ewptcglzykqvnvxxwwhm.supabase.co',
           VITE_SUPABASE_ANON_KEY: env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_umvJDktvEJKBaLpUlSJ7gA_Dr0Zcz54',
-          APP_URL: env.APP_URL || 'https://mi-vitae.wearesamod.com'
+          APP_URL: env.APP_URL || 'https://mivitae.wearesamod.com'
         }
 
         return new HTMLRewriter()
