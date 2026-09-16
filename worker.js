@@ -38,16 +38,20 @@ export default {
       return handleSitemap({ request, env })
     }
 
-    // Google Search Console automatic HTML verification file handler
-    if (/^\/google[a-zA-Z0-9_-]+\.html$/.test(pathname)) {
-      const filename = pathname.slice(1)
-      return new Response(`google-site-verification: ${filename}`, {
+    // Google Search Console HTML verification: exact file matching & canary 404 protection
+    const validGoogleFile = env.GOOGLE_VERIFICATION_FILE || 'googlec13dd5b4db558c02.html'
+    if (pathname === `/${validGoogleFile}`) {
+      return new Response(`google-site-verification: ${validGoogleFile}\n`, {
         status: 200,
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
-          'Cache-Control': 'public, max-age=86400'
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
         }
       })
+    }
+    // Return strict 404 for any non-existent google*.html canary probe to satisfy Google's security check
+    if (/^\/google[a-zA-Z0-9_-]+\.html$/.test(pathname)) {
+      return new Response('Not Found', { status: 404 })
     }
 
     // Serve static assets with Single Page Application fallback (React SPA)
