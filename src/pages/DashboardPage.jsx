@@ -485,7 +485,10 @@ export default function DashboardPage() {
       id: newId,
       degree: '',
       institution: '',
-      year: new Date().toISOString().slice(0, 7),
+      startDate: '',
+      endDate: '',
+      current: false,
+      year: '',
       details: ''
     }
     setProfileData((prev) => ({
@@ -1447,32 +1450,64 @@ export default function DashboardPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                            Fecha / Periodo (Año y Mes)
+                            Fecha Inicio (YYYY-MM)
                           </label>
                           <input
                             type="text"
-                            value={edu.year || ''}
-                            onChange={(e) => handleUpdateEducation(edu.id, 'year', e.target.value)}
-                            placeholder="Ej. 2024-03 o 2020 - 2024"
+                            value={edu.startDate || ''}
+                            onChange={(e) => handleUpdateEducation(edu.id, 'startDate', e.target.value)}
+                            placeholder="2020-03"
                             className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary font-mono transition-colors"
                           />
                         </div>
 
-                        <div className="sm:col-span-2">
+                        <div>
                           <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                            Detalles / Honores Académicos
+                            Fecha Fin (o deja vacío si estás cursando)
                           </label>
                           <input
                             type="text"
-                            value={edu.details || ''}
-                            onChange={(e) => handleUpdateEducation(edu.id, 'details', e.target.value)}
-                            placeholder="Graduado con Distinción Máxima..."
-                            className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
+                            disabled={edu.current}
+                            value={edu.current ? 'Presente' : (edu.endDate || '')}
+                            onChange={(e) => handleUpdateEducation(edu.id, 'endDate', e.target.value)}
+                            placeholder="2024-12"
+                            className={`w-full px-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary font-mono transition-colors ${
+                              edu.current ? 'bg-slate-100 text-slate-500 opacity-60 cursor-not-allowed' : ''
+                            }`}
                           />
                         </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          id={`currentEdu-${edu.id}`}
+                          type="checkbox"
+                          checked={edu.current || false}
+                          onChange={(e) => {
+                            handleUpdateEducation(edu.id, 'current', e.target.checked)
+                            if (e.target.checked) handleUpdateEducation(edu.id, 'endDate', null)
+                          }}
+                          className="w-4 h-4 text-palette-primary rounded bg-white border-slate-300 focus:ring-palette-primary cursor-pointer accent-palette-primary"
+                        />
+                        <label htmlFor={`currentEdu-${edu.id}`} className="text-xs font-semibold text-slate-700 cursor-pointer select-none">
+                          Estudiando actualmente / En curso
+                        </label>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                          Detalles / Honores Académicos
+                        </label>
+                        <input
+                          type="text"
+                          value={edu.details || ''}
+                          onChange={(e) => handleUpdateEducation(edu.id, 'details', e.target.value)}
+                          placeholder="Graduado con Distinción Máxima..."
+                          className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
+                        />
                       </div>
 
                     </div>

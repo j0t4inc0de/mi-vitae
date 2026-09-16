@@ -21,10 +21,13 @@ const sortExperience = (list = []) => [...list].sort((a, b) => {
   return (b.startDate || '').localeCompare(a.startDate || '')
 })
 
-const sortEducation = (list = []) => [...list].sort((a, b) => {
-  const dateA = a.year || a.endDate || a.startDate || ''
-  const dateB = b.year || b.endDate || b.startDate || ''
-  return dateB.localeCompare(dateA)
+const sortEducation = (list = []) => [...list].map((edu) => ({
+  ...edu,
+  year: edu.current ? `${edu.startDate || ''} — Presente` : (edu.startDate && edu.endDate ? `${edu.startDate} — ${edu.endDate}` : edu.year || edu.endDate || edu.startDate || '')
+})).sort((a, b) => {
+  if (a.current && !b.current) return -1
+  if (!a.current && b.current) return 1
+  return (b.startDate || b.endDate || b.year || '').localeCompare(a.startDate || a.endDate || a.year || '')
 })
 
 /**
