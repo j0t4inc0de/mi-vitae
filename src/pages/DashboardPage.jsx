@@ -930,20 +930,21 @@ export default function DashboardPage() {
                 <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                   <span>Editor de Contenido</span>
                 </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
+                {/* ponytail: Hidden on mobile to free up space for prominent CV import action */}
+                <p className="hidden sm:block text-xs text-slate-500 mt-0.5">
                   Edita cada sección modularmente con actualización inmediata.
                 </p>
               </div>
 
               <div className="flex items-center gap-2">
-                {/* ponytail: Removed QR button and theme badge to reduce header clutter */}
                 <button
                   type="button"
                   onClick={() => setIsCvModalOpen(true)}
-                  className="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-50 to-violet-50 hover:from-indigo-100 hover:to-violet-100 text-indigo-700 border border-indigo-200/80 text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
+                  className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-indigo-500/20 transition-all active:scale-95 cursor-pointer"
                   title="Autocompletar portafolio importando un archivo CV en PDF con IA"
                 >
-                  <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                  <span className="inline sm:hidden">Importar CV</span>
                   <span className="hidden sm:inline">Autocompletar con CV</span>
                 </button>
               </div>
