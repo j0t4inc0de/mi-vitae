@@ -226,7 +226,7 @@ export async function onRequestPost(context) {
 
     if (!rawJsonResponse) {
       return new Response(JSON.stringify({
-        error: 'No se pudo procesar el PDF con Google Gemini.',
+        error: 'No se pudo procesar el PDF, intenta de nuevo.',
         details: lastError
       }), {
         status: 502,
