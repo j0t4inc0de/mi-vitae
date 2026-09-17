@@ -894,6 +894,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="flex items-center gap-2">
+                {/* ponytail: Removed QR button and theme badge to reduce header clutter */}
                 <button
                   type="button"
                   onClick={() => setIsCvModalOpen(true)}
@@ -904,18 +905,6 @@ export default function DashboardPage() {
                   <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                   <span className="hidden sm:inline">Autocompletar con CV</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setIsQrOpen(true)}
-                  className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                  title="Código QR del Portafolio"
-                >
-                  <QrCode className="w-3.5 h-3.5 text-palette-primary" />
-                  <span className="hidden sm:inline">Código QR</span>
-                </button>
-                <span className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-palette-primary/10 border border-palette-primary/20 text-palette-primary capitalize">
-                  {profileData.theme}
-                </span>
               </div>
             </div>
 
