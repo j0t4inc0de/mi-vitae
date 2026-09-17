@@ -471,6 +471,8 @@ export default function DashboardPage() {
     setProfileData((prev) => {
       const merged = {
         ...prev,
+        username: prev.username, // ponytail: Guarantee username is never overwritten
+        theme: prev.theme,       // ponytail: Guarantee user's chosen theme is preserved
         personalInfo: {
           ...prev.personalInfo,
           ...(extractedData.personalInfo || {}),
@@ -483,6 +485,10 @@ export default function DashboardPage() {
         projects: extractedData.projects || [],
         languages: extractedData.languages || []
       }
+
+      // ponytail: Update saved snapshot ref and clear dirty state to prevent duplicate auto-save calls
+      lastSavedSnapshotRef.current = JSON.stringify(merged)
+      setHasUnsavedChanges(false)
 
       // Sync with local store immediately
       updateProfile(merged.username, merged)

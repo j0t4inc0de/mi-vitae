@@ -8,8 +8,9 @@
 const CANDIDATE_MODELS = [
   'gemini-3.6-flash',
   'gemini-3.5-flash',
+  'gemini-2.5-flash',
   'gemini-flash-latest',
-  'gemini-2.5-flash'
+  'gemini-1.5-flash'
 ]
 
 const CV_EXTRACTION_PROMPT = `
@@ -117,6 +118,13 @@ Estructura JSON requerida:
 export async function onRequestPost(context) {
   const { request, env } = context
 
+  if (request.method && request.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
+      status: 405,
+      headers: { 'Content-Type': 'application/json', 'Allow': 'POST' }
+    })
+  }
+
   try {
     const contentType = request.headers.get('content-type') || ''
     let base64Pdf = null
@@ -127,15 +135,24 @@ export async function onRequestPost(context) {
     } else if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData()
       const file = formData.get('file') || formData.get('cv') || formData.get('pdf')
-      if (file && typeof file.arrayBuffer === 'function') {
-        const buffer = await file.arrayBuffer()
-        const uint8 = new Uint8Array(buffer)
-        let binary = ''
-        const chunkSize = 8192
-        for (let i = 0; i < uint8.length; i += chunkSize) {
-          binary += String.fromCharCode.apply(null, uint8.subarray(i, i + chunkSize))
+      // ponytail: Guard against oversized files before buffering into Edge memory
+      if (file) {
+        if (file.size && file.size > 10 * 1024 * 1024) {
+          return new Response(JSON.stringify({ error: 'El archivo PDF excede el límite máximo de 10MB.' }), {
+            status: 413,
+            headers: { 'Content-Type': 'application/json' }
+          })
         }
-        base64Pdf = btoa(binary)
+        if (typeof file.arrayBuffer === 'function') {
+          const buffer = await file.arrayBuffer()
+          const uint8 = new Uint8Array(buffer)
+          let binary = ''
+          const chunkSize = 8192
+          for (let i = 0; i < uint8.length; i += chunkSize) {
+            binary += String.fromCharCode.apply(null, uint8.subarray(i, i + chunkSize))
+          }
+          base64Pdf = btoa(binary)
+        }
       }
     }
 
@@ -152,8 +169,8 @@ export async function onRequestPost(context) {
     }
     base64Pdf = base64Pdf.trim()
 
-    // Validate size (< 10MB approx 14M base64 chars)
-    if (base64Pdf.length > 14 * 1024 * 1024) {
+    // Validate size (strict 10MB limit: 10 * 1024 * 1024 bytes = 13,981,016 base64 chars)
+    if (base64Pdf.length > 13981016) {
       return new Response(JSON.stringify({ error: 'El archivo PDF excede el límite máximo de 10MB.' }), {
         status: 413,
         headers: { 'Content-Type': 'application/json' }
@@ -225,8 +242,13 @@ export async function onRequestPost(context) {
     }
 
     if (!rawJsonResponse) {
+      const isQuotaOrRateLimit = lastError && (lastError.includes('429') || lastError.includes('RESOURCE_EXHAUSTED'))
+      const friendlyError = isQuotaOrRateLimit
+        ? 'No se pudo procesar el PDF: límite de cuota de IA alcanzado temporalmente. Por favor espera 30-60 segundos e intenta nuevamente.'
+        : 'No se pudo procesar el PDF, intenta de nuevo.'
+
       return new Response(JSON.stringify({
-        error: 'No se pudo procesar el PDF, intenta de nuevo.',
+        error: friendlyError,
         details: lastError
       }), {
         status: 502,
@@ -234,12 +256,17 @@ export async function onRequestPost(context) {
       })
     }
 
-    // Clean markdown code fence if present
+    // ponytail: Robust markdown code fence extraction and JSON boundary locator
     let cleaned = rawJsonResponse.trim()
-    if (cleaned.startsWith('```json')) {
-      cleaned = cleaned.replace(/^```json\s*/, '').replace(/```$/, '').trim()
-    } else if (cleaned.startsWith('```')) {
-      cleaned = cleaned.replace(/^```\s*/, '').replace(/```$/, '').trim()
+    const jsonMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
+    if (jsonMatch) {
+      cleaned = jsonMatch[1].trim()
+    } else {
+      const firstBrace = cleaned.indexOf('{')
+      const lastBrace = cleaned.lastIndexOf('}')
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        cleaned = cleaned.slice(firstBrace, lastBrace + 1)
+      }
     }
 
     let parsed = {}
@@ -259,52 +286,52 @@ export async function onRequestPost(context) {
     const now = Date.now()
     const sanitizedProfile = {
       personalInfo: {
-        name: parsed.personalInfo?.name || '',
-        title: parsed.personalInfo?.title || '',
-        bio: parsed.personalInfo?.bio || '',
-        email: parsed.personalInfo?.email || '',
-        phone: parsed.personalInfo?.phone || '',
-        location: parsed.personalInfo?.location || '',
-        website: parsed.personalInfo?.website || '',
-        linkedin: parsed.personalInfo?.linkedin || '',
-        github: parsed.personalInfo?.github || '',
+        name: typeof parsed.personalInfo?.name === 'string' ? parsed.personalInfo.name : '',
+        title: typeof parsed.personalInfo?.title === 'string' ? parsed.personalInfo.title : '',
+        bio: typeof parsed.personalInfo?.bio === 'string' ? parsed.personalInfo.bio : '',
+        email: typeof parsed.personalInfo?.email === 'string' ? parsed.personalInfo.email : '',
+        phone: typeof parsed.personalInfo?.phone === 'string' ? parsed.personalInfo.phone : '',
+        location: typeof parsed.personalInfo?.location === 'string' ? parsed.personalInfo.location : '',
+        website: typeof parsed.personalInfo?.website === 'string' ? parsed.personalInfo.website : '',
+        linkedin: typeof parsed.personalInfo?.linkedin === 'string' ? parsed.personalInfo.linkedin : '',
+        github: typeof parsed.personalInfo?.github === 'string' ? parsed.personalInfo.github : '',
         availableForWork: true
       },
       experience: Array.isArray(parsed.experience) ? parsed.experience.map((e, idx) => ({
-        id: e.id || `exp-${now}-${idx}`,
-        company: e.company || '',
-        role: e.role || '',
-        startDate: e.startDate || '',
+        id: (typeof e.id === 'string' && e.id.startsWith('exp-')) ? e.id : `exp-${now}-${idx}`,
+        company: typeof e.company === 'string' ? e.company : '',
+        role: typeof e.role === 'string' ? e.role : '',
+        startDate: typeof e.startDate === 'string' ? e.startDate : '',
         endDate: e.endDate || null,
         current: Boolean(e.current),
-        description: e.description || '',
-        achievements: Array.isArray(e.achievements) ? e.achievements : []
+        description: typeof e.description === 'string' ? e.description : '',
+        achievements: Array.isArray(e.achievements) ? e.achievements.map(a => typeof a === 'string' ? a : String(a || '')).filter(Boolean) : []
       })) : [],
       education: Array.isArray(parsed.education) ? parsed.education.map((e, idx) => ({
-        id: e.id || `edu-${now}-${idx}`,
-        institution: e.institution || '',
-        degree: e.degree || '',
-        startDate: e.startDate || '',
+        id: (typeof e.id === 'string' && e.id.startsWith('edu-')) ? e.id : `edu-${now}-${idx}`,
+        institution: typeof e.institution === 'string' ? e.institution : '',
+        degree: typeof e.degree === 'string' ? e.degree : '',
+        startDate: typeof e.startDate === 'string' ? e.startDate : '',
         endDate: e.endDate || null,
         current: Boolean(e.current),
-        description: e.description || ''
+        description: typeof e.description === 'string' ? e.description : ''
       })) : [],
       skills: Array.isArray(parsed.skills) ? parsed.skills.map((s) => ({
-        name: s.name || '',
+        name: typeof s.name === 'string' ? s.name : '',
         category: s.category === 'soft' ? 'soft' : 'technical',
-        level: typeof s.level === 'number' ? Math.min(100, Math.max(10, s.level)) : 85
+        level: typeof s.level === 'number' && !Number.isNaN(s.level) ? Math.min(100, Math.max(10, Math.round(s.level))) : 85
       })) : [],
       projects: Array.isArray(parsed.projects) ? parsed.projects.map((p, idx) => ({
-        id: p.id || `proj-${now}-${idx}`,
-        title: p.title || '',
-        description: p.description || '',
-        tags: Array.isArray(p.tags) ? p.tags : [],
-        liveUrl: p.liveUrl || '',
-        repoUrl: p.repoUrl || ''
+        id: (typeof p.id === 'string' && p.id.startsWith('proj-')) ? p.id : `proj-${now}-${idx}`,
+        title: typeof p.title === 'string' ? p.title : '',
+        description: typeof p.description === 'string' ? p.description : '',
+        tags: Array.isArray(p.tags) ? p.tags.map(t => typeof t === 'string' ? t : String(t || '')).filter(Boolean) : [],
+        liveUrl: typeof p.liveUrl === 'string' ? p.liveUrl : '',
+        repoUrl: typeof p.repoUrl === 'string' ? p.repoUrl : ''
       })) : [],
       languages: Array.isArray(parsed.languages) ? parsed.languages.map((l) => ({
-        language: l.language || '',
-        level: l.level || 'Intermedio'
+        language: typeof l.language === 'string' ? l.language : (typeof l.name === 'string' ? l.name : ''),
+        level: typeof l.level === 'string' ? l.level : 'Intermedio'
       })) : []
     }
 

@@ -18,8 +18,10 @@ export default function CvImportModal({ isOpen, onClose, onSuccess }) {
   const [progressStep, setProgressStep] = useState(1) // 1: reading, 2: analyzing, 3: structuring
   const [errorMessage, setErrorMessage] = useState('')
   const fileInputRef = useRef(null)
+  const abortControllerRef = useRef(null)
+  const successTimerRef = useRef(null)
 
-  // Reset state when modal opens/closes
+  // Reset state when modal opens/closes & clean up timers and abort inflight requests
   useEffect(() => {
     if (!isOpen) {
       setSelectedFile(null)
@@ -27,6 +29,18 @@ export default function CvImportModal({ isOpen, onClose, onSuccess }) {
       setProgressStep(1)
       setErrorMessage('')
       setDragActive(false)
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+        abortControllerRef.current = null
+      }
+      if (successTimerRef.current) {
+        clearTimeout(successTimerRef.current)
+        successTimerRef.current = null
+      }
+    }
+    return () => {
+      if (abortControllerRef.current) abortControllerRef.current.abort()
+      if (successTimerRef.current) clearTimeout(successTimerRef.current)
     }
   }, [isOpen])
 
@@ -104,9 +118,12 @@ export default function CvImportModal({ isOpen, onClose, onSuccess }) {
       // Step 2: Send to serverless Cloudflare Pages Edge Function
       setProgressStep(2)
 
+      abortControllerRef.current = new AbortController()
+
       const response = await fetch('/api/parse-cv', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: abortControllerRef.current.signal,
         body: JSON.stringify({
           fileBase64: base64,
           fileName: file.name
@@ -122,12 +139,14 @@ export default function CvImportModal({ isOpen, onClose, onSuccess }) {
       // Step 3: Successfully structured
       setProgressStep(3)
 
-      setTimeout(() => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current)
+      successTimerRef.current = setTimeout(() => {
         onSuccess(result.data)
         onClose()
       }, 700)
 
     } catch (err) {
+      if (err.name === 'AbortError') return
       console.error('[CvImportModal] Error processing PDF:', err)
       setErrorMessage(err.message || 'Ocurrió un error inesperado al procesar el archivo.')
       setIsLoading(false)
@@ -139,6 +158,7 @@ export default function CvImportModal({ isOpen, onClose, onSuccess }) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="cv-modal-title"
+      onClick={!isLoading ? onClose : undefined}
       className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 sm:p-6 bg-slate-900/70 backdrop-blur-md animate-fade-in"
     >
       <div 
@@ -214,7 +234,11 @@ export default function CvImportModal({ isOpen, onClose, onSuccess }) {
 
             {/* Error Message Display */}
             {errorMessage && (
-              <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 text-xs flex items-start gap-2.5 animate-shake">
+              <div
+                role="alert"
+                aria-live="assertive"
+                className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 text-xs flex items-start gap-2.5 animate-shake"
+              >
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p className="font-semibold">{errorMessage}</p>
@@ -229,7 +253,11 @@ export default function CvImportModal({ isOpen, onClose, onSuccess }) {
           </div>
         ) : (
           /* Processing / Loading Steps State */
-          <div className="mt-8 mb-4 space-y-6 text-center">
+          <div
+            role="status"
+            aria-live="polite"
+            className="mt-8 mb-4 space-y-6 text-center"
+          >
             <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
               <div className="absolute inset-0 rounded-full border-4 border-indigo-100 dark:border-indigo-950 animate-pulse" />
               <div className="w-16 h-16 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
