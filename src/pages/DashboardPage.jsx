@@ -902,7 +902,6 @@ export default function DashboardPage() {
                   title="Autocompletar portafolio importando un archivo CV en PDF con IA"
                 >
                   <FileText className="w-3.5 h-3.5 text-indigo-600" />
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                   <span className="hidden sm:inline">Autocompletar con CV</span>
                 </button>
               </div>

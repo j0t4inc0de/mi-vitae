@@ -164,7 +164,7 @@ export default function CvImportModal({ isOpen, onClose, onSuccess }) {
           </div>
           <div>
             <h2 id="cv-modal-title" className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
-              Autocompletar Portafolio con CV
+              Autocompletar con CV
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Sube tu currículum en PDF y la IA rellenará tu Studio en segundos.
@@ -202,16 +202,13 @@ export default function CvImportModal({ isOpen, onClose, onSuccess }) {
 
               <div className="space-y-1">
                 <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                  Arrastra tu archivo PDF aquí o <span className="text-indigo-600 dark:text-indigo-400 underline">explora</span>
-                </p>
-                <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                  Formatos compatibles: PDF (hasta 10 MB)
+                  Sube tu CV en PDF aquí
                 </p>
               </div>
 
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold mt-1">
                 <Zap className="w-3 h-3" />
-                <span>Extracción multimodal con Gemini Flash</span>
+                <span>Extracción multimodal con IA</span>
               </div>
             </div>
 
@@ -227,7 +224,7 @@ export default function CvImportModal({ isOpen, onClose, onSuccess }) {
 
             {/* Privacy Note */}
             <p className="text-[11px] text-slate-400 dark:text-slate-500 text-center leading-relaxed">
-              🔒 <strong>100% Privado y Efímero:</strong> Tu documento se procesa en memoria únicamente para extraer los datos y no queda almacenado en ningún servidor.
+              Tu documento se procesa en memoria únicamente para extraer los datos y no queda almacenado en ningún servidor.
             </p>
           </div>
         ) : (
