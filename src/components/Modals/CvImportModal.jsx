@@ -240,7 +240,7 @@ export default function CvImportModal({ isOpen, onClose, onSuccess }) {
             <div className="space-y-2">
               <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
                 {progressStep === 1 && '1/3 Leyendo documento PDF...'}
-                {progressStep === 2 && '2/3 Analizando trayectoria con IA (Gemini)...'}
+                {progressStep === 2 && '2/3 Analizando trayectoria con IA...'}
                 {progressStep === 3 && '3/3 ¡Poblando tu portafolio STUDIO!'}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
