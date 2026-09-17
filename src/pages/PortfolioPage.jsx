@@ -6,7 +6,7 @@ import ThemeRenderer from '../components/Themes/ThemeRenderer'
 import { Sparkles, Clock, ShieldAlert } from 'lucide-react'
 
 // System archetypes that can display demo templates if not customized in cloud
-const DEMO_ARCHETYPES = ['carlos_dev', 'antonia_ux', 'matias_dev', 'valeria_psico', 'rodrigo_exec']
+const DEMO_ARCHETYPES = ['carlos_dev', 'antonia_ux', 'valeria_psico', 'rodrigo_ops', 'abogado_consultor']
 
 export default function PortfolioPage() {
   const { username } = useParams()

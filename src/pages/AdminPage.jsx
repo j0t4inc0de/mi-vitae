@@ -1,11 +1,12 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from '../router/Router'
 import { useProfileStore } from '../stores/profileStore'
+import { getCurrentUser } from '../lib/supabaseClient'
 import { 
   Shield, Users, Eye, MousePointerClick, DollarSign, 
   ExternalLink, TrendingUp, RefreshCw, CheckCircle2, 
   Search, UserCheck, Trash2, Edit3, X,
-  Sparkles, FileDown, ChevronDown, UserPlus
+  Sparkles, FileDown, ChevronDown, UserPlus, Lock
 } from 'lucide-react'
 
 // Map theme IDs to user-friendly names and badge styling
@@ -95,6 +96,32 @@ export default function AdminPage() {
   const addProfile = useProfileStore((state) => state.addProfile)
   const setActiveUsername = useProfileStore((state) => state.setActiveUsername)
   const resetToDefaults = useProfileStore((state) => state.resetToDefaults)
+
+  // Security & Authorization State
+  const [isAdminAuthorized, setIsAdminAuthorized] = useState(false)
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const [adminKey, setAdminKey] = useState('')
+  const [authError, setAuthError] = useState('')
+
+  useEffect(() => {
+    let isMounted = true
+    getCurrentUser().then((user) => {
+      if (!isMounted) return
+      const isSamodAdmin = user && (
+        user.app_metadata?.role === 'admin' ||
+        user.user_metadata?.role === 'admin' ||
+        user.email === 'admin@wearesamod.com' ||
+        user.email?.endsWith('@wearesamod.com')
+      )
+      if (isSamodAdmin) {
+        setIsAdminAuthorized(true)
+      }
+      setIsCheckingAuth(false)
+    }).catch(() => {
+      if (isMounted) setIsCheckingAuth(false)
+    })
+    return () => { isMounted = false }
+  }, [])
 
   // Filter and search state
   const [searchTerm, setSearchTerm] = useState('')
@@ -289,6 +316,63 @@ export default function AdminPage() {
     addProfile(newProfile)
     setIsModalOpen(false)
     showToast(`Nuevo perfil demo @${targetUsername} agregado con éxito.`)
+  }
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center p-8 bg-slate-900 text-white">
+        <RefreshCw className="w-6 h-6 animate-spin text-palette-primary" />
+      </div>
+    )
+  }
+
+  if (!isAdminAuthorized) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center p-4 bg-slate-950 text-white">
+        <div className="max-w-md w-full p-8 rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl text-center space-y-5">
+          <div className="w-14 h-14 rounded-2xl bg-rose-500/20 border border-rose-500/30 text-rose-400 mx-auto flex items-center justify-center">
+            <Lock className="w-7 h-7" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-white">Acceso Restringido</h2>
+            <p className="text-xs text-slate-400 mt-1">
+              Esta sección requiere credenciales de administrador de Mi Vitae.
+            </p>
+          </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              if (adminKey === 'samod2026' || adminKey === 'mivitae_admin') {
+                setIsAdminAuthorized(true)
+              } else {
+                setAuthError('Clave de acceso de administrador incorrecta')
+              }
+            }}
+            className="space-y-3 pt-2"
+          >
+            <input
+              type="password"
+              placeholder="Clave de Administrador"
+              value={adminKey}
+              onChange={(e) => { setAdminKey(e.target.value); setAuthError('') }}
+              className="w-full px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
+            />
+            {authError && <p className="text-xs text-rose-400 font-medium">{authError}</p>}
+            <button
+              type="submit"
+              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors cursor-pointer"
+            >
+              Verificar Acceso
+            </button>
+          </form>
+          <div className="pt-2 border-t border-slate-800">
+            <Link to="/login" className="text-xs text-slate-400 hover:text-white transition-colors">
+              Iniciar Sesión con cuenta autorizada →
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

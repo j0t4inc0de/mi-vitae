@@ -100,8 +100,8 @@ export async function onRequestPost(context) {
       }
     }
 
-    // 3. Status 2 = Payment Approved / Pagada
-    const isApproved = paymentData.status === 2
+    // 3. Status 2 = Payment Approved / Pagada (Ponytail: strictly verify amount is $3.490 CLP to prevent price tampering)
+    const isApproved = paymentData.status === 2 && Number(paymentData.amount) === 3490
     const statusText = isApproved ? 'APROBADO' : 'RECHAZADO'
     const payerEmail = paymentData.payer || paymentData.optional?.email || ''
     const commerceOrder = String(paymentData.commerceOrder || `ORD-${paymentData.flowOrder || Date.now()}`)

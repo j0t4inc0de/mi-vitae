@@ -539,6 +539,28 @@ export const useProfileStore = create(
         return { success: true, username: cleanNew }
       },
 
+      // Admin actions: update plan or delete profile
+      setProfilePlan: (username, plan) => set((state) => {
+        const current = state.profiles[username]
+        if (!current) return state
+        return {
+          profiles: {
+            ...state.profiles,
+            [username]: {
+              ...current,
+              plan,
+              planStatus: plan === 'inactive' ? 'expired' : 'active'
+            }
+          }
+        }
+      }),
+
+      deleteProfile: (username) => set((state) => {
+        const next = { ...state.profiles }
+        delete next[username]
+        return { profiles: next }
+      }),
+
       // Reset mock profiles to defaults while preserving real custom user profiles
       resetToDefaults: () => {
         const currentProfiles = get().profiles

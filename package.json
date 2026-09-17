@@ -12,8 +12,6 @@
   "dependencies": {
     "@blobatar/react": "^2.7.0",
     "@supabase/supabase-js": "^2.116.0",
-    "blobatar": "^2.7.0",
-    "clsx": "^2.1.1",
     "lucide-react": "^0.475.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

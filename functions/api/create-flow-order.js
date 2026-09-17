@@ -32,11 +32,13 @@ export async function onRequestPost(context) {
   try {
     const body = await request.json()
     const {
-      amount = 3490,
       email = 'usuario@ejemplo.com',
       username = 'usuario',
       subject = 'Suscripción Mi Vitae Pro ($3.490 CLP/mes)'
     } = body
+
+    // ponytail: Security - enforce canonical subscription price server-side, ignoring client tampering
+    const amount = 3490
 
     const flowApiKey = env.FLOW_API_KEY
     const flowSecretKey = env.FLOW_SECRET_KEY

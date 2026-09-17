@@ -236,11 +236,26 @@ export default function DashboardPage() {
         setProfileData(getInitialProfileState(realProf))
         lastSavedSnapshotRef.current = JSON.stringify(realProf)
         setHasUnsavedChanges(false)
+      } else if (isMounted && !storeProfile && !profileData) {
+        // ponytail: Fallback to default demo archetype if no user session or store profile exists
+        const fallback = profiles['carlos_dev'] || Object.values(profiles)[0]
+        if (fallback) {
+          setActiveUsername(fallback.username)
+          setProfileData(getInitialProfileState(fallback))
+        }
       }
-    }).catch(() => {})
+    }).catch(() => {
+      if (isMounted && !storeProfile && !profileData) {
+        const fallback = profiles['carlos_dev'] || Object.values(profiles)[0]
+        if (fallback) {
+          setActiveUsername(fallback.username)
+          setProfileData(getInitialProfileState(fallback))
+        }
+      }
+    })
 
     return () => { isMounted = false }
-  }, [])
+  }, [profiles, storeProfile, setActiveUsername])
 
   // Sync local state ONLY when switching active username/profile in store
   useEffect(() => {

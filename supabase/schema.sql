@@ -243,13 +243,8 @@ CREATE POLICY "Users can create their own profile"
 -- 3) Authenticated users can update their own profile
 CREATE POLICY "Users can update their own profile" 
   ON public.profiles FOR UPDATE 
-  USING (auth.uid() = id);
-
--- 4) Public can increment views/analytics via stored procedure or open update for analytics
-CREATE POLICY "Allow analytics updates on profile"
-  ON public.profiles FOR UPDATE
-  USING (true)
-  WITH CHECK (true);
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
 
 -- FEEDBACKS POLICIES:
 -- Anyone (signed in or anonymous during onboarding) can submit feedback
@@ -263,10 +258,12 @@ CREATE POLICY "Users can view own feedback or service role"
   USING (auth.uid() = user_id OR auth.jwt() ->> 'role' = 'service_role');
 
 -- SUBSCRIPTIONS POLICIES:
+-- Users can view their own subscriptions
 CREATE POLICY "Users can view own subscriptions" 
   ON public.subscriptions FOR SELECT 
   USING (auth.uid() = user_id OR auth.jwt() ->> 'role' = 'service_role');
 
+-- Only service role (backend webhook) can insert/update subscriptions
 CREATE POLICY "Service role can manage subscriptions" 
   ON public.subscriptions FOR ALL 
   USING (auth.jwt() ->> 'role' = 'service_role');
@@ -276,9 +273,9 @@ CREATE POLICY "Users can view own transactions"
   ON public.transactions FOR SELECT 
   USING (auth.uid() = user_id OR auth.jwt() ->> 'role' = 'service_role');
 
-CREATE POLICY "Anyone or service role can insert transactions" 
+CREATE POLICY "Authenticated users or service role can insert transactions" 
   ON public.transactions FOR INSERT 
-  WITH CHECK (true);
+  WITH CHECK (auth.uid() IS NOT NULL OR auth.jwt() ->> 'role' = 'service_role');
 
 CREATE POLICY "Service role can update transactions" 
   ON public.transactions FOR UPDATE 
