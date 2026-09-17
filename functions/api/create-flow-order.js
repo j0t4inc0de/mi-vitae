@@ -43,7 +43,7 @@ export async function onRequestPost(context) {
     const flowApiKey = env.FLOW_API_KEY
     const flowSecretKey = env.FLOW_SECRET_KEY
     const isSandbox = env.FLOW_SANDBOX === 'true'
-    const appUrl = env.APP_URL || 'https://mi-vitae.wearesamod.com'
+    const appUrl = env.APP_URL || 'https://mivitae.wearesamod.com'
     const commerceOrder = `MV-${Date.now()}-${Math.floor(Math.random() * 1000)}`
 
     // If no keys configured, return simulation response
