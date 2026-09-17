@@ -940,10 +940,10 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => setIsCvModalOpen(true)}
-                  className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-indigo-500/20 transition-all active:scale-95 cursor-pointer"
+                  className="px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs font-bold flex items-center gap-1.5 sm:gap-2 shadow-sm shadow-indigo-500/25 transition-all active:scale-95 cursor-pointer"
                   title="Autocompletar portafolio importando un archivo CV en PDF con IA"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                  <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300 shrink-0" />
                   <span className="inline sm:hidden">Importar CV</span>
                   <span className="hidden sm:inline">Autocompletar con CV</span>
                 </button>
