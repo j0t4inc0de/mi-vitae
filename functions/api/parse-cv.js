@@ -13,50 +13,54 @@ const CANDIDATE_MODELS = [
 ]
 
 const CV_EXTRACTION_PROMPT = `
-Eres un reclutador experto y analizador de currículums de clase mundial.
+Eres un reclutador experto y redactor de portafolios web profesionales de clase mundial.
 Analiza minuciosamente el archivo de Currículum Vitae (PDF) adjunto y extrae TODO el contenido relevante para estructurarlo en un portafolio web profesional.
 
-Reglas estrictas de extracción:
+Reglas estrictas de extracción y síntesis web:
 1. Devuelve ÚNICAMENTE un objeto JSON válido, sin bloques de código markdown (\`\`\`json), sin prefacios y sin comentarios adicionales.
 2. Si un campo no está presente en el currículum, usa un string vacío "" para texto o array vacío [] para listas.
-3. Para experiencias laborales:
-   - role: Cargo o posición desempeñada
-   - company: Nombre de la empresa o institución
-   - startDate: Fecha de inicio en formato YYYY-MM o YYYY
-   - endDate: Fecha de fin en formato YYYY-MM o null si es el trabajo actual
-   - current: true si actualmente trabaja allí o dice "Presente" / "Actualidad", false si ya finalizó
-   - description: Resumen de responsabilidades del rol
-   - achievements: Lista de logros o responsabilidades destacadas
-4. Para educación:
-   - institution: Nombre de la universidad, colegio o instituto
-   - degree: Título, carrera, grado o certificación obtenida
-   - startDate: Fecha de inicio en formato YYYY-MM o YYYY
-   - endDate: Fecha de fin o estimada
-   - current: true si está cursando actualmente
-   - description: Menciones de honor, especialidad o descripción breve
-5. Para habilidades (skills):
-   - name: Nombre de la habilidad (ej: React, Python, Gestión de Proyectos, Negociación)
-   - category: "technical" para habilidades duras/técnicas o "soft" para blandas/interpersonales
-   - level: Número entero entre 60 y 100 estimando el nivel de dominio
-6. Para proyectos:
-   - title: Nombre del proyecto o iniciativa relevante
-   - description: Breve descripción de qué resuelve o qué se construyó
-   - tags: Array de strings con tecnologías o metodologías usadas
-   - liveUrl: Enlace al proyecto en vivo si se menciona (o "")
-   - repoUrl: Enlace a repositorio si se menciona (o "")
-7. Para idiomas:
-   - language: Nombre del idioma (ej: Español, Inglés, Francés)
-   - level: Nivel de competencia (ej: Nativo, Avanzado C1, Intermedio B2, Básico)
-8. Para personalInfo:
+3. SÍNTESIS WEB Y CONCISIÓN (Anti-bloques de texto): Los portafolios web requieren lectura rápida e impacto inmediato.
+   - NUNCA copies párrafos largos o densos tal cual vienen en el PDF.
+   - Si un párrafo de perfil o experiencia es extenso, RESÚMELO y sintetízalo en oraciones directas, fluidas y profesionales.
+   - Conserva siempre las tecnologías clave, títulos, reconocimientos, premios y métricas de impacto, pero elimina la prosa redundante.
+4. Para personalInfo:
    - name: Nombre completo del profesional
-   - title: Titular profesional o profesión (ej: "Ingeniero de Software Senior | Fullstack Developer")
-   - bio: Resumen o extracto profesional atractivo de 1 o 2 párrafos resaltando su trayectoria y propuesta de valor
+   - title: Titular profesional o profesión (ej: "Ingeniero en Informática | Full-Stack & AI Solutions")
+   - bio: Resumen profesional conciso, dinámico y atractivo de MÁXIMO 2 a 3 oraciones (entre 35 y 55 palabras). Debe sintetizar la especialidad, stack técnico y propuesta de valor sin generar un muro denso de texto.
    - email: Correo electrónico de contacto
    - phone: Teléfono con código de país si está presente
    - location: Ciudad y país
    - website: Sitio web o portafolio personal si se menciona
    - linkedin: URL o handle de LinkedIn si se menciona
    - github: URL o handle de GitHub si se menciona
+5. Para experiencias laborales:
+   - role: Cargo o posición desempeñada
+   - company: Nombre de la empresa o institución
+   - startDate: Fecha de inicio en formato YYYY-MM o YYYY
+   - endDate: Fecha de fin en formato YYYY-MM o null si es el trabajo actual
+   - current: true si actualmente trabaja allí o dice "Presente" / "Actualidad", false si ya finalizó
+   - description: Resumen breve y directo de 1 a 2 oraciones (máximo 30-40 palabras) del rol principal. Si el CV tiene un texto extenso, resúmelo.
+   - achievements: Lista de 2 a 4 logros o responsabilidades destacadas en viñetas concisas y directas (máximo 15-20 palabras por viñeta).
+6. Para educación:
+   - institution: Nombre de la universidad, colegio o instituto
+   - degree: Título, carrera, grado o certificación obtenida
+   - startDate: Fecha de inicio en formato YYYY-MM o YYYY
+   - endDate: Fecha de fin o estimada
+   - current: true si está cursando actualmente
+   - description: Breve mención de honor, especialidad o descripción (máximo 1-2 oraciones)
+7. Para habilidades (skills):
+   - name: Nombre de la habilidad (ej: React, Python, Docker, Gestión Ágil)
+   - category: "technical" para habilidades duras/técnicas o "soft" para blandas/interpersonales
+   - level: Número entero entre 60 y 100 estimando el nivel de dominio
+8. Para proyectos:
+   - title: Nombre del proyecto o iniciativa relevante
+   - description: Breve descripción de impacto de 1 o 2 oraciones (máximo 25-35 palabras) de qué resuelve o qué se construyó
+   - tags: Array de strings con tecnologías o metodologías usadas
+   - liveUrl: Enlace al proyecto en vivo si se menciona (o "")
+   - repoUrl: Enlace a repositorio si se menciona (o "")
+9. Para idiomas:
+   - language: Nombre del idioma (ej: Español, Inglés, Francés)
+   - level: Nivel de competencia (ej: Nativo, Avanzado C1, Intermedio B2, Básico)
 
 Estructura JSON requerida:
 {
