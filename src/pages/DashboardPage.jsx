@@ -115,8 +115,9 @@ export default function DashboardPage() {
   const setIsDashboardSaving = useProfileStore((state) => state.setIsDashboardSaving)
   const setHasUnsavedChanges = useProfileStore((state) => state.setHasUnsavedChanges)
 
-  // Current active profile from store (only real user profile, no mock fallback)
-  const storeProfile = (activeUsername && profiles[activeUsername]) || null
+  // Current active profile from store (fallback to default demo archetype carlos_dev if not authenticated)
+  const defaultFallback = profiles['carlos_dev'] || Object.values(profiles)[0]
+  const storeProfile = (activeUsername && profiles[activeUsername]) || defaultFallback
 
   // Deep clone helper to prevent direct store mutation
   const getInitialProfileState = (source) => {
@@ -160,15 +161,15 @@ export default function DashboardPage() {
 
   const getLiveProfileUrl = () => {
     if (typeof window !== 'undefined' && window.location?.origin && !window.location.origin.includes('localhost') && !window.location.origin.includes('127.0.0.1')) {
-      return `${window.location.origin}/${profileData.username}`
+      return `${window.location.origin}/${profileData?.username || ''}`
     }
-    return `/${profileData.username}`
+    return `/${profileData?.username || ''}`
   }
 
   const handleCopyLink = () => {
     const fullUrl = typeof window !== 'undefined' && window.location?.origin && !window.location.origin.includes('localhost')
-      ? `${window.location.origin}/${profileData.username}`
-      : `https://${window.location.host || 'mivitae.wearesamod.com'}/${profileData.username}`
+      ? `${window.location.origin}/${profileData?.username || ''}`
+      : `https://${window.location.host || 'mivitae.wearesamod.com'}/${profileData?.username || ''}`
     navigator.clipboard.writeText(fullUrl)
     setCopiedLink(true)
     if (copiedLinkTimerRef.current) clearTimeout(copiedLinkTimerRef.current)
@@ -236,26 +237,18 @@ export default function DashboardPage() {
         setProfileData(getInitialProfileState(realProf))
         lastSavedSnapshotRef.current = JSON.stringify(realProf)
         setHasUnsavedChanges(false)
-      } else if (isMounted && !storeProfile && !profileData) {
-        // ponytail: Fallback to default demo archetype if no user session or store profile exists
-        const fallback = profiles['carlos_dev'] || Object.values(profiles)[0]
-        if (fallback) {
-          setActiveUsername(fallback.username)
-          setProfileData(getInitialProfileState(fallback))
-        }
+      } else if (isMounted && !activeUsername && defaultFallback) {
+        // ponytail: Fallback to default demo archetype if no user session exists
+        setActiveUsername(defaultFallback.username)
       }
     }).catch(() => {
-      if (isMounted && !storeProfile && !profileData) {
-        const fallback = profiles['carlos_dev'] || Object.values(profiles)[0]
-        if (fallback) {
-          setActiveUsername(fallback.username)
-          setProfileData(getInitialProfileState(fallback))
-        }
+      if (isMounted && !activeUsername && defaultFallback) {
+        setActiveUsername(defaultFallback.username)
       }
     })
 
     return () => { isMounted = false }
-  }, [profiles, storeProfile, setActiveUsername])
+  }, [profiles, activeUsername, defaultFallback, setActiveUsername])
 
   // Sync local state ONLY when switching active username/profile in store
   useEffect(() => {
@@ -288,66 +281,6 @@ export default function DashboardPage() {
       }
     }
   }, [activeUsername, fetchRemoteProfile])
-
-  if (!profileData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-8 bg-[#f8fafc] text-slate-900">
-        <div className="text-center space-y-4">
-          <RefreshCw className="w-8 h-8 animate-spin mx-auto text-palette-primary" />
-          <p className="text-slate-600 font-medium">Cargando Live Studio...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Switch profile in top bar
-  const handleProfileSwitch = (newUname) => {
-    sessionStorage.setItem('manual_archetype_selected', 'true')
-    setActiveUsername(newUname)
-  }
-
-  // Save changes to Zustand Store AND sync directly with Supabase Cloud
-  const handleSave = async (e, { isManual = false } = {}) => {
-    if (e && e.preventDefault) e.preventDefault()
-    if (!profileData || !profileData.username) return
-
-    // Update snapshot ref immediately so debounced timer doesn't re-trigger
-    lastSavedSnapshotRef.current = JSON.stringify(profileData)
-    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
-
-    setIsSaving(true)
-    setIsDashboardSaving(true)
-
-    // ponytail: Filter empty records before saving to store & Supabase so ghost items aren't persisted,
-    // without altering profileData in component state so the user's active typing is never interrupted
-    const sanitizedProfile = filterEmptyProfileItems(profileData)
-
-    // 1. Guardar en store local para reactividad inmediata
-    updateProfile(profileData.username, sanitizedProfile)
-
-    // 2. Guardar en la base de datos Supabase para que esté visible en todo el mundo
-    try {
-      const saved = await saveProfileToSupabase(sanitizedProfile)
-      if (!saved) {
-        const user = await getCurrentUser()
-        if (!user) {
-          console.warn('[Dashboard] Perfil no guardado en la nube: usuario no autenticado en Supabase.')
-        }
-      }
-    } catch (err) {
-      console.warn('[Dashboard] Error al sincronizar perfil con Supabase:', err)
-    } finally {
-      setIsSaving(false)
-      setIsDashboardSaving(false)
-      setHasUnsavedChanges(false)
-    }
-
-    if (isManual) {
-      setSavedAlert(true)
-      if (savedAlertTimerRef.current) clearTimeout(savedAlertTimerRef.current)
-      savedAlertTimerRef.current = setTimeout(() => setSavedAlert(false), 3500)
-    }
-  }
 
   // Ref to always access latest profileData and handleSave without recreating timers
   const profileDataRef = useRef(profileData)
@@ -418,13 +351,62 @@ export default function DashboardPage() {
     }
   }, [dashboardResetTrigger])
 
+  // Switch profile in top bar
+  const handleProfileSwitch = (newUname) => {
+    sessionStorage.setItem('manual_archetype_selected', 'true')
+    setActiveUsername(newUname)
+  }
+
+  // Save changes to Zustand Store AND sync directly with Supabase Cloud
+  const handleSave = async (e, { isManual = false } = {}) => {
+    if (e && e.preventDefault) e.preventDefault()
+    if (!profileData || !profileData.username) return
+
+    // Update snapshot ref immediately so debounced timer doesn't re-trigger
+    lastSavedSnapshotRef.current = JSON.stringify(profileData)
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+
+    setIsSaving(true)
+    setIsDashboardSaving(true)
+
+    // ponytail: Filter empty records before saving to store & Supabase so ghost items aren't persisted,
+    // without altering profileData in component state so the user's active typing is never interrupted
+    const sanitizedProfile = filterEmptyProfileItems(profileData)
+
+    // 1. Guardar en store local para reactividad inmediata
+    updateProfile(profileData.username, sanitizedProfile)
+
+    // 2. Guardar en la base de datos Supabase para que esté visible en todo el mundo
+    try {
+      const saved = await saveProfileToSupabase(sanitizedProfile)
+      if (!saved) {
+        const user = await getCurrentUser()
+        if (!user) {
+          console.warn('[Dashboard] Perfil no guardado en la nube: usuario no autenticado en Supabase.')
+        }
+      }
+    } catch (err) {
+      console.warn('[Dashboard] Error al sincronizar perfil con Supabase:', err)
+    } finally {
+      setIsSaving(false)
+      setIsDashboardSaving(false)
+      setHasUnsavedChanges(false)
+    }
+
+    if (isManual) {
+      setSavedAlert(true)
+      if (savedAlertTimerRef.current) clearTimeout(savedAlertTimerRef.current)
+      savedAlertTimerRef.current = setTimeout(() => setSavedAlert(false), 3500)
+    }
+  }
+
   // Reset to initial mock profiles with production safety checks
   const DEMO_ARCHETYPES = ['carlos_dev', 'antonia_ux', 'valeria_psico', 'rodrigo_ops', 'abogado_consultor']
-  const isCustomProductionProfile = !DEMO_ARCHETYPES.includes(profileData.username)
+  const isCustomProductionProfile = !DEMO_ARCHETYPES.includes(profileData?.username)
 
   const handleResetDefaults = () => {
     const confirmMessage = isCustomProductionProfile
-      ? `⚠️ ADVERTENCIA DE PRODUCCIÓN: Estás en tu perfil real (@${profileData.username}).\n\nRestablecer valores restaurará las 5 plantillas de demostración originales y NO eliminará tu perfil real en la base de datos de Supabase Cloud.\n\n¿Deseas continuar?`
+      ? `⚠️ ADVERTENCIA DE PRODUCCIÓN: Estás en tu perfil real (@${profileData?.username || ''}).\n\nRestablecer valores restaurará las 5 plantillas de demostración originales y NO eliminará tu perfil real en la base de datos de Supabase Cloud.\n\n¿Deseas continuar?`
       : '¿Deseas restablecer los arquetipos de demostración a sus valores por defecto? Se perderán las modificaciones no guardadas en estas plantillas.'
 
     if (window.confirm(confirmMessage)) {
@@ -740,7 +722,18 @@ export default function DashboardPage() {
     { id: 'floatingButton', label: 'Botón Flotante', icon: MessageSquare, count: null }
   ]
 
-  const avatarSize = getApproximateDataUrlBytes(profileData.personalInfo?.avatar)
+  const avatarSize = getApproximateDataUrlBytes(profileData?.personalInfo?.avatar)
+
+  if (!profileData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-8 bg-[#f8fafc] text-slate-900">
+        <div className="text-center space-y-4">
+          <RefreshCw className="w-8 h-8 animate-spin mx-auto text-palette-primary" />
+          <p className="text-slate-600 font-medium">Cargando Live Studio...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col antialiased pb-24 md:pb-10">
