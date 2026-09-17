@@ -9,6 +9,7 @@ import { onRequestPost as handleUploadAvatar } from './functions/api/upload-avat
 import { onRequestGet as handleHealth } from './functions/api/health.js'
 import { onRequestGet as handleConfig } from './functions/api/config.js'
 import { onRequestGet as handleSitemap } from './functions/api/sitemap.js'
+import { onRequestPost as handleParseCv } from './functions/api/parse-cv.js'
 
 export default {
   async fetch(request, env, ctx) {
@@ -18,6 +19,9 @@ export default {
     // Route API requests to serverless handlers
     if (pathname === '/api/config') {
       return handleConfig({ request, env })
+    }
+    if (pathname === '/api/parse-cv') {
+      return handleParseCv({ request, env })
     }
     if (pathname === '/api/flow-webhook') {
       return handleFlowWebhook({ request, env })

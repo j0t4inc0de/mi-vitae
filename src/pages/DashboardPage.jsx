@@ -3,6 +3,7 @@ import { Link, useNavigate } from '../router/Router'
 import { useProfileStore } from '../stores/profileStore'
 import { saveProfileToSupabase, fetchProfileFromSupabase, getCurrentUser, getCurrentUserProfile } from '../lib/supabaseClient'
 import QrModal from '../components/Common/QrModal'
+import CvImportModal from '../components/Modals/CvImportModal'
 import UserAvatar from '../components/Common/UserAvatar'
 import ThemeRenderer, { filterEmptyProfileItems } from '../components/Themes/ThemeRenderer'
 import { compressImage, getApproximateDataUrlBytes, formatBytes } from '../utils/imageCompressor'
@@ -13,6 +14,7 @@ import {
   Briefcase,
   GraduationCap,
   Wrench,
+  FileText,
   FolderGit2,
   Languages,
   MessageSquare,
@@ -140,6 +142,7 @@ export default function DashboardPage() {
   const [compressingProjectIdx, setCompressingProjectIdx] = useState(null)
   const [avatarDragOver, setAvatarDragOver] = useState(false)
   const [isQrOpen, setIsQrOpen] = useState(false)
+  const [isCvModalOpen, setIsCvModalOpen] = useState(false)
   const [copiedLink, setCopiedLink] = useState(false)
   const [paymentSuccessNotice, setPaymentSuccessNotice] = useState(false)
 
@@ -423,6 +426,42 @@ export default function DashboardPage() {
       setSavedAlert(false)
       setHasUnsavedChanges(false)
     }
+  }
+
+  // Handle successful CV PDF import via AI
+  const handleCvImportSuccess = (extractedData) => {
+    if (!extractedData) return
+
+    setProfileData((prev) => {
+      const merged = {
+        ...prev,
+        personalInfo: {
+          ...prev.personalInfo,
+          ...(extractedData.personalInfo || {}),
+          // Preserve existing avatar if present
+          avatar: prev.personalInfo?.avatar || extractedData.personalInfo?.avatar || 'blobatar'
+        },
+        experience: extractedData.experience || [],
+        education: extractedData.education || [],
+        skills: extractedData.skills || [],
+        projects: extractedData.projects || [],
+        languages: extractedData.languages || []
+      }
+
+      // Sync with local store immediately
+      updateProfile(merged.username, merged)
+
+      // Sync directly to Supabase Cloud
+      saveProfileToSupabase(merged).catch((err) => {
+        console.warn('[Dashboard] CV import cloud sync notice:', err)
+      })
+
+      return merged
+    })
+
+    setSavedAlert(true)
+    if (savedAlertTimerRef.current) clearTimeout(savedAlertTimerRef.current)
+    savedAlertTimerRef.current = setTimeout(() => setSavedAlert(false), 3500)
   }
 
   // Personal Info Updaters
@@ -855,6 +894,16 @@ export default function DashboardPage() {
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCvModalOpen(true)}
+                  className="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-50 to-violet-50 hover:from-indigo-100 hover:to-violet-100 text-indigo-700 border border-indigo-200/80 text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
+                  title="Autocompletar portafolio importando un archivo CV en PDF con IA"
+                >
+                  <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="hidden sm:inline">Autocompletar con CV</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setIsQrOpen(true)}
@@ -2398,6 +2447,13 @@ export default function DashboardPage() {
         profile={profileData}
         username={profileData?.username}
         theme={profileData?.theme}
+      />
+
+      {/* CV PDF Import AI Modal */}
+      <CvImportModal
+        isOpen={isCvModalOpen}
+        onClose={() => setIsCvModalOpen(false)}
+        onSuccess={handleCvImportSuccess}
       />
 
     </div>

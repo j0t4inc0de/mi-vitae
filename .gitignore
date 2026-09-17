@@ -23,6 +23,7 @@ dist-ssr/
 # Cloudflare Wrangler & Pages
 .wrangler/
 .mf/
+.dev.vars
 
 # System and Editor files
 .DS_Store
