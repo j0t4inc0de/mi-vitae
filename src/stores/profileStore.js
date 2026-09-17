@@ -573,12 +573,15 @@ export const useProfileStore = create(
           }
         })
 
+        const active = get().activeUsername
+        const nextActive = preservedUserProfiles[active] ? active : 'carlos_dev'
+
         set({
           profiles: {
             ...INITIAL_MOCK_PROFILES,
             ...preservedUserProfiles
           },
-          activeUsername: 'carlos_dev'
+          activeUsername: nextActive
         })
       }
     }),

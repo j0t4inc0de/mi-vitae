@@ -7,6 +7,7 @@ import CvImportModal from '../components/Modals/CvImportModal'
 import UserAvatar from '../components/Common/UserAvatar'
 import ThemeRenderer, { filterEmptyProfileItems } from '../components/Themes/ThemeRenderer'
 import { compressImage, getApproximateDataUrlBytes, formatBytes } from '../utils/imageCompressor'
+import { INITIAL_MOCK_PROFILES } from '../data/mockProfiles'
 import {
   LayoutDashboard,
   User,
@@ -410,21 +411,56 @@ export default function DashboardPage() {
     }
   }
 
-  // Reset to initial mock profiles with production safety checks
+  // ponytail: Reset portfolio content with production safety checks
   const isCustomProductionProfile = !DEMO_ARCHETYPES.includes(profileData?.username)
 
   const handleResetDefaults = () => {
+    if (!profileData?.username) return
+
     const confirmMessage = isCustomProductionProfile
-      ? `⚠️ ADVERTENCIA DE PRODUCCIÓN: Estás en tu perfil real (@${profileData?.username || ''}).\n\nRestablecer valores restaurará las 5 plantillas de demostración originales y NO eliminará tu perfil real en la base de datos de Supabase Cloud.\n\n¿Deseas continuar?`
-      : '¿Deseas restablecer los arquetipos de demostración a sus valores por defecto? Se perderán las modificaciones no guardadas en estas plantillas.'
+      ? `¿Deseas restablecer el contenido de tu portafolio (@${profileData.username})?\n\nEsta acción vaciará las secciones de experiencia, educación, proyectos, habilidades e idiomas para comenzar de cero o volver a importar tu CV con IA.\n\n(Tu usuario, correo, avatar y membresía se mantendrán intactos).`
+      : `¿Deseas restablecer la plantilla de demostración (@${profileData.username}) a sus valores originales?`
 
     if (window.confirm(confirmMessage)) {
-      resetToDefaults()
-      const defaultProf = profiles['carlos_dev'] || Object.values(profiles)[0]
-      setProfileData(getInitialProfileState(defaultProf))
-      lastSavedSnapshotRef.current = JSON.stringify(defaultProf)
-      setSavedAlert(false)
+      let resetState = null
+
+      if (isCustomProductionProfile) {
+        // Reset real user profile content without altering credentials or subscription
+        resetState = {
+          ...profileData,
+          personalInfo: {
+            ...profileData.personalInfo,
+            bio: '',
+            title: '',
+            phone: '',
+            website: '',
+            linkedin: '',
+            github: '',
+            availableForWork: true
+          },
+          experience: [],
+          education: [],
+          skills: [],
+          projects: [],
+          languages: []
+        }
+        // Sync reset state directly to Supabase Cloud
+        saveProfileToSupabase(resetState).catch((err) => {
+          console.warn('[Dashboard] Error al sincronizar restablecimiento en Supabase:', err)
+        })
+      } else {
+        // Reset demo archetype to its default initial state
+        const mockDefault = INITIAL_MOCK_PROFILES[profileData.username] || INITIAL_MOCK_PROFILES['carlos_dev']
+        resetState = JSON.parse(JSON.stringify(mockDefault))
+      }
+
+      updateProfile(profileData.username, resetState)
+      setProfileData(resetState)
+      lastSavedSnapshotRef.current = JSON.stringify(resetState)
       setHasUnsavedChanges(false)
+      setSavedAlert(true)
+      if (savedAlertTimerRef.current) clearTimeout(savedAlertTimerRef.current)
+      savedAlertTimerRef.current = setTimeout(() => setSavedAlert(false), 3500)
     }
   }
 
