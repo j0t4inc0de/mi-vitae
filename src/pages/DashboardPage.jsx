@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Link } from '../router/Router'
+import { Link, useNavigate } from '../router/Router'
 import { useProfileStore } from '../stores/profileStore'
 import { saveProfileToSupabase, fetchProfileFromSupabase, getCurrentUser, getCurrentUserProfile } from '../lib/supabaseClient'
 import QrModal from '../components/Common/QrModal'
@@ -101,7 +101,10 @@ const THEME_OPTIONS = [
   }
 ]
 
+const DEMO_ARCHETYPES = ['carlos_dev', 'antonia_ux', 'valeria_psico', 'rodrigo_ops', 'abogado_consultor']
+
 export default function DashboardPage() {
+  const navigate = useNavigate()
   const profiles = useProfileStore((state) => state.profiles)
   const activeUsername = useProfileStore((state) => state.activeUsername)
   const setActiveUsername = useProfileStore((state) => state.setActiveUsername)
@@ -115,9 +118,9 @@ export default function DashboardPage() {
   const setIsDashboardSaving = useProfileStore((state) => state.setIsDashboardSaving)
   const setHasUnsavedChanges = useProfileStore((state) => state.setHasUnsavedChanges)
 
-  // Current active profile from store (fallback to default demo archetype carlos_dev if not authenticated)
-  const defaultFallback = profiles['carlos_dev'] || Object.values(profiles)[0]
-  const storeProfile = (activeUsername && profiles[activeUsername]) || defaultFallback
+  // Determine if there is already an authenticated real user in store
+  const isExistingRealUser = Boolean(activeUsername && !DEMO_ARCHETYPES.includes(activeUsername) && profiles[activeUsername])
+  const storeProfile = isExistingRealUser ? profiles[activeUsername] : null
 
   // Deep clone helper to prevent direct store mutation
   const getInitialProfileState = (source) => {
@@ -125,6 +128,8 @@ export default function DashboardPage() {
     return JSON.parse(JSON.stringify(source))
   }
 
+  // Authentication check state: starts true if no verified real user in memory
+  const [isCheckingAuth, setIsCheckingAuth] = useState(!isExistingRealUser)
   // Live editable state
   const [profileData, setProfileData] = useState(() => getInitialProfileState(storeProfile))
   const [authUser, setAuthUser] = useState(null)
@@ -226,29 +231,31 @@ export default function DashboardPage() {
 
   const planInfo = calculatePlanStatus()
 
-  // Detect authenticated Supabase user and hydrate real profile
+  // Verify Supabase Auth session. If unauthenticated, redirect to /login
   useEffect(() => {
     let isMounted = true
 
     getCurrentUserProfile().then((realProf) => {
-      if (realProf && isMounted) {
+      if (!isMounted) return
+      if (realProf) {
         setAuthUser(realProf)
         useProfileStore.getState().setRemoteProfile(realProf)
         setProfileData(getInitialProfileState(realProf))
         lastSavedSnapshotRef.current = JSON.stringify(realProf)
         setHasUnsavedChanges(false)
-      } else if (isMounted && !activeUsername && defaultFallback) {
-        // ponytail: Fallback to default demo archetype if no user session exists
-        setActiveUsername(defaultFallback.username)
+        setIsCheckingAuth(false)
+      } else {
+        // Not authenticated in Supabase -> redirect to /login
+        navigate('/login')
       }
     }).catch(() => {
-      if (isMounted && !activeUsername && defaultFallback) {
-        setActiveUsername(defaultFallback.username)
+      if (isMounted) {
+        navigate('/login')
       }
     })
 
     return () => { isMounted = false }
-  }, [profiles, activeUsername, defaultFallback, setActiveUsername])
+  }, [navigate])
 
   // Sync local state ONLY when switching active username/profile in store
   useEffect(() => {
@@ -401,7 +408,6 @@ export default function DashboardPage() {
   }
 
   // Reset to initial mock profiles with production safety checks
-  const DEMO_ARCHETYPES = ['carlos_dev', 'antonia_ux', 'valeria_psico', 'rodrigo_ops', 'abogado_consultor']
   const isCustomProductionProfile = !DEMO_ARCHETYPES.includes(profileData?.username)
 
   const handleResetDefaults = () => {
@@ -710,6 +716,17 @@ export default function DashboardPage() {
     }))
   }
 
+  if (isCheckingAuth || !profileData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-8 bg-[#f8fafc] text-slate-900">
+        <div className="text-center space-y-4">
+          <RefreshCw className="w-8 h-8 animate-spin mx-auto text-palette-primary" />
+          <p className="text-slate-600 font-medium">Verificando sesión...</p>
+        </div>
+      </div>
+    )
+  }
+
   // Tab Navigation Items
   const tabs = [
     { id: 'personal', label: 'Personal & Bio', icon: User, count: null },
@@ -723,17 +740,6 @@ export default function DashboardPage() {
   ]
 
   const avatarSize = getApproximateDataUrlBytes(profileData?.personalInfo?.avatar)
-
-  if (!profileData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-8 bg-[#f8fafc] text-slate-900">
-        <div className="text-center space-y-4">
-          <RefreshCw className="w-8 h-8 animate-spin mx-auto text-palette-primary" />
-          <p className="text-slate-600 font-medium">Cargando Live Studio...</p>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col antialiased pb-24 md:pb-10">
