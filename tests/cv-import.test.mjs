@@ -160,16 +160,16 @@ await it('backend rejects PDFs exceeding 10MB in multipart/form-data before buff
 // -------------------------------------------------------------
 console.log('\n▶ Suite 3: AI Model Fallback & Error Resilience');
 
-await it('falls back to gemini-3.5-flash when gemini-3.6-flash fails (500/404)', async () => {
+await it('falls back to gemini-flash-latest when gemini-3.1-flash-lite fails (500/404)', async () => {
   const originalFetch = globalThis.fetch;
   const attempts = [];
 
   globalThis.fetch = async (url, opts) => {
     attempts.push(url);
-    if (url.includes('gemini-3.6-flash')) {
+    if (url.includes('gemini-3.1-flash-lite')) {
       return new Response('Model not found', { status: 404 });
     }
-    if (url.includes('gemini-3.5-flash')) {
+    if (url.includes('gemini-flash-latest')) {
       return new Response(JSON.stringify({
         candidates: [
           {
@@ -200,8 +200,8 @@ await it('falls back to gemini-3.5-flash when gemini-3.6-flash fails (500/404)',
     const data = await res.json();
     assert.equal(data.success, true);
     assert.equal(data.data.personalInfo.name, 'Fallback User');
-    assert.ok(attempts.some(u => u.includes('gemini-3.6-flash')));
-    assert.ok(attempts.some(u => u.includes('gemini-3.5-flash')));
+    assert.ok(attempts.some(u => u.includes('gemini-3.1-flash-lite')));
+    assert.ok(attempts.some(u => u.includes('gemini-flash-latest')));
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -367,6 +367,76 @@ await it('guarantees exp-*, edu-*, proj-* IDs and validates skills categories an
 
     // Verify project tags sanitization
     assert.deepEqual(data.projects[0].tags, ['React', '123'], 'Tags must be filtered and converted to string');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+await it('defensively maps non-tech CVs and alternative keys (personal_info, fullName, summary, organization, string skills)', async () => {
+  const originalFetch = globalThis.fetch;
+  const nonTechAiJson = {
+    personal_info: {
+      fullName: 'Carlos Erices Fuentealba',
+      profession: 'Kinesiólogo',
+      summary: 'Kinesiólogo especializado en rehabilitación y personas mayores.',
+      contact: {
+        email: 'cfericesf@gmail.com',
+        phone: '+569 78503321',
+        address: 'Los Angeles, Chile'
+      }
+    },
+    professional_experience: [
+      {
+        role: 'Kinesiólogo',
+        organization: 'Cesfam dos de Septiembre',
+        period: 'Febrero 2023 – hasta la fecha',
+        description: 'Atención primaria y cuidados paliativos.'
+      }
+    ],
+    education: [
+      {
+        degree: 'Licenciado en Kinesiología',
+        institution: 'Universidad Católica Silva Henríquez',
+        year: '2017'
+      }
+    ],
+    skills: [
+      'Trabajo en equipo',
+      'Empatía',
+      'Kinesioterapia'
+    ]
+  };
+
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    candidates: [{ content: { parts: [{ text: JSON.stringify(nonTechAiJson) }] } }]
+  }), { status: 200 });
+
+  try {
+    const req = new Request('https://mivitae.wearesamod.com/api/parse-cv', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileBase64: 'JVBERi0xLjQK' })
+    });
+    const res = await handleParseCv({ request: req, env: { GEMINI_API_KEY: 'test-key' } });
+    assert.equal(res.status, 200);
+    const { data } = await res.json();
+
+    assert.equal(data.personalInfo.name, 'Carlos Erices Fuentealba');
+    assert.equal(data.personalInfo.title, 'Kinesiólogo');
+    assert.equal(data.personalInfo.bio, 'Kinesiólogo especializado en rehabilitación y personas mayores.');
+    assert.equal(data.personalInfo.email, 'cfericesf@gmail.com');
+    assert.equal(data.personalInfo.phone, '+569 78503321');
+    assert.equal(data.personalInfo.location, 'Los Angeles, Chile');
+
+    assert.equal(data.experience.length, 1);
+    assert.equal(data.experience[0].company, 'Cesfam dos de Septiembre');
+    assert.equal(data.experience[0].current, true);
+
+    assert.equal(data.skills.length, 3);
+    assert.equal(data.skills[0].name, 'Trabajo en equipo');
+    assert.equal(data.skills[0].category, 'soft');
+    assert.equal(data.skills[2].name, 'Kinesioterapia');
+    assert.equal(data.skills[2].category, 'technical');
   } finally {
     globalThis.fetch = originalFetch;
   }
