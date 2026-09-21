@@ -292,7 +292,7 @@ export default function TechTheme({ profile, onRecordClick }) {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-[#10B981] hover:underline"
                       >
-                        <span>[ VER DEMO ↗ ]</span>
+                        <span>[ VER PROYECTO ↗ ]</span>
                       </a>
                     )}
                     {proj.repoUrl && (

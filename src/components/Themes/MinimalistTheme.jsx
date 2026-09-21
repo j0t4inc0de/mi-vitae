@@ -334,7 +334,7 @@ export default function MinimalistTheme({ profile, onRecordClick }) {
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-stone-900 hover:text-stone-600 underline underline-offset-4"
                         >
-                          <span>Ver Publicación / Caso</span>
+                          <span>Ver Proyecto</span>
                           <ArrowUpRight className="w-3.5 h-3.5" />
                         </a>
                       )}

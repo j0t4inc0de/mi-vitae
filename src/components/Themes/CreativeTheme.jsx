@@ -245,7 +245,7 @@ export default function CreativeTheme({ profile, onRecordClick }) {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1.5 text-pink-400 hover:text-pink-300 transition-colors"
                       >
-                        <span>Ver proyecto</span>
+                        <span>Ver Proyecto</span>
                         <ArrowUpRight className="w-3.5 h-3.5" />
                       </a>
                     )}

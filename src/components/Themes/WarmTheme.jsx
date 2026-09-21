@@ -282,7 +282,7 @@ export default function WarmTheme({ profile, onRecordClick }) {
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1 text-xs font-bold text-[#D97706] hover:underline"
                             >
-                              <span>Ver Información / Acceso</span>
+                              <span>Ver Proyecto</span>
                               <ExternalLink className="w-3 h-3" />
                             </a>
                           )}
