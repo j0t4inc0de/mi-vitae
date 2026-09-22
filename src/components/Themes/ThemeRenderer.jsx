@@ -19,7 +19,7 @@ export const filterEmptyProfileItems = (profile = {}) => {
   if (!profile) return profile
   return {
     ...profile,
-    projects: (profile.projects || []).filter((p) => p.title?.trim() || p.description?.trim()),
+    projects: (profile.projects || []).filter((p) => p.title?.trim() || p.description?.trim()).map(({ tagsRaw, ...p }) => p),
     experience: (profile.experience || []).filter((e) => e.role?.trim() || e.company?.trim()),
     education: (profile.education || []).filter((edu) => edu.degree?.trim() || edu.institution?.trim()),
     skills: (profile.skills || []).filter((s) => s.name?.trim()),

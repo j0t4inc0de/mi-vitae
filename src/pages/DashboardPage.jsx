@@ -128,7 +128,14 @@ export default function DashboardPage() {
   // Deep clone helper to prevent direct store mutation
   const getInitialProfileState = (source) => {
     if (!source) return null
-    return JSON.parse(JSON.stringify(source))
+    const cloned = JSON.parse(JSON.stringify(source))
+    if (Array.isArray(cloned.skills)) {
+      cloned.skills = cloned.skills.map((sk, idx) => ({
+        ...sk,
+        id: sk.id || `sk-${idx}-${Date.now()}`
+      }))
+    }
+    return cloned
   }
 
   // Authentication check state: starts true if no verified real user in memory
@@ -481,7 +488,10 @@ export default function DashboardPage() {
         },
         experience: extractedData.experience || [],
         education: extractedData.education || [],
-        skills: extractedData.skills || [],
+        skills: (extractedData.skills || []).map((sk, idx) => ({
+          ...sk,
+          id: sk.id || `sk-cv-${Date.now()}-${idx}`
+        })),
         projects: extractedData.projects || [],
         languages: extractedData.languages || []
       }
@@ -672,7 +682,7 @@ export default function DashboardPage() {
   // Skills CRUD
   const handleAddSkill = () => {
     const newSkill = {
-      id: `sk-${Date.now()}`,
+      id: `sk-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       name: '',
       level: 80,
       category: ''
@@ -683,19 +693,21 @@ export default function DashboardPage() {
     }))
   }
 
-  const handleUpdateSkill = (id, field, value) => {
+  const handleUpdateSkill = (id, field, value, idx) => {
     setProfileData((prev) => ({
       ...prev,
-      skills: (prev.skills || []).map((sk) =>
-        sk.id === id ? { ...sk, [field]: value } : sk
+      skills: (prev.skills || []).map((sk, i) =>
+        ((id && sk.id) ? sk.id === id : i === idx) ? { ...sk, [field]: value } : sk
       )
     }))
   }
 
-  const handleDeleteSkill = (id) => {
+  const handleDeleteSkill = (id, idx) => {
     setProfileData((prev) => ({
       ...prev,
-      skills: (prev.skills || []).filter((sk) => sk.id !== id)
+      skills: (prev.skills || []).filter((sk, i) =>
+        (id && sk.id) ? sk.id !== id : i !== idx
+      )
     }))
   }
 
@@ -1703,7 +1715,7 @@ export default function DashboardPage() {
                         <input
                           type="text"
                           value={skill.name || ''}
-                          onChange={(e) => handleUpdateSkill(skill.id, 'name', e.target.value)}
+                          onChange={(e) => handleUpdateSkill(skill.id, 'name', e.target.value, idx)}
                           placeholder="Ej. React 19 / Go / M&A"
                           className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary font-medium transition-colors"
                         />
@@ -1716,7 +1728,7 @@ export default function DashboardPage() {
                         <input
                           type="text"
                           value={skill.category || ''}
-                          onChange={(e) => handleUpdateSkill(skill.id, 'category', e.target.value)}
+                          onChange={(e) => handleUpdateSkill(skill.id, 'category', e.target.value, idx)}
                           placeholder="Ej. Frontend"
                           className="w-full px-3 py-1.5 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
                         />
@@ -1732,14 +1744,14 @@ export default function DashboardPage() {
                           min={1}
                           max={100}
                           value={skill.level || 80}
-                          onChange={(e) => handleUpdateSkill(skill.id, 'level', Number(e.target.value))}
+                          onChange={(e) => handleUpdateSkill(skill.id, 'level', Number(e.target.value), idx)}
                           className="w-full accent-palette-primary cursor-pointer h-2 bg-slate-200 rounded-lg"
                         />
                       </div>
 
                       <button
                         type="button"
-                        onClick={() => handleDeleteSkill(skill.id)}
+                        onClick={() => handleDeleteSkill(skill.id, idx)}
                         className="text-rose-500 hover:text-rose-700 p-2 rounded-lg hover:bg-rose-100/50 transition-colors self-end sm:self-center cursor-pointer"
                         title="Eliminar habilidad"
                       >
@@ -1875,11 +1887,26 @@ export default function DashboardPage() {
                         </label>
                         <input
                           type="text"
-                          value={(proj.tags || []).join(', ')}
+                          value={proj.tagsRaw !== undefined ? proj.tagsRaw : (proj.tags || []).join(', ')}
                           onChange={(e) => {
-                            const tagsArray = e.target.value.split(',').map((t) => t.trim()).filter(Boolean)
-                            handleUpdateProject(proj.id, 'tags', tagsArray)
+                            const val = e.target.value
+                            const tagsArray = val.split(',').map((t) => t.trim()).filter(Boolean)
+                            setProfileData((prev) => ({
+                              ...prev,
+                              projects: (prev.projects || []).map((p) =>
+                                p.id === proj.id ? { ...p, tags: tagsArray, tagsRaw: val } : p
+                              )
+                            }))
                           }}
+                          onBlur={() => {
+                            setProfileData((prev) => ({
+                              ...prev,
+                              projects: (prev.projects || []).map((p) =>
+                                p.id === proj.id ? { ...p, tagsRaw: (p.tags || []).join(', ') } : p
+                              )
+                            }))
+                          }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault() }}
                           placeholder="React, Tailwind, AWS, Figma"
                           className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 focus:border-palette-primary text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-palette-primary transition-colors"
                         />

@@ -354,6 +354,9 @@ await it('guarantees exp-*, edu-*, proj-* IDs and validates skills categories an
     data.projects.forEach((p) => {
       assert.match(p.id, /^proj-/, `Project ID ${p.id} must start with proj-`);
     });
+    data.skills.forEach((s) => {
+      assert.match(s.id, /^sk-/, `Skill ID ${s.id} must start with sk-`);
+    });
 
     // Verify skills validation
     assert.equal(data.skills[0].category, 'technical', 'Invalid category should fallback to technical');

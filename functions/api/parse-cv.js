@@ -330,10 +330,11 @@ export async function onRequestPost(context) {
           description: str(e.description || e.descripcion || e.thesis || e.tesis)
         }
       }),
-      skills: (Array.isArray(parsed.skills) ? parsed.skills : (Array.isArray(parsed.habilidades) ? parsed.habilidades : (Array.isArray(parsed.competencias) ? parsed.competencias : []))).map((s) => {
+      skills: (Array.isArray(parsed.skills) ? parsed.skills : (Array.isArray(parsed.habilidades) ? parsed.habilidades : (Array.isArray(parsed.competencias) ? parsed.competencias : []))).map((s, idx) => {
         if (typeof s === 'string') {
           const isSoft = /liderazgo|comunicaci|empat|equipo|adaptaci|tolerancia|resoluci|compromiso|proactiv/i.test(s)
           return {
+            id: `sk-${now}-${idx}`,
             name: s.trim(),
             category: isSoft ? 'soft' : 'technical',
             level: 85
@@ -342,7 +343,12 @@ export async function onRequestPost(context) {
         const name = str(s.name || s.habilidad || s.skill || s.title)
         const category = s.category === 'soft' ? 'soft' : 'technical'
         const level = typeof s.level === 'number' && !Number.isNaN(s.level) ? Math.min(100, Math.max(10, Math.round(s.level))) : 85
-        return { name, category, level }
+        return {
+          id: (typeof s.id === 'string' && s.id.startsWith('sk-')) ? s.id : `sk-${now}-${idx}`,
+          name,
+          category,
+          level
+        }
       }).filter(s => s.name.length > 0),
       projects: (Array.isArray(parsed.projects) ? parsed.projects : (Array.isArray(parsed.proyectos) ? parsed.proyectos : [])).map((p, idx) => {
         if (typeof p === 'string') {

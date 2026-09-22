@@ -303,6 +303,7 @@ it('tests global modal state openers & closers', () => {
 console.log('\n▶ Suite 4: Theme Renderer Polymorphic Mapping');
 
 const themeRendererContent = fs.readFileSync(path.join(ROOT, 'src/components/Themes/ThemeRenderer.jsx'), 'utf8');
+const { filterEmptyProfileItems } = await vite.ssrLoadModule('/src/components/Themes/ThemeRenderer.jsx');
 
 it('supports all 5 production themes without fallback loss', () => {
   const themes = ['tech', 'creative', 'minimalist', 'warm', 'executive'];
@@ -564,6 +565,103 @@ it('verifies memory leak prevention on unmount with timer cleanups', () => {
   assert.ok(dashboardContent.includes('copiedLinkTimerRef'), 'Must track copiedLink timer reference');
   assert.ok(dashboardContent.includes('clearTimeout(savedAlertTimerRef.current)'), 'Must clear savedAlert timer on unmount');
   assert.ok(dashboardContent.includes('clearTimeout(copiedLinkTimerRef.current)'), 'Must clear copiedLink timer on unmount');
+});
+
+it('verifies skills independent update logic prevents multi-skill level mutation even without IDs', () => {
+  // Simulate Dashboard skills update logic
+  const handleUpdateSkillLogic = (skills, id, field, value, idx) => {
+    return skills.map((sk, i) =>
+      ((id && sk.id) ? sk.id === id : i === idx) ? { ...sk, [field]: value } : sk
+    );
+  };
+
+  const handleDeleteSkillLogic = (skills, id, idx) => {
+    return skills.filter((sk, i) =>
+      (id && sk.id) ? sk.id !== id : i !== idx
+    );
+  };
+
+  // Case 1: Multiple skills with undefined id (imported from CV or legacy DB)
+  const legacySkills = [
+    { name: 'JavaScript', category: 'technical', level: 80 },
+    { name: 'TypeScript', category: 'technical', level: 75 },
+    { name: 'React', category: 'technical', level: 90 }
+  ];
+
+  // Update second skill (idx = 1) with undefined id
+  const updatedLegacy = handleUpdateSkillLogic(legacySkills, undefined, 'level', 95, 1);
+  assert.equal(updatedLegacy[0].level, 80, 'Skill 0 must not change when updating skill 1');
+  assert.equal(updatedLegacy[1].level, 95, 'Skill 1 must be updated to 95');
+  assert.equal(updatedLegacy[2].level, 90, 'Skill 2 must not change when updating skill 1');
+
+  // Delete first skill (idx = 0) with undefined id
+  const afterDelete = handleDeleteSkillLogic(updatedLegacy, undefined, 0);
+  assert.equal(afterDelete.length, 2);
+  assert.equal(afterDelete[0].name, 'TypeScript');
+  assert.equal(afterDelete[1].name, 'React');
+
+  // Case 2: Skills with valid IDs
+  const validSkills = [
+    { id: 'sk-1', name: 'Go', level: 80 },
+    { id: 'sk-2', name: 'Rust', level: 70 }
+  ];
+  const updatedValid = handleUpdateSkillLogic(validSkills, 'sk-2', 'level', 88, 1);
+  assert.equal(updatedValid[0].level, 80);
+  assert.equal(updatedValid[1].level, 88);
+
+  // Verify DashboardPage.jsx implements the required patterns
+  assert.ok(dashboardContent.includes('(id && sk.id) ? sk.id === id : i === idx'), 'DashboardPage must use safe ID/index check in handleUpdateSkill');
+  assert.ok(dashboardContent.includes('(id && sk.id) ? sk.id !== id : i !== idx'), 'DashboardPage must use safe ID/index check in handleDeleteSkill');
+  assert.ok(dashboardContent.includes('handleUpdateSkill(skill.id, \'level\', Number(e.target.value), idx)'), 'JSX slider must pass idx to handleUpdateSkill');
+});
+
+it('verifies tagsRaw and tagsArray allow typing commas without deleting characters and strips tagsRaw in filterEmptyProfileItems', () => {
+
+  // Simulate user typing "React," in tags input
+  const proj = { id: 'proj-1', title: 'Mi Vitae', tags: ['React'] };
+  const inputVal = 'React, ';
+  const tagsArray = inputVal.split(',').map((t) => t.trim()).filter(Boolean);
+
+  const updatedProject = {
+    ...proj,
+    tags: tagsArray,
+    tagsRaw: inputVal
+  };
+
+  assert.equal(updatedProject.tagsRaw, 'React, ', 'tagsRaw must retain comma and trailing space');
+  assert.deepEqual(updatedProject.tags, ['React'], 'tags array must contain cleanly parsed tags');
+
+  // Simulate typing next tag: "React, Vue"
+  const nextInputVal = 'React, Vue';
+  const nextTagsArray = nextInputVal.split(',').map((t) => t.trim()).filter(Boolean);
+  const nextProject = {
+    ...updatedProject,
+    tags: nextTagsArray,
+    tagsRaw: nextInputVal
+  };
+  assert.deepEqual(nextProject.tags, ['React', 'Vue'], 'tags array must now contain both tags');
+  assert.equal(nextProject.tagsRaw, 'React, Vue');
+
+  // Simulate onBlur normalizer
+  const onBlurValue = (nextProject.tags || []).join(', ');
+  assert.equal(onBlurValue, 'React, Vue');
+
+  // Verify filterEmptyProfileItems strips tagsRaw before save
+  const mockProfile = {
+    username: 'test_dev',
+    projects: [
+      { id: 'proj-1', title: 'Mi Vitae', tags: ['React', 'Vue'], tagsRaw: 'React, Vue' }
+    ]
+  };
+
+  const filtered = filterEmptyProfileItems(mockProfile);
+  assert.equal(filtered.projects[0].tagsRaw, undefined, 'filterEmptyProfileItems must strip tagsRaw');
+  assert.deepEqual(filtered.projects[0].tags, ['React', 'Vue'], 'tags array must be preserved');
+
+  // Verify DashboardPage.jsx source includes tagsRaw and onBlur handlers
+  assert.ok(dashboardContent.includes('proj.tagsRaw !== undefined ? proj.tagsRaw : (proj.tags || []).join(\', \')'), 'DashboardPage must use tagsRaw in value');
+  assert.ok(dashboardContent.includes('tagsRaw: val'), 'DashboardPage must update tagsRaw on change');
+  assert.ok(dashboardContent.includes('tagsRaw: (p.tags || []).join(\', \')'), 'DashboardPage must clean tagsRaw on blur');
 });
 
 await vite.close();
