@@ -221,3 +221,24 @@ npm run build
 npm test
 ```
 Si el resultado es `0 errors`, ¡el tema está 100% operativo en producción!
+
+---
+
+## 5. Lecciones del Tema Pop Tactile (Neo-Brutalist) y Diseño Anti-Fatiga
+
+Durante la iteración y refinamiento del tema **Pop Tactile**, el feedback de los usuarios reveló fricciones críticas relacionadas con la "fatiga de scroll" y la baja densidad visual, aspectos vitales en un portafolio web para reclutadores. A continuación, documentamos los patrones (filosofía *Ponytail*: máxima eficiencia, mínimo código) que deben aplicarse al crear temas futuros:
+
+### 5.1. La Regla de Oro de los 6 Segundos (Densidad vs. Fatiga de Scroll)
+Los reclutadores escanean perfiles en segundos. El diseño debe equilibrar un alto impacto visual con una altura vertical compacta y un ritmo escaneable.
+- **Paddings eficientes:** Evita paddings internos excesivos en tarjetas individuales que dilatan el scroll. Prefiere utilidades como `p-3.5` a `p-4.5` (ej. `p-4 sm:p-5`); evita el uso rutinario de `p-6` o `p-8`.
+- **Patrón de cabeceras integradas:** En lugar de apilar verticalmente el cargo, la empresa y las fechas, alinéalos en una sola banda horizontal superior. Esto condensa la tarjeta de experiencia dramáticamente.
+
+### 5.2. Layouts de Alta Eficiencia (Habilidades y Educación)
+- **Grids sobre listas verticales:** Reemplaza las listas verticales infinitas de barras horizontales (muy comunes en sección Skills) por layouts de cuadrícula (`grid-cols-1 sm:grid-cols-2`). 
+- **Educación compacta:** Mantén los componentes de educación condensados usando *badges* pequeños para los años/fechas, ubicándolos en la misma línea del título cuando sea posible.
+
+### 5.3. Tratamiento de Hero Headers
+- **Dimensiones armónicas del Avatar:** Evita tamaños superiores a 150px (`w-32` a `w-36`). Avatares masivos empujan el contenido profesional fuera del primer viewport y obligan a hacer scroll inmediato.
+- **Agrupación estratégica:** Agrupa el botón de disponibilidad y las píldoras de contacto sin desperdiciar altura, preferentemente organizados en layouts horizontales flexibles.
+
+> **💡 Check para Creadores:** Antes de aprobar tu tema, verifica el "costo de scroll". Si para ver las últimas dos experiencias de un usuario debes hacer 4 scrolls, tienes demasiada "grasa" en tu espaciado. Redúcelo.

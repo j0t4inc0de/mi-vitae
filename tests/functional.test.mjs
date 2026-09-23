@@ -305,10 +305,25 @@ console.log('\n▶ Suite 4: Theme Renderer Polymorphic Mapping');
 const themeRendererContent = fs.readFileSync(path.join(ROOT, 'src/components/Themes/ThemeRenderer.jsx'), 'utf8');
 const { filterEmptyProfileItems } = await vite.ssrLoadModule('/src/components/Themes/ThemeRenderer.jsx');
 
-it('supports all 5 production themes without fallback loss', () => {
-  const themes = ['tech', 'creative', 'minimalist', 'warm', 'executive'];
+it('supports all 6 production themes without fallback loss', () => {
+  const themes = ['tech', 'creative', 'minimalist', 'warm', 'executive', 'neo_brutalist'];
   for (const t of themes) {
     assert.ok(themeRendererContent.includes(`${t}:`) || themeRendererContent.includes(`'${t}'`), `ThemeRenderer must support '${t}'`);
+  }
+});
+
+const themeModules = {
+  minimalist: await vite.ssrLoadModule('/src/components/Themes/MinimalistTheme.jsx'),
+  neo_brutalist: await vite.ssrLoadModule('/src/components/Themes/NeoBrutalistTheme.jsx'),
+  creative: await vite.ssrLoadModule('/src/components/Themes/CreativeTheme.jsx'),
+  tech: await vite.ssrLoadModule('/src/components/Themes/TechTheme.jsx'),
+  warm: await vite.ssrLoadModule('/src/components/Themes/WarmTheme.jsx'),
+  executive: await vite.ssrLoadModule('/src/components/Themes/ExecutiveTheme.jsx')
+};
+
+it('verifies all 6 theme components load cleanly and export valid default components', () => {
+  for (const [slug, mod] of Object.entries(themeModules)) {
+    assert.ok(typeof mod.default === 'function', `Theme '${slug}' must export a valid component function`);
   }
 });
 
@@ -662,6 +677,19 @@ it('verifies tagsRaw and tagsArray allow typing commas without deleting characte
   assert.ok(dashboardContent.includes('proj.tagsRaw !== undefined ? proj.tagsRaw : (proj.tags || []).join(\', \')'), 'DashboardPage must use tagsRaw in value');
   assert.ok(dashboardContent.includes('tagsRaw: val'), 'DashboardPage must update tagsRaw on change');
   assert.ok(dashboardContent.includes('tagsRaw: (p.tags || []).join(\', \')'), 'DashboardPage must clean tagsRaw on blur');
+});
+
+it('verifies DashboardPage THEME_OPTIONS contains 6 themes with neo_brutalist (Pop Tactile) at position 2', () => {
+  const themeMatch = dashboardContent.match(/const THEME_OPTIONS = \[([\s\S]*?)\]\r?\n\r?\nconst DEMO_ARCHETYPES/);
+  assert.ok(themeMatch, 'THEME_OPTIONS block must exist in DashboardPage.jsx');
+  const themeIds = [...themeMatch[1].matchAll(/id:\s*'([a-z_]+)'/g)].map((m) => m[1]);
+  assert.equal(themeIds.length, 6, 'Must have exactly 6 themes in THEME_OPTIONS');
+  assert.equal(themeIds[0], 'minimalist', 'First theme must be minimalist');
+  assert.equal(themeIds[1], 'neo_brutalist', 'Second theme must be neo_brutalist (Pop Tactile)');
+  assert.equal(themeIds[2], 'creative', 'Third theme must be creative');
+  assert.equal(themeIds[3], 'tech', 'Fourth theme must be tech');
+  assert.equal(themeIds[4], 'warm', 'Fifth theme must be warm');
+  assert.equal(themeIds[5], 'executive', 'Sixth theme must be executive');
 });
 
 await vite.close();

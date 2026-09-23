@@ -67,6 +67,15 @@ const THEME_OPTIONS = [
     tag: 'Clásico'
   },
   {
+    id: 'neo_brutalist',
+    name: 'Pop Tactile',
+    desc: 'Neo-brutalismo con alto contraste, bordes gruesos y sombras duras táctiles',
+    category: 'Vanguardista, Makers & Creativos',
+    accentColor: '#FFD166',
+    bgColor: '#FDFBF7',
+    tag: 'Vanguardista'
+  },
+  {
     id: 'creative',
     name: 'Creativo',
     desc: 'Glassmorphism dark mode con orbes violeta y neón',
