@@ -138,7 +138,7 @@ export const useProfileStore = create(
         const normalized = username.toLowerCase().trim()
         
         // Reserved system routes
-        const reserved = ['dashboard', 'admin', 'login', 'register', 'api', 'app', 'settings', 'help', 'pricing']
+        const reserved = ['dashboard', 'admin', 'login', 'register', 'api', 'app', 'settings', 'help', 'pricing', 'snake']
         if (reserved.includes(normalized)) return false
 
         const profiles = get().profiles
@@ -155,7 +155,7 @@ export const useProfileStore = create(
         const normalized = username.toLowerCase().trim()
         
         // Reserved system routes
-        const reserved = ['dashboard', 'admin', 'login', 'register', 'api', 'app', 'settings', 'help', 'pricing']
+        const reserved = ['dashboard', 'admin', 'login', 'register', 'api', 'app', 'settings', 'help', 'pricing', 'snake']
         if (reserved.includes(normalized)) return false
 
         const profiles = get().profiles

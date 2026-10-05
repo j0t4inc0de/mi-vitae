@@ -7,6 +7,7 @@ import DashboardPage from './pages/DashboardPage'
 import AdminPage from './pages/AdminPage'
 import AuthPage from './pages/AuthPage'
 import NotFoundPage from './pages/NotFoundPage'
+import SnakePage from './pages/SnakePage'
 import RegisterFeedbackModal from './components/Modals/RegisterFeedbackModal'
 import FlowCheckoutModal from './components/Modals/FlowCheckoutModal'
 import UserAccountModal from './components/Modals/UserAccountModal'
@@ -124,14 +125,16 @@ function AppContent() {
         return <AdminPage />
       case 'auth':
         return <AuthPage />
+      case 'snake':
+        return <SnakePage />
       default:
         return <NotFoundPage />
     }
   }
 
   return (
-    <div className={`min-h-screen flex flex-col font-sans ${route === 'portfolio' ? '' : 'bg-slate-50 dark:bg-slate-950'} text-slate-900 dark:text-slate-100 overflow-x-clip`}>
-      {route !== 'portfolio' && <Navbar />}
+    <div className={`min-h-screen flex flex-col font-sans ${route === 'portfolio' || route === 'snake' ? '' : 'bg-slate-50 dark:bg-slate-950'} text-slate-900 dark:text-slate-100 overflow-x-clip`}>
+      {route !== 'portfolio' && route !== 'snake' && <Navbar />}
       <div className="flex-1">
         <ErrorBoundary>
           {renderRoute()}

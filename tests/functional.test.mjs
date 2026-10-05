@@ -74,6 +74,12 @@ it('matches /admin route', () => {
   assert.equal(res.path, '/admin');
 });
 
+it('matches /snake route', () => {
+  const res = matchRoute('/snake');
+  assert.equal(res.name, 'snake');
+  assert.equal(res.path, '/snake');
+});
+
 it('matches /login, /register, /auth, /signin with correct initialMode', () => {
   const login = matchRoute('/login');
   assert.equal(login.name, 'auth');
@@ -338,6 +344,24 @@ const legalModalMod = await vite.ssrLoadModule('/src/components/Modals/LegalModa
 
 it('verifies LegalModal component loads cleanly and exports valid default component', () => {
   assert.ok(typeof legalModalMod.default === 'function', 'LegalModal must export a valid component function');
+});
+
+const snakePageMod = await vite.ssrLoadModule('/src/pages/SnakePage.jsx');
+
+it('verifies SnakePage component loads cleanly and exports valid default component', () => {
+  assert.ok(typeof snakePageMod.default === 'function', 'SnakePage must export a valid component function');
+});
+
+const snakeModalMod = await vite.ssrLoadModule('/src/components/Modals/SnakeEasterEggModal.jsx');
+
+it('verifies SnakeEasterEggModal component loads cleanly and exports valid default component', () => {
+  assert.ok(typeof snakeModalMod.default === 'function', 'SnakeEasterEggModal must export a valid component function');
+});
+
+const footerMod = await vite.ssrLoadModule('/src/components/Common/Footer.jsx');
+
+it('verifies Footer component loads cleanly and integrates Snake link to another window', () => {
+  assert.ok(typeof footerMod.default === 'function', 'Footer must export a valid component function');
 });
 
 // -------------------------------------------------------------

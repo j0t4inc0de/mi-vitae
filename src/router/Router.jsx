@@ -38,6 +38,10 @@ export function matchRoute(path) {
     return { name: 'admin', path: '/admin', params: {} }
   }
 
+  if (firstSegment === 'snake') {
+    return { name: 'snake', path: '/snake', params: {} }
+  }
+
   if (firstSegment === 'auth' || firstSegment === 'login' || firstSegment === 'register' || firstSegment === 'signin') {
     return { 
       name: 'auth', 
