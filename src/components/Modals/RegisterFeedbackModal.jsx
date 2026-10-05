@@ -66,7 +66,6 @@ const REFERRAL_SOURCES = [
   { id: 'friend', label: 'Recomendación de un colega o amigo', icon: Users },
   { id: 'google', label: 'Búsqueda en Google', icon: Search },
   { id: 'samod', label: 'We Are Samod (Sitio / Portafolio)', icon: Building2 },
-  { id: 'community', label: 'Comunidades Tech / Eventos Profesionales', icon: Ticket }
 ]
 
 // Theme choices for Step 1
