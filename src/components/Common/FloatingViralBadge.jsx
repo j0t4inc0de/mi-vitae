@@ -19,6 +19,7 @@ export default function FloatingViralBadge({ theme = 'minimalist' }) {
     tech: 'bg-[#0D131F]/95 text-emerald-300 border-emerald-500/30 shadow-emerald-950/40 font-mono',
     warm: 'bg-[#FFF9F5]/95 text-[#43281C] border-amber-300/80 shadow-amber-900/10',
     executive: 'bg-[#0F172A]/95 text-slate-100 border-blue-500/30 shadow-blue-950/40',
+    neo_brutalist: 'bg-[#FFD166] text-black border-2 border-black shadow-[3px_3px_0px_#000]',
   }[theme] || 'bg-white/95 text-slate-900 border-slate-200 shadow-slate-900/10'
 
   return (

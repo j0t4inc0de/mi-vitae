@@ -16,6 +16,7 @@ export default function ViralFooter({ theme = 'minimalist', className = '', dark
     minimalist: 'hover:border-slate-400 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white',
     creative: 'hover:border-purple-500/40 text-purple-200/70 hover:text-white',
     tech: 'hover:border-emerald-500/40 text-emerald-400/80 hover:text-emerald-300 font-mono',
+    neo_brutalist: 'hover:border-black text-black/80 hover:text-black font-bold',
   }[theme] || 'hover:border-indigo-500/40 text-slate-500 hover:text-slate-900'
 
   return (

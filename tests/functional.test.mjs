@@ -729,6 +729,16 @@ it('verifies DashboardPage THEME_OPTIONS contains 6 themes with neo_brutalist (P
   assert.equal(themeIds[5], 'executive', 'Sixth theme must be executive');
 });
 
+it('verifies RegisterFeedbackModal contains all 6 themes including Pop Tactile for symmetrical display', () => {
+  const registerModalContent = fs.readFileSync(path.resolve(__dirname, '../src/components/Modals/RegisterFeedbackModal.jsx'), 'utf-8');
+  const modalThemeMatch = registerModalContent.match(/\/\/ Theme choices for Step 1\r?\nconst THEME_OPTIONS = \[([\s\S]*?)\]/);
+  assert.ok(modalThemeMatch, 'THEME_OPTIONS must be defined in RegisterFeedbackModal.jsx');
+  const modalThemeIds = [...modalThemeMatch[1].matchAll(/id:\s*'([a-z_]+)'/g)].map((m) => m[1]);
+  assert.equal(modalThemeIds.length, 6, 'RegisterFeedbackModal must contain exactly 6 themes');
+  assert.ok(modalThemeIds.includes('neo_brutalist'), 'RegisterFeedbackModal must include neo_brutalist (Pop Tactile)');
+  assert.ok(registerModalContent.includes('grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2'), 'RegisterFeedbackModal must use symmetrical par grid layout');
+});
+
 await vite.close();
 
 // -------------------------------------------------------------

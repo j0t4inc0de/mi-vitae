@@ -71,9 +71,10 @@ const REFERRAL_SOURCES = [
 
 // Theme choices for Step 1
 const THEME_OPTIONS = [
-  { id: 'tech', label: 'Técnico', color: 'bg-emerald-500 text-black', role: 'Tech & Code' },
-  { id: 'creative', label: 'Creativo', color: 'bg-purple-500 text-white', role: 'Diseño & UX' },
   { id: 'minimalist', label: 'Minimalista', color: 'bg-stone-700 text-white', role: 'Legal & Finanzas' },
+  { id: 'neo_brutalist', label: 'Pop Tactile', color: 'bg-amber-400 text-black', role: 'Makers & Creativos' },
+  { id: 'creative', label: 'Creativo', color: 'bg-purple-500 text-white', role: 'Diseño & UX' },
+  { id: 'tech', label: 'Técnico', color: 'bg-emerald-500 text-black', role: 'Tech & Code' },
   { id: 'warm', label: 'Cálido', color: 'bg-amber-500 text-white', role: 'Salud & Coaching' },
   { id: 'executive', label: 'Ejecutivo', color: 'bg-blue-600 text-white', role: 'C-Level & Negocios' }
 ]
@@ -700,7 +701,7 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                   <Palette className="w-3.5 h-3.5" style={{ color: 'var(--primary, #4d5eb3)' }} />
                   <span>Selecciona tu Tema Visual de Partida</span>
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
                   {THEME_OPTIONS.map((th) => {
                     const isSelected = selectedTheme === th.id
                     return (
@@ -717,21 +718,21 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                               }
                             : {}
                         }
-                        className={`p-2.5 rounded-2xl border text-center transition-all cursor-pointer ${
+                        className={`p-2 rounded-2xl border text-center transition-all cursor-pointer ${
                           isSelected
-                            ? 'scale-105'
+                            ? 'scale-105 ring-2 ring-indigo-500/20'
                             : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 hover:border-slate-300'
                         }`}
                       >
                         <div className="flex justify-center mb-1.5">
                           <UserAvatar
                             username={th.label}
-                            size={36}
+                            size={32}
                             className="rounded-xl shadow-xs"
                           />
                         </div>
                         <div 
-                          className="font-bold text-xs"
+                          className="font-bold text-xs truncate"
                           style={isSelected ? { color: 'var(--primary, #4d5eb3)' } : {}}
                         >
                           <span className={isSelected ? '' : 'text-slate-900 dark:text-white'}>{th.label}</span>

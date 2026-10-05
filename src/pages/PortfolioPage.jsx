@@ -190,7 +190,8 @@ export default function PortfolioPage() {
     tech: 'bg-[#0A0E17]',
     executive: 'bg-[#0B132B]',
     warm: 'bg-[#FDF8F5]',
-    minimalist: 'bg-[#FAFAF9]'
+    minimalist: 'bg-[#FAFAF9]',
+    neo_brutalist: 'bg-[#FDFBF7]'
   }
 
   return (

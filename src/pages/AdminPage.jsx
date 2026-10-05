@@ -12,6 +12,7 @@ import {
 // Map theme IDs to user-friendly names and badge styling
 const THEME_INFO = {
   minimalist: { name: 'Minimalista', color: 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700' },
+  neo_brutalist: { name: 'Pop Tactile', color: 'bg-amber-100 dark:bg-amber-950/50 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-700' },
   creative: { name: 'Creativo', color: 'bg-fuchsia-50 dark:bg-fuchsia-950/50 text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-200 dark:border-fuchsia-800' },
   tech: { name: 'Técnico', color: 'bg-cyan-50 dark:bg-cyan-950/50 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800' },
   warm: { name: 'Cálido', color: 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800' },
@@ -622,6 +623,7 @@ export default function AdminPage() {
                 >
                   <option value="all">Todos los Temas</option>
                   <option value="minimalist">Minimalista</option>
+                  <option value="neo_brutalist">Pop Tactile</option>
                   <option value="creative">Creativo</option>
                   <option value="tech">Técnico</option>
                   <option value="warm">Cálido</option>
