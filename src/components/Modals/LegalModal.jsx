@@ -150,7 +150,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'terms' }) {
                   5. Disponibilidad y Soporte Técnico
                 </h4>
                 <p>
-                  We Are Samod trabaja continuamente para garantizar una alta disponibilidad de los portafolios (infraestructura global Cloudflare Edge y Supabase Cloud). En caso de consultas técnicas, dudas operativas o sugerencias, nuestro equipo está a tu disposición en <a href="mailto:contacto@mivitae.wearesamod.com" className="text-indigo-600 dark:text-indigo-400 font-semibold underline">contacto@mivitae.wearesamod.com</a> o vía WhatsApp en <span className="font-semibold text-slate-800 dark:text-slate-200">+56 9 3757 3764</span>.
+                  We Are Samod trabaja continuamente para garantizar una alta disponibilidad de los portafolios. En caso de consultas técnicas, dudas operativas o sugerencias, nuestro equipo está a tu disposición en <a href="mailto:contacto@wearesamod.com" className="text-indigo-600 dark:text-indigo-400 font-semibold underline">contacto@wearesamod.com</a> o vía WhatsApp en <span className="font-semibold text-slate-800 dark:text-slate-200">+56 9 3757 3764</span>.
                 </p>
               </div>
 
@@ -208,7 +208,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'terms' }) {
                   4. Seguridad y Almacenamiento en la Nube
                 </h4>
                 <p>
-                  Tus datos son almacenados en servidores de última generación bajo cifrado SSL/TLS de 256 bits, con respaldo distribuido y políticas de seguridad Row Level Security (RLS) en Supabase Cloud.
+                  Tus datos son almacenados en servidores de última generación bajo cifrado SSL/TLS de 256 bits, con respaldo distribuido y políticas de seguridad Row Level Security (RLS).
                 </p>
               </div>
 
@@ -217,7 +217,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'terms' }) {
                   5. Derechos de Acceso, Rectificación y Supresión (ARCO)
                 </h4>
                 <p>
-                  De conformidad con la Ley 19.628 de la República de Chile, puedes editar en cualquier momento tus datos directamente desde el Editor Studio de Mi Vitae, o solicitar la eliminación total y definitiva de tu perfil escribiéndonos a <a href="mailto:contacto@mivitae.wearesamod.com" className="text-indigo-600 dark:text-indigo-400 font-semibold underline">contacto@mivitae.wearesamod.com</a>.
+                  De conformidad con la Ley 19.628 de la República de Chile, puedes editar en cualquier momento tus datos directamente desde el Editor Studio de Mi Vitae, o solicitar la eliminación total y definitiva de tu perfil escribiéndonos a <a href="mailto:contacto@wearesamod.com" className="text-indigo-600 dark:text-indigo-400 font-semibold underline">contacto@wearesamod.com</a>.
                 </p>
               </div>
             </div>

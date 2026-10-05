@@ -313,7 +313,7 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
       })
 
       if (!supabaseResult.success && !supabaseResult.isMock) {
-        setSubmitError(supabaseResult.error || 'Error al conectar con Supabase.')
+        setSubmitError(supabaseResult.error || 'Error al conectar con el servidor. Por favor intenta nuevamente.')
         setIsSubmitting(false)
         return
       }

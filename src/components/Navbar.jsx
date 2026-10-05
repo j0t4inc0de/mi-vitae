@@ -107,7 +107,7 @@ export default function Navbar() {
                   type="button"
                   onClick={() => triggerDashboardSave()}
                   disabled={isDashboardSaving}
-                  title={hasUnsavedChanges ? "Guardando cambios en Supabase Cloud..." : "Todos los cambios están guardados"}
+                  title={hasUnsavedChanges ? "Guardando cambios..." : "Todos los cambios están guardados"}
                   aria-label="Guardar cambios"
                   className={`h-9 sm:h-10 px-2.5 sm:px-3.5 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm cursor-pointer shrink-0 ${
                     isDashboardSaving

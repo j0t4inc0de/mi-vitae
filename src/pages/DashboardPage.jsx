@@ -854,7 +854,7 @@ export default function DashboardPage() {
             <div>
               <div className="text-emerald-950 font-extrabold text-sm">¡Portafolio Actualizado!</div>
               <div className="text-emerald-700 font-normal text-[11px]">
-                Cambios sincronizados en Supabase Cloud y vista @{profileData.username}.
+                Cambios sincronizados y vista @{profileData.username}.
               </div>
             </div>
           </div>

@@ -118,7 +118,7 @@ export default function AuthPage() {
         })
 
         if (!supabaseResult.success && !supabaseResult.isMock) {
-          throw new Error(supabaseResult.error || 'Error al registrar usuario en Supabase.')
+          throw new Error(supabaseResult.error || 'Error al registrar tu cuenta. Por favor intenta nuevamente.')
         }
 
         // Crear perfil en el store para acceso inmediato al Editor Studio
