@@ -38,8 +38,8 @@ export default function Navbar() {
             <MiVitaeLogo className="w-9 h-9" />
           </div>
           <div className="flex items-center gap-2">
-            <span className="hidden sm:inline font-extrabold text-xl tracking-tight text-slate-900 dark:text-white no-underline">
-              Mi Vitae
+            <span className="hidden sm:inline font-extrabold text-xl tracking-tight text-slate-900 dark:text-white font-sans lowercase leading-none no-underline">
+              mi vitae
             </span>
             {isDashboard && (
               <span className="px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold font-mono tracking-wider uppercase bg-palette-primary/10 text-palette-primary border border-palette-primary/30">

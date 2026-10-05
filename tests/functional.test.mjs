@@ -288,6 +288,13 @@ it('tests global modal state openers & closers', () => {
   store.closeFlowModal();
   assert.equal(useProfileStore.getState().isFlowModalOpen, false);
 
+  // Legal modal state
+  store.openLegalModal('privacy');
+  assert.equal(useProfileStore.getState().isLegalModalOpen, true);
+  assert.equal(useProfileStore.getState().legalModalTab, 'privacy');
+  store.closeLegalModal();
+  assert.equal(useProfileStore.getState().isLegalModalOpen, false);
+
   // Global loader state
   store.showLoading('Generando código QR...');
   assert.equal(useProfileStore.getState().isGlobalLoading, true);
@@ -325,6 +332,12 @@ it('verifies all 6 theme components load cleanly and export valid default compon
   for (const [slug, mod] of Object.entries(themeModules)) {
     assert.ok(typeof mod.default === 'function', `Theme '${slug}' must export a valid component function`);
   }
+});
+
+const legalModalMod = await vite.ssrLoadModule('/src/components/Modals/LegalModal.jsx');
+
+it('verifies LegalModal component loads cleanly and exports valid default component', () => {
+  assert.ok(typeof legalModalMod.default === 'function', 'LegalModal must export a valid component function');
 });
 
 // -------------------------------------------------------------

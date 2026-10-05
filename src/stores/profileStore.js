@@ -73,6 +73,11 @@ export const useProfileStore = create(
       closeAccountModal: () => {
         set({ isAccountModalOpen: false })
       },
+      // Legal Modal (Terms & Privacy) State
+      isLegalModalOpen: false,
+      legalModalTab: 'terms',
+      openLegalModal: (tab = 'terms') => set({ isLegalModalOpen: true, legalModalTab: tab }),
+      closeLegalModal: () => set({ isLegalModalOpen: false }),
       // ponytail: Clear user session on logout
       logout: () => {
         set({ activeUsername: null, isAccountModalOpen: false })

@@ -10,6 +10,7 @@ import NotFoundPage from './pages/NotFoundPage'
 import RegisterFeedbackModal from './components/Modals/RegisterFeedbackModal'
 import FlowCheckoutModal from './components/Modals/FlowCheckoutModal'
 import UserAccountModal from './components/Modals/UserAccountModal'
+import LegalModal from './components/Modals/LegalModal'
 import GlobalLoader from './components/Common/GlobalLoader'
 import { useProfileStore } from './stores/profileStore'
 import { getCurrentUserProfile, isSupabaseConfigured, supabase } from './lib/supabaseClient'
@@ -71,6 +72,10 @@ function AppContent() {
 
   const isAccountModalOpen = useProfileStore((state) => state.isAccountModalOpen)
   const closeAccountModal = useProfileStore((state) => state.closeAccountModal)
+
+  const isLegalModalOpen = useProfileStore((state) => state.isLegalModalOpen)
+  const legalModalTab = useProfileStore((state) => state.legalModalTab)
+  const closeLegalModal = useProfileStore((state) => state.closeLegalModal)
 
   const isGlobalLoading = useProfileStore((state) => state.isGlobalLoading)
   const loadingMessage = useProfileStore((state) => state.loadingMessage)
@@ -151,6 +156,12 @@ function AppContent() {
       <UserAccountModal
         isOpen={isAccountModalOpen}
         onClose={closeAccountModal}
+      />
+
+      <LegalModal
+        isOpen={isLegalModalOpen}
+        onClose={closeLegalModal}
+        initialTab={legalModalTab}
       />
 
       {/* Global Loader Overlay */}

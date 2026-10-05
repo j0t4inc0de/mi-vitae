@@ -160,13 +160,13 @@ await it('backend rejects PDFs exceeding 10MB in multipart/form-data before buff
 // -------------------------------------------------------------
 console.log('\n▶ Suite 3: AI Model Fallback & Error Resilience');
 
-await it('falls back to gemini-flash-latest when gemini-3.1-flash-lite fails (500/404)', async () => {
+await it('falls back to gemini-flash-latest when gemini-3.6-flash fails (500/404)', async () => {
   const originalFetch = globalThis.fetch;
   const attempts = [];
 
   globalThis.fetch = async (url, opts) => {
     attempts.push(url);
-    if (url.includes('gemini-3.1-flash-lite')) {
+    if (url.includes('gemini-3.6-flash')) {
       return new Response('Model not found', { status: 404 });
     }
     if (url.includes('gemini-flash-latest')) {
@@ -200,7 +200,7 @@ await it('falls back to gemini-flash-latest when gemini-3.1-flash-lite fails (50
     const data = await res.json();
     assert.equal(data.success, true);
     assert.equal(data.data.personalInfo.name, 'Fallback User');
-    assert.ok(attempts.some(u => u.includes('gemini-3.1-flash-lite')));
+    assert.ok(attempts.some(u => u.includes('gemini-3.6-flash')));
     assert.ok(attempts.some(u => u.includes('gemini-flash-latest')));
   } finally {
     globalThis.fetch = originalFetch;
@@ -440,6 +440,78 @@ await it('defensively maps non-tech CVs and alternative keys (personal_info, ful
     assert.equal(data.skills[0].category, 'soft');
     assert.equal(data.skills[2].name, 'Kinesioterapia');
     assert.equal(data.skills[2].category, 'technical');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+await it('defensively maps healthcare/nursing CVs (personal_information, profile_summary, profile_areas, professional_practice, courses_and_certifications)', async () => {
+  const originalFetch = globalThis.fetch;
+  const carlaAiJson = {
+    personal_information: {
+      name: 'CARLA NAHIARA SERRANO MORAGA',
+      profession: 'ENFERMERA',
+      email: 'cnserranom@gmail.com',
+      phone: '937573764',
+      address: 'Sitio 69, Villa Las Pataguas, Santa Fé, Los Ángeles',
+      minsal: 'N° 425560',
+      profile_summary: 'Enfermera con experiencia en atención y seguimiento de pacientes oncológicos, y en toma de muestras.',
+      profile_areas: [
+        'Atención domiciliaria',
+        'Pacientes oncológicos',
+        'Toma de muestras'
+      ]
+    },
+    education: [
+      { year: '2022', degree: 'Enfermera', institution: 'Universidad de las Américas' },
+      { year: '2016', degree: 'Técnico en Enfermería en Nivel Superior', institution: 'Centro de Formación Técnica Santo Tomas' }
+    ],
+    professional_experience: [
+      { period: '2022 · Mar–Actual', role: 'Atención domiciliaria a pacientes oncológicos', company: null },
+      { period: 'Jun–Nov 2022', role: 'Toma de muestras', company: 'Centro Médico Medisalud' }
+    ],
+    professional_practice: [
+      { year: '2021', description: 'Internado de Enfermería: Hospital de niños Dr. Luis Calvo Mackenna / Unidad de Cirugía' }
+    ],
+    courses_and_certifications: [
+      { year: '2023', title: 'Fundamentos del cuidado paliativo · 20 hrs', institution: 'Campus Virtual de Salud Pública' }
+    ]
+  };
+
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    candidates: [{ content: { parts: [{ text: JSON.stringify(carlaAiJson) }] } }]
+  }), { status: 200 });
+
+  try {
+    const req = new Request('https://mivitae.wearesamod.com/api/parse-cv', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileBase64: 'JVBERi0xLjQK' })
+    });
+    const res = await handleParseCv({ request: req, env: { GEMINI_API_KEY: 'test-key' } });
+    assert.equal(res.status, 200);
+    const { data } = await res.json();
+
+    assert.equal(data.personalInfo.name, 'CARLA NAHIARA SERRANO MORAGA');
+    assert.equal(data.personalInfo.title, 'ENFERMERA');
+    assert.equal(data.personalInfo.bio, 'Enfermera con experiencia en atención y seguimiento de pacientes oncológicos, y en toma de muestras.');
+    assert.equal(data.personalInfo.email, 'cnserranom@gmail.com');
+    assert.equal(data.personalInfo.phone, '937573764');
+    assert.equal(data.personalInfo.location, 'Sitio 69, Villa Las Pataguas, Santa Fé, Los Ángeles');
+
+    // Experience: 2 jobs + 1 clinical internship = 3
+    assert.equal(data.experience.length, 3);
+    assert.equal(data.experience[0].current, true);
+    assert.equal(data.experience[0].company, 'Atención Particular / Domiciliaria');
+    assert.equal(data.experience[1].company, 'Centro Médico Medisalud');
+
+    // Education: 2 degrees + 1 course/cert = 3
+    assert.equal(data.education.length, 3);
+    assert.equal(data.education[2].institution, 'Campus Virtual de Salud Pública');
+
+    // Skills: 3 profile_areas extracted
+    assert.equal(data.skills.length, 3);
+    assert.equal(data.skills[0].name, 'Atención domiciliaria');
   } finally {
     globalThis.fetch = originalFetch;
   }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from '../router/Router'
 import { useProfileStore } from '../stores/profileStore'
 import MiVitaeLogo from '../components/Common/MiVitaeLogo'
+import Footer from '../components/Common/Footer'
 import { 
   Sparkles, CheckCircle2, ArrowRight, ShieldCheck, Zap, 
   Smartphone, QrCode, FileText, Palette, Users, Layers, Star,
@@ -825,121 +826,9 @@ export default function LandingPage() {
       </section>
 
       {/* ========================================================================= */}
-      {/* 6. CORPORATE FOOTER (WE ARE SAMOD) */}
+      {/* 6. EDITORIAL FOOTER (INSPIRADO EN PUREE MAISON / WE ARE SAMOD) */}
       {/* ========================================================================= */}
-      <footer className="py-12 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 text-xs sm:text-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-10 border-b border-slate-200 dark:border-slate-800">
-            
-            {/* Brand column */}
-            <div className="md:col-span-2">
-              <div className="flex items-center gap-2.5 mb-3">
-                <MiVitaeLogo className="w-8 h-8" />
-                <span className="font-extrabold text-lg tracking-tight text-slate-900 dark:text-white">
-                  Mi Vitae
-                </span>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                  v1.0
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm leading-relaxed mb-3">
-                Plataforma de portafolios web profesionales de alta conversión. Creado para sustituir los currículums tradicionales en PDF por una experiencia digital interactiva.
-              </p>
-              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Una solución desarrollada por <span className="text-indigo-600 dark:text-indigo-400 font-bold">We Are Samod</span>.
-              </p>
-            </div>
-
-            {/* Navigation links */}
-            <div>
-              <h5 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider mb-3">
-                Plataforma
-              </h5>
-              <ul className="space-y-2 text-xs">
-                <li>
-                  <Link to="/" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                    Inicio
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/dashboard" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                    Editor Studio
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/admin" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                    Super Admin Portal
-                  </Link>
-                </li>
-                <li>
-                  <button onClick={() => scrollToSection('username-validator')} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left cursor-pointer">
-                    Reclamar Enlace
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => scrollToSection('pricing')} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left cursor-pointer">
-                    Precios & Suscripción
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => scrollToSection('faq')} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-left cursor-pointer">
-                    Preguntas Frecuentes
-                  </button>
-                </li>
-              </ul>
-            </div>
-
-            {/* Demo archetypes */}
-            <div>
-              <h5 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider mb-3">
-                Demos en Vivo
-              </h5>
-              <ul className="space-y-2 text-xs">
-                <li>
-                  <Link to="/abogado_consultor" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                    /abogado_consultor (Minimalista)
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/antonia_ux" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                    /antonia_ux (Creativo)
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/carlos_dev" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                    /carlos_dev (Técnico)
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/valeria_psico" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                    /valeria_psico (Cálido)
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/rodrigo_ops" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                    /rodrigo_ops (Ejecutivo)
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-          </div>
-
-          {/* Copyright bar */}
-          <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
-            <p>© 2026 Mi Vitae. Todos los derechos reservados. Desarrollado por We Are Samod.</p>
-            <div className="flex items-center gap-4">
-              <span className="hover:underline cursor-pointer">Términos del Servicio</span>
-              <span>·</span>
-              <span className="hover:underline cursor-pointer">Política de Privacidad</span>
-              <span>·</span>
-              <span className="hover:underline cursor-pointer">Soporte Flow / Webpay</span>
-            </div>
-          </div>
-
-        </div>
-      </footer>
+      <Footer />
 
     </div>
   )

@@ -5,11 +5,11 @@
  * Safely extracts structured portfolio data from uploaded PDF curriculum vitae.
  */
 
-// ponytail: Prioritize ultra-low latency gemini-3.1-flash-lite (~5s) followed by stable fallbacks
+// ponytail: Prioritize high-capacity, low-latency gemini-3.6-flash (~2-3s) followed by stable fallbacks
 const CANDIDATE_MODELS = [
-  'gemini-3.1-flash-lite',
+  'gemini-3.6-flash',
   'gemini-flash-latest',
-  'gemini-3.6-flash'
+  'gemini-3.1-flash-lite'
 ]
 
 const CV_EXTRACTION_PROMPT = `
@@ -19,7 +19,7 @@ Analiza el Currículum Vitae (PDF) adjunto y extrae TODO su contenido relevante 
 {
   "personalInfo": {
     "name": "Nombre completo del profesional",
-    "title": "Titular profesional o profesión (ej: Kinesiólogo, Ingeniero de Software)",
+    "title": "Titular profesional o profesión (ej: Kinesiólogo, Enfermera, Ingeniero de Software)",
     "bio": "Resumen profesional conciso y atractivo de máximo 2 a 3 oraciones (entre 35 y 55 palabras). Si el perfil original es un párrafo extenso, sintetízalo destacando solo especialidad y propuesta de valor.",
     "email": "Correo electrónico de contacto",
     "phone": "Teléfono con código de país si está presente",
@@ -68,10 +68,13 @@ Analiza el Currículum Vitae (PDF) adjunto y extrae TODO su contenido relevante 
 
 Reglas estrictas:
 1. Devuelve ÚNICAMENTE el objeto JSON válido, sin bloques markdown (\`\`\`json), sin texto introductorio ni explicaciones.
-2. Usa exactamente las llaves camelCase en inglés especificadas ("personalInfo", "experience", "education", "skills", "projects", "languages"). NUNCA uses snake_case como personal_info o professional_experience.
-3. Si un campo no está presente, usa "" para texto o [] para listas.
-4. Para habilidades (skills), devuelve siempre un array de objetos con name, category ("technical" o "soft") y level (entero entre 60 y 100).
-5. Sintetiza los textos extensos para que sean ágiles de leer en un portafolio web.
+2. Usa exactamente las llaves camelCase en inglés especificadas ("personalInfo", "experience", "education", "skills", "projects", "languages"). NUNCA uses snake_case como personal_info, personal_information o professional_experience.
+3. Si el perfil contiene prácticas profesionales, rotaciones clínicas o internados, inclúyelos en "experience".
+4. Si contiene cursos o certificaciones, inclúyelos en "education".
+5. Si contiene áreas de desempeño o competencias asistenciales/clínicas, inclúyelos en "skills".
+6. Si un campo no está presente, usa "" para texto o [] para listas.
+7. Para habilidades (skills), devuelve siempre un array de objetos con name, category ("technical" o "soft") y level (entero entre 60 y 100).
+8. Sintetiza los textos extensos para que sean ágiles de leer en un portafolio web.
 `
 
 export async function onRequestPost(context) {
@@ -178,38 +181,32 @@ export async function onRequestPost(context) {
         }
       }
 
-      // ponytail: Single quick retry on 503 (high demand) or 429 before jumping to fallback model
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          const res = await fetch(geminiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          })
+      // ponytail: Strict 9.5s timeout per candidate model prevents Cloudflare Pages worker 502 timeout (~30s limit)
+      try {
+        const res = await fetch(geminiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(9500),
+          body: JSON.stringify(payload)
+        })
 
-          if (!res.ok) {
-            const errText = await res.text()
-            lastError = `Modelo ${model}: ${errText}`
-            if ((res.status === 503 || res.status === 429) && attempt === 0) {
-              await new Promise(r => setTimeout(r, 1200))
-              continue
-            }
-            break
-          }
+        if (!res.ok) {
+          const errText = await res.text()
+          lastError = `Modelo ${model}: ${errText}`
+          // If overloaded (503/429), immediately fall through to next candidate model without sleeping
+          continue
+        }
 
-          const data = await res.json()
-          const textOutput = data?.candidates?.[0]?.content?.parts?.[0]?.text
-          if (textOutput) {
-            rawJsonResponse = textOutput
-            break
-          }
-        } catch (err) {
-          lastError = err.message
+        const data = await res.json()
+        const textOutput = data?.candidates?.[0]?.content?.parts?.[0]?.text
+        if (textOutput) {
+          rawJsonResponse = textOutput
           break
         }
+      } catch (err) {
+        lastError = `Modelo ${model}: ${err.name} - ${err.message}`
+        continue
       }
-
-      if (rawJsonResponse) break
     }
 
     if (!rawJsonResponse) {
@@ -263,28 +260,52 @@ export async function onRequestPost(context) {
     const now = Date.now()
     const pInfo = (parsed.personalInfo && typeof parsed.personalInfo === 'object') 
       ? parsed.personalInfo 
-      : ((parsed.personal_info && typeof parsed.personal_info === 'object') ? parsed.personal_info : (parsed.personal || {}))
+      : ((parsed.personal_information && typeof parsed.personal_information === 'object')
+        ? parsed.personal_information
+        : ((parsed.personal_info && typeof parsed.personal_info === 'object')
+          ? parsed.personal_info
+          : (parsed.personal || {})))
     const contact = (pInfo.contact && typeof pInfo.contact === 'object') ? pInfo.contact : (parsed.contact || {})
+
+    // Normalize experiences including clinical internships / professional practices
+    const rawExperience = [
+      ...(Array.isArray(parsed.experience) ? parsed.experience : (Array.isArray(parsed.professional_experience) ? parsed.professional_experience : (Array.isArray(parsed.experiencia_laboral) ? parsed.experiencia_laboral : (Array.isArray(parsed.experiencia) ? parsed.experiencia : [])))),
+      ...(Array.isArray(parsed.professional_practice) ? parsed.professional_practice : (Array.isArray(parsed.practicas) ? parsed.practicas : (Array.isArray(parsed.internados) ? parsed.internados : [])))
+    ]
+
+    // Normalize education including certifications and specialized courses
+    const rawEducation = [
+      ...(Array.isArray(parsed.education) ? parsed.education : (Array.isArray(parsed.educacion) ? parsed.educacion : (Array.isArray(parsed.formacion) ? parsed.formacion : []))),
+      ...(Array.isArray(parsed.courses_and_certifications) ? parsed.courses_and_certifications : (Array.isArray(parsed.certificaciones) ? parsed.certificaciones : (Array.isArray(parsed.cursos) ? parsed.cursos : [])))
+    ]
+
+    // Normalize skills including clinical competence areas and practice areas
+    const rawSkills = Array.isArray(parsed.skills) ? parsed.skills
+      : (Array.isArray(parsed.habilidades) ? parsed.habilidades
+        : (Array.isArray(parsed.competencias) ? parsed.competencias
+          : (Array.isArray(pInfo.profile_areas) ? pInfo.profile_areas
+            : (Array.isArray(parsed.profile_areas) ? parsed.profile_areas
+              : (Array.isArray(parsed.areas) ? parsed.areas : [])))))
 
     // Normalize and add unique IDs for React keys with defensive fallbacks for diverse CV styles
     const sanitizedProfile = {
       personalInfo: {
         name: str(pInfo.name || pInfo.fullName || pInfo.full_name || parsed.nombre),
-        title: str(pInfo.title || pInfo.profession || pInfo.headline || parsed.profesion || parsed.titulo),
-        bio: str(pInfo.bio || pInfo.summary || parsed.about_me || parsed.sobre_mi || parsed.resumen || parsed.perfil),
+        title: str(pInfo.title || pInfo.profession || pInfo.headline || pInfo.cargo || parsed.profesion || parsed.titulo),
+        bio: str(pInfo.bio || pInfo.summary || pInfo.profile_summary || pInfo.profileSummary || parsed.about_me || parsed.sobre_mi || parsed.resumen || parsed.perfil),
         email: str(pInfo.email || contact.email || parsed.email),
         phone: str(pInfo.phone || contact.phone || parsed.telefono),
-        location: str(pInfo.location || contact.location || contact.address || parsed.ubicacion),
+        location: str(pInfo.location || pInfo.address || contact.location || contact.address || parsed.ubicacion),
         website: str(pInfo.website || contact.website || parsed.website),
         linkedin: str(pInfo.linkedin || contact.linkedin || parsed.linkedin),
         github: str(pInfo.github || contact.github || parsed.github),
         availableForWork: true
       },
-      experience: (Array.isArray(parsed.experience) ? parsed.experience : (Array.isArray(parsed.professional_experience) ? parsed.professional_experience : (Array.isArray(parsed.experiencia_laboral) ? parsed.experiencia_laboral : []))).map((e, idx) => {
+      experience: rawExperience.map((e, idx) => {
         if (typeof e === 'string') {
           return {
             id: `exp-${now}-${idx}`,
-            company: '',
+            company: 'Práctica / Particular',
             role: e,
             startDate: '',
             endDate: null,
@@ -293,22 +314,26 @@ export async function onRequestPost(context) {
             achievements: []
           }
         }
-        const periodStr = str(e.period || e.periodo)
+        const periodStr = str(e.period || e.periodo || e.year || e.fecha)
         const isCurrent = Boolean(e.current || (periodStr && /presente|actual|fecha/i.test(periodStr)))
+        const role = str(e.role || e.cargo || e.position || e.puesto || e.title || (e.description && !e.role ? 'Práctica / Rotación Profesional' : ''))
+        const description = str(e.description || e.descripcion || e.resumen || (e.role && !e.company ? e.role : ''))
+        const company = str(e.company || e.organization || e.institution || e.empresa || e.institucion, isCurrent ? 'Atención Particular / Domiciliaria' : '')
+
         return {
           id: (typeof e.id === 'string' && e.id.startsWith('exp-')) ? e.id : `exp-${now}-${idx}`,
-          company: str(e.company || e.organization || e.institution || e.empresa || e.institucion),
-          role: str(e.role || e.cargo || e.position || e.puesto || e.title),
-          startDate: str(e.startDate || e.inicio || (periodStr.split(/[-–—]/)[0] || '')),
-          endDate: isCurrent ? null : (e.endDate || (periodStr.includes('-') || periodStr.includes('–') ? str(periodStr.split(/[-–—]/)[1] || '') : null)),
+          company,
+          role,
+          startDate: str(e.startDate || e.inicio || (periodStr.split(/[-–—·]/)[0] || '')),
+          endDate: isCurrent ? null : (e.endDate || (periodStr.includes('-') || periodStr.includes('–') ? str(periodStr.split(/[-–—·]/)[1] || '') : (periodStr || null))),
           current: isCurrent,
-          description: str(e.description || e.descripcion || e.resumen),
+          description,
           achievements: Array.isArray(e.achievements) 
             ? e.achievements.map(a => str(a)).filter(Boolean) 
             : (Array.isArray(e.actividades) ? e.actividades.map(a => str(a)).filter(Boolean) : (Array.isArray(e.logros) ? e.logros.map(a => str(a)).filter(Boolean) : []))
         }
       }),
-      education: (Array.isArray(parsed.education) ? parsed.education : (Array.isArray(parsed.educacion) ? parsed.educacion : (Array.isArray(parsed.formacion) ? parsed.formacion : []))).map((e, idx) => {
+      education: rawEducation.map((e, idx) => {
         if (typeof e === 'string') {
           return {
             id: `edu-${now}-${idx}`,
@@ -322,15 +347,15 @@ export async function onRequestPost(context) {
         }
         return {
           id: (typeof e.id === 'string' && e.id.startsWith('edu-')) ? e.id : `edu-${now}-${idx}`,
-          institution: str(e.institution || e.institucion || e.university || e.universidad || e.organization),
-          degree: str(e.degree || e.titulo || e.carrera || e.grado || e.title),
+          institution: str(e.institution || e.institucion || e.university || e.universidad || e.organization || e.emisor || e.centro),
+          degree: str(e.degree || e.titulo || e.carrera || e.grado || e.title || e.curso || e.certificacion),
           startDate: str(e.startDate || e.inicio || e.year || e.ano),
           endDate: e.endDate || (e.year ? str(e.year) : null),
           current: Boolean(e.current),
           description: str(e.description || e.descripcion || e.thesis || e.tesis)
         }
       }),
-      skills: (Array.isArray(parsed.skills) ? parsed.skills : (Array.isArray(parsed.habilidades) ? parsed.habilidades : (Array.isArray(parsed.competencias) ? parsed.competencias : []))).map((s, idx) => {
+      skills: rawSkills.map((s, idx) => {
         if (typeof s === 'string') {
           const isSoft = /liderazgo|comunicaci|empat|equipo|adaptaci|tolerancia|resoluci|compromiso|proactiv/i.test(s)
           return {
