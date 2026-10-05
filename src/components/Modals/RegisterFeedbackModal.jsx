@@ -990,7 +990,7 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Conectando con Supabase...</span>
+                      <span>Cargando...</span>
                     </>
                   ) : (
                     <>
