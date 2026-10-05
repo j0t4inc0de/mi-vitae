@@ -136,8 +136,12 @@ export default function CvImportModal({ isOpen, onClose, onSuccess }) {
         throw new Error(result.error || 'No se pudo procesar la información del CV.')
       }
 
-      // Step 3: Successfully structured
+      // ponytail: ATS filter verification step
       setProgressStep(3)
+      await new Promise((r) => setTimeout(r, 600))
+
+      // Step 4: Successfully structured
+      setProgressStep(4)
 
       if (successTimerRef.current) clearTimeout(successTimerRef.current)
       successTimerRef.current = setTimeout(() => {
@@ -267,9 +271,10 @@ export default function CvImportModal({ isOpen, onClose, onSuccess }) {
 
             <div className="space-y-2">
               <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
-                {progressStep === 1 && '1/3 Leyendo documento PDF...'}
-                {progressStep === 2 && '2/3 Analizando trayectoria con IA...'}
-                {progressStep === 3 && '3/3 ¡Poblando tu portafolio STUDIO!'}
+                {progressStep === 1 && '1/4 Leyendo documento PDF...'}
+                {progressStep === 2 && '2/4 Analizando trayectoria con IA...'}
+                {progressStep === 3 && '3/4 Pasando por filtros ATS...'}
+                {progressStep === 4 && '4/4 ¡Poblando tu Vitae STUDIO!'}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
                 {selectedFile?.name || 'Currículum Vitae'} — Extrayendo experiencia, educación, proyectos, habilidades e idiomas.
@@ -281,7 +286,7 @@ export default function CvImportModal({ isOpen, onClose, onSuccess }) {
               <div
                 className="bg-indigo-600 h-full transition-all duration-500 rounded-full"
                 style={{
-                  width: progressStep === 1 ? '33%' : progressStep === 2 ? '75%' : '100%'
+                  width: `${(progressStep / 4) * 100}%`
                 }}
               />
             </div>
