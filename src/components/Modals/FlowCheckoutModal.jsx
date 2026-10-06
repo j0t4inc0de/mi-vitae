@@ -3,6 +3,11 @@ import { useProfileStore } from '../../stores/profileStore'
 import { saveTransactionToSupabase } from '../../lib/supabaseClient'
 import { sendPaymentReceiptEmail } from '../../lib/emailService'
 import { 
+  getStoredCreatorCode, 
+  setStoredCreatorCode, 
+  sanitizeCreatorCode 
+} from '../../lib/creatorCode'
+import { 
   X, ShieldCheck, CheckCircle2, AlertCircle, 
   Download, ArrowRight, RefreshCw, Lock, Sparkles,
   Check, Copy, CreditCard, Smartphone, Landmark, Building2,
@@ -108,6 +113,7 @@ function loadPaddleScript() {
  * FlowCheckoutModal - Multi-Gateway & Multi-Currency Checkout Modal
  * Pestaña 1: 🇨🇱 Chile ($3.490 CLP/mes vía Flow.cl)
  * Pestaña 2: 🌎 Internacional ($3.99 USD/mes vía Paddle Billing v2)
+ * Incluye Sistema "Apoya a un Creador" estilo Epic Games
  */
 export default function FlowCheckoutModal({ 
   isOpen, 
@@ -138,12 +144,27 @@ export default function FlowCheckoutModal({
   const [errorMessage, setErrorMessage] = useState('')
   const [isPaddleLoading, setIsPaddleLoading] = useState(false)
 
-  // Sync payer email if profile changes
+  // Creator / Referral Code ("Apoya a un creador")
+  const [creatorCode, setCreatorCode] = useState(() => getStoredCreatorCode())
+  const [inputCreatorCode, setInputCreatorCode] = useState('')
+  const [isEditingCreatorCode, setIsEditingCreatorCode] = useState(false)
+  const [creatorCodeFeedback, setCreatorCodeFeedback] = useState('')
+
+  // Sync payer email if profile changes & reload stored creator code on open
   useEffect(() => {
     if (currentProfile?.personalInfo?.email) {
       setPayerEmail(currentProfile.personalInfo.email)
     }
   }, [currentProfile])
+
+  useEffect(() => {
+    if (isOpen) {
+      setCreatorCode(getStoredCreatorCode())
+      setIsEditingCreatorCode(false)
+      setInputCreatorCode('')
+      setCreatorCodeFeedback('')
+    }
+  }, [isOpen])
 
   // Escape key handler
   useEffect(() => {
@@ -168,6 +189,31 @@ export default function FlowCheckoutModal({
     }, 200)
   }
 
+  // Handler: Apply manual creator code
+  const handleApplyCreatorCode = (e) => {
+    if (e) e.preventDefault()
+    const sanitized = sanitizeCreatorCode(inputCreatorCode)
+    if (!sanitized) {
+      setCreatorCodeFeedback('Ingresa un código válido (alfanumérico, máx 30 caracteres)')
+      return
+    }
+    setStoredCreatorCode(sanitized)
+    setCreatorCode(sanitized)
+    setInputCreatorCode('')
+    setIsEditingCreatorCode(false)
+    setCreatorCodeFeedback(`¡Código ${sanitized} aplicado!`)
+    setTimeout(() => setCreatorCodeFeedback(''), 4000)
+  }
+
+  // Handler: Remove active creator code
+  const handleRemoveCreatorCode = () => {
+    setStoredCreatorCode('')
+    setCreatorCode('')
+    setInputCreatorCode('')
+    setIsEditingCreatorCode(false)
+    setCreatorCodeFeedback('')
+  }
+
   // =========================================================================
   // GATEWAY 1: FLOW.CL (CHILE - $3.490 CLP)
   // =========================================================================
@@ -186,7 +232,8 @@ export default function FlowCheckoutModal({
           amount,
           email: payerEmail,
           username: targetUsername,
-          subject: planName
+          subject: planName,
+          creator_code: creatorCode || undefined
         })
       })
 
@@ -203,7 +250,11 @@ export default function FlowCheckoutModal({
           currency: 'CLP',
           status: 'PENDIENTE',
           paymentMethod: selectedMethod?.name || 'Flow.cl Webpay',
-          payerEmail
+          payerEmail,
+          creator_code: creatorCode || null,
+          metadata: {
+            creator_code: creatorCode || null
+          }
         }).catch(() => {})
 
         // Redirect user to official Flow.cl portal
@@ -271,11 +322,15 @@ export default function FlowCheckoutModal({
         environment: paddleEnv
       })
 
-      // 3. Open Paddle Checkout Overlay
+      // 3. Open Paddle Checkout Overlay with customData including creator_code
       window.Paddle.Checkout.open({
         items: [{ priceId: priceId || 'pri_subscription_premium', quantity: 1 }],
         customer: { email: payerEmail },
-        customData: { username: targetUsername, plan: 'premium' },
+        customData: { 
+          username: targetUsername, 
+          plan: 'premium',
+          creator_code: creatorCode || undefined
+        },
         settings: {
           displayMode: 'overlay',
           theme: 'dark'
@@ -320,7 +375,8 @@ export default function FlowCheckoutModal({
             subscription_id: simSubId,
             custom_data: {
               username: targetUsername,
-              plan: 'premium'
+              plan: 'premium',
+              creator_code: creatorCode || undefined
             },
             details: {
               totals: {
@@ -356,7 +412,11 @@ export default function FlowCheckoutModal({
         status: 'APROBADO',
         paymentMethod: 'Paddle Billing (Simulación Dev)',
         authorizationCode: `AUTH-PADDLE-${Date.now()}`,
-        payerEmail
+        payerEmail,
+        creator_code: creatorCode || null,
+        metadata: {
+          creator_code: creatorCode || null
+        }
       }).catch(() => {})
 
       // 4. Send confirmation receipt
@@ -380,7 +440,8 @@ export default function FlowCheckoutModal({
         currency: 'USD',
         commerceName: 'Mi Vitae (Paddle Merchant of Record)',
         payerEmail,
-        payerRut: 'N/A (Internacional)'
+        payerRut: 'N/A (Internacional)',
+        creatorCode: creatorCode || null
       })
 
       setPaymentState('approved')
@@ -391,7 +452,7 @@ export default function FlowCheckoutModal({
     }
   }
 
-  // Download printable text voucher (handles CLP and USD)
+  // Download printable text voucher (handles CLP, USD and Creator Code)
   const handleDownloadVoucher = () => {
     if (!transactionVoucher) return
 
@@ -399,6 +460,10 @@ export default function FlowCheckoutModal({
     const formattedAmount = isUsd 
       ? `$${transactionVoucher.amount.toFixed(2)} USD`
       : `$${transactionVoucher.amount.toLocaleString('es-CL')} CLP`
+
+    const creatorLine = transactionVoucher.creatorCode
+      ? `Creador Apoyado:     ${transactionVoucher.creatorCode}\n`
+      : ''
 
     const voucherText = `
 =====================================================
@@ -416,7 +481,7 @@ Pasarela / Comercio: ${transactionVoucher.commerceName || (isUsd ? 'Paddle Billi
 Usuario / Perfil:    @${targetUsername}
 Email Pagador:       ${transactionVoucher.payerEmail}
 RUT Pagador:         ${transactionVoucher.payerRut || 'N/A'}
-Detalle:             Suscripción Mi Vitae Premium (Activa)
+${creatorLine}Detalle:             Suscripción Mi Vitae Premium (Activa)
 =====================================================
 Gracias por confiar en Mi Vitae para impulsar tu 
 carrera y portafolio profesional online.
@@ -441,6 +506,110 @@ Soporte técnico: contacto@wearesamod.com
     navigator.clipboard?.writeText(transactionVoucher.transactionId)
     setVoucherCopied(true)
     setTimeout(() => setVoucherCopied(false), 2000)
+  }
+
+  // =========================================================================
+  // SUB-COMPONENT: "APOYA A UN CREADOR" (Epic Games Style)
+  // =========================================================================
+  const renderCreatorCodeSection = () => {
+    if (creatorCode && !isEditingCreatorCode) {
+      return (
+        <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 flex items-center justify-between gap-3 animate-fadeIn">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="p-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 shrink-0">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div className="min-w-0 text-xs">
+              <span className="text-emerald-800 dark:text-emerald-300 font-semibold block sm:inline">
+                ✨ Apoyando a:
+              </span>
+              <span className="font-mono font-black text-emerald-900 dark:text-emerald-200 bg-white dark:bg-slate-900 px-2 py-0.5 rounded-lg border border-emerald-300 dark:border-emerald-700 ml-0 sm:ml-1.5 text-xs tracking-wider">
+                {creatorCode}
+              </span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold ml-1.5">✓</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setIsEditingCreatorCode(true)
+                setInputCreatorCode(creatorCode)
+              }}
+              className="text-[11px] font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white underline transition-colors cursor-pointer"
+            >
+              Cambiar
+            </button>
+            <button
+              type="button"
+              onClick={handleRemoveCreatorCode}
+              className="text-[11px] font-bold text-rose-500 hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300 transition-colors cursor-pointer"
+              title="Quitar código de creador"
+            >
+              Quitar
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+            <span>¿Tienes un código de creador / influencer?</span>
+          </label>
+          <span className="text-[10px] text-slate-400 font-medium">Opcional</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={inputCreatorCode}
+            onChange={(e) => {
+              setInputCreatorCode(e.target.value.toUpperCase())
+              setCreatorCodeFeedback('')
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                handleApplyCreatorCode()
+              }
+            }}
+            placeholder="EJ: CREADOR10"
+            maxLength={30}
+            className="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-mono font-bold uppercase tracking-wider text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <button
+            type="button"
+            onClick={handleApplyCreatorCode}
+            className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 text-xs font-bold transition-all cursor-pointer shadow-sm shrink-0"
+          >
+            Aplicar
+          </button>
+          {isEditingCreatorCode && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsEditingCreatorCode(false)
+                setInputCreatorCode('')
+              }}
+              className="px-2 py-2 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
+
+        {creatorCodeFeedback && (
+          <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 animate-fadeIn">
+            {creatorCodeFeedback}
+          </p>
+        )}
+      </div>
+    )
   }
 
   return (
@@ -592,7 +761,7 @@ Soporte técnico: contacto@wearesamod.com
           {/* TAB 1 CONTENT: FLOW.CL CHILE */}
           {/* ========================================================================= */}
           {paymentState === 'select' && activeGateway === 'flow' && (
-            <div className="space-y-6 animate-fadeIn">
+            <div className="space-y-5 animate-fadeIn">
               
               {/* Flow Security Banner */}
               <div className="p-3.5 rounded-2xl bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-800 text-xs text-cyan-900 dark:text-cyan-200 flex items-start gap-2.5">
@@ -604,7 +773,7 @@ Soporte técnico: contacto@wearesamod.com
 
               {/* Payment Method Selector */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-3">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2.5">
                   Selecciona tu Medio de Pago en Chile
                 </label>
 
@@ -616,7 +785,7 @@ Soporte técnico: contacto@wearesamod.com
                         key={method.id}
                         type="button"
                         onClick={() => setSelectedMethodId(method.id)}
-                        className={`w-full p-4 rounded-2xl border text-left transition-all flex items-start gap-3.5 cursor-pointer ${
+                        className={`w-full p-3.5 rounded-2xl border text-left transition-all flex items-start gap-3.5 cursor-pointer ${
                           isSelected
                             ? 'border-[#00A3E0] bg-cyan-50/40 dark:bg-cyan-950/20 ring-2 ring-[#00A3E0]/20'
                             : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 hover:border-slate-300'
@@ -666,7 +835,7 @@ Soporte técnico: contacto@wearesamod.com
               </div>
 
               {/* Payer Details */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
                     Email para el Comprobante
@@ -693,6 +862,9 @@ Soporte técnico: contacto@wearesamod.com
                   />
                 </div>
               </div>
+
+              {/* Support a Creator Section */}
+              {renderCreatorCodeSection()}
 
               {/* Action Buttons */}
               <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
@@ -724,7 +896,7 @@ Soporte técnico: contacto@wearesamod.com
           {/* TAB 2 CONTENT: PADDLE BILLING (INTERNACIONAL - $3.99 USD) */}
           {/* ========================================================================= */}
           {paymentState === 'select' && activeGateway === 'paddle' && (
-            <div className="space-y-6 animate-fadeIn">
+            <div className="space-y-5 animate-fadeIn">
               
               {/* Paddle Official Trust Banner */}
               <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 border border-indigo-200 dark:border-indigo-800/60 text-xs text-indigo-950 dark:text-indigo-200 flex items-start gap-3">
@@ -736,7 +908,7 @@ Soporte técnico: contacto@wearesamod.com
 
               {/* Supported Global Payment Methods Features */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-3">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2.5">
                   Medios de Pago Internacionales Soportados
                 </label>
 
@@ -788,6 +960,9 @@ Soporte técnico: contacto@wearesamod.com
                   Recibirás el recibo de compra oficial de Paddle Billing inmediatamente tras confirmar.
                 </span>
               </div>
+
+              {/* Support a Creator Section */}
+              {renderCreatorCodeSection()}
 
               {/* Action Buttons for Paddle */}
               <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
@@ -857,6 +1032,12 @@ Soporte técnico: contacto@wearesamod.com
                   <span className="text-slate-500">Email:</span>
                   <span className="font-mono text-slate-800 dark:text-slate-200">{payerEmail}</span>
                 </div>
+                {creatorCode && (
+                  <div className="flex justify-between pt-1 border-t border-slate-200 dark:border-slate-800">
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Creador Apoyado:</span>
+                    <span className="font-mono font-bold text-emerald-700 dark:text-emerald-300">{creatorCode}</span>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2.5 pt-2">
@@ -972,6 +1153,18 @@ Soporte técnico: contacto@wearesamod.com
                     <span className="text-[10px] font-semibold text-slate-400 block">Código Autorización</span>
                     <span className="font-mono font-bold text-slate-800 dark:text-slate-200 truncate block">{transactionVoucher.authorizationCode}</span>
                   </div>
+
+                  {transactionVoucher.creatorCode && (
+                    <div className="col-span-2 pt-2 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Creador / Influencer Apoyado:</span>
+                      </span>
+                      <span className="font-mono font-black text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                        {transactionVoucher.creatorCode}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">

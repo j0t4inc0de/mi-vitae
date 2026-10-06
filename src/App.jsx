@@ -15,6 +15,7 @@ import LegalModal from './components/Modals/LegalModal'
 import GlobalLoader from './components/Common/GlobalLoader'
 import { useProfileStore } from './stores/profileStore'
 import { getCurrentUserProfile, isSupabaseConfigured, supabase } from './lib/supabaseClient'
+import { captureCreatorCodeFromUrl } from './lib/creatorCode'
 
 // ponytail: Minimal standard React error boundary to prevent full-page crashes
 class ErrorBoundary extends React.Component {
@@ -82,6 +83,13 @@ function AppContent() {
   const loadingMessage = useProfileStore((state) => state.loadingMessage)
   const setRemoteProfile = useProfileStore((state) => state.setRemoteProfile)
   const logout = useProfileStore((state) => state.logout)
+
+  // ponytail: Automatically capture creator/influencer referral code from URL (?ref=... or ?creator=...)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location?.search) {
+      captureCreatorCodeFromUrl(window.location.search)
+    }
+  }, [])
 
   // ponytail: Global sync with real authenticated Supabase session
   useEffect(() => {

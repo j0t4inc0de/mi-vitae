@@ -103,9 +103,19 @@ export async function onRequestPost(context) {
     // 3. Status 2 = Payment Approved / Pagada (Ponytail: strictly verify amount is $3.490 CLP to prevent price tampering)
     const isApproved = paymentData.status === 2 && Number(paymentData.amount) === 3490
     const statusText = isApproved ? 'APROBADO' : 'RECHAZADO'
-    const payerEmail = paymentData.payer || paymentData.optional?.email || ''
+    // Extract optional metadata including creator_code
+    let optionalObj = {}
+    if (typeof paymentData.optional === 'string') {
+      try { optionalObj = JSON.parse(paymentData.optional) } catch {}
+    } else if (typeof paymentData.optional === 'object' && paymentData.optional !== null) {
+      optionalObj = paymentData.optional
+    }
+
+    const payerEmail = paymentData.payer || optionalObj.email || ''
     const commerceOrder = String(paymentData.commerceOrder || `ORD-${paymentData.flowOrder || Date.now()}`)
-    const username = paymentData.optional?.username || paymentData.payer?.split('@')[0] || 'usuario'
+    const username = optionalObj.username || paymentData.payer?.split('@')[0] || 'usuario'
+    const rawCreatorCode = String(optionalObj.creator_code || optionalObj.creatorCode || '').trim().toUpperCase()
+    const creatorCode = rawCreatorCode.replace(/[^A-Z0-9_-]/g, '').slice(0, 30) || null
 
     // 4. Update Supabase Cloud using REST API & Service Role Key
     const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL
@@ -115,8 +125,25 @@ export async function onRequestPost(context) {
       const now = new Date()
       const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
 
-      // A) Record Transaction
-      await fetch(`${supabaseUrl}/rest/v1/transactions`, {
+      // A) Record Transaction (with creator_code in metadata & column)
+      const txnPayload = {
+        order_number: commerceOrder,
+        flow_order_number: String(paymentData.flowOrder || ''),
+        username: username.toLowerCase().trim(),
+        amount: paymentData.amount || 3490,
+        currency: paymentData.currency || 'CLP',
+        status: statusText,
+        payment_method: paymentData.paymentData?.media || 'Flow.cl',
+        authorization_code: paymentData.paymentData?.transferDate || String(paymentData.flowOrder),
+        payer_email: payerEmail,
+        creator_code: creatorCode,
+        metadata: {
+          ...paymentData,
+          creator_code: creatorCode
+        }
+      }
+
+      let txnRes = await fetch(`${supabaseUrl}/rest/v1/transactions`, {
         method: 'POST',
         headers: {
           'apikey': supabaseServiceKey,
@@ -124,19 +151,23 @@ export async function onRequestPost(context) {
           'Content-Type': 'application/json',
           'Prefer': 'resolution=merge-duplicates'
         },
-        body: JSON.stringify({
-          order_number: commerceOrder,
-          flow_order_number: String(paymentData.flowOrder || ''),
-          username: username.toLowerCase().trim(),
-          amount: paymentData.amount || 3490,
-          currency: paymentData.currency || 'CLP',
-          status: statusText,
-          payment_method: paymentData.paymentData?.media || 'Flow.cl',
-          authorization_code: paymentData.paymentData?.transferDate || String(paymentData.flowOrder),
-          payer_email: payerEmail,
-          metadata: paymentData
-        })
+        body: JSON.stringify(txnPayload)
       })
+
+      if (!txnRes.ok) {
+        // Fallback without direct creator_code column if not migrated
+        delete txnPayload.creator_code
+        await fetch(`${supabaseUrl}/rest/v1/transactions`, {
+          method: 'POST',
+          headers: {
+            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates'
+          },
+          body: JSON.stringify(txnPayload)
+        }).catch(() => {})
+      }
 
       // B) If Approved, upgrade profile to Premium in Supabase
       if (isApproved) {
@@ -156,22 +187,39 @@ export async function onRequestPost(context) {
           })
         })
 
-        // C) Update or insert Subscription
-        await fetch(`${supabaseUrl}/rest/v1/subscriptions?username=eq.${encodeURIComponent(username.toLowerCase().trim())}`, {
+        // C) Update Subscription (with creator_code)
+        const subPayload = {
+          status: 'active',
+          plan_type: 'premium',
+          price_clp: paymentData.amount || 3490,
+          creator_code: creatorCode,
+          expires_at: expiresAt.toISOString(),
+          updated_at: now.toISOString()
+        }
+
+        let subRes = await fetch(`${supabaseUrl}/rest/v1/subscriptions?username=eq.${encodeURIComponent(username.toLowerCase().trim())}`, {
           method: 'PATCH',
           headers: {
             'apikey': supabaseServiceKey,
             'Authorization': `Bearer ${supabaseServiceKey}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            status: 'active',
-            plan_type: 'premium',
-            price_clp: paymentData.amount || 3490,
-            expires_at: expiresAt.toISOString(),
-            updated_at: now.toISOString()
-          })
+          body: JSON.stringify(subPayload)
         })
+
+        if (!subRes.ok) {
+          // Fallback without creator_code column
+          delete subPayload.creator_code
+          await fetch(`${supabaseUrl}/rest/v1/subscriptions?username=eq.${encodeURIComponent(username.toLowerCase().trim())}`, {
+            method: 'PATCH',
+            headers: {
+              'apikey': supabaseServiceKey,
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(subPayload)
+          }).catch(() => {})
+        }
       }
     }
 

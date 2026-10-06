@@ -581,12 +581,31 @@ export async function saveTransactionToSupabase(transactionData) {
         payment_method: transactionData.paymentMethod || null,
         authorization_code: transactionData.authorizationCode || null,
         payer_email: transactionData.payerEmail || null,
+        creator_code: transactionData.creator_code || transactionData.creatorCode || null,
         metadata: transactionData
       })
 
     if (error) {
-      console.warn('[Supabase] Error saving transaction:', error.message)
-      return false
+      // Retry without creator_code column if older schema
+      const { error: fallbackError } = await supabase
+        .from('transactions')
+        .insert({
+          order_number: transactionData.orderNumber || transactionData.transactionId || `ORD-${Date.now()}`,
+          flow_order_number: transactionData.flowOrder || transactionData.flowOrderNumber || null,
+          user_id: authUserId,
+          username: transactionData.username ? transactionData.username.toLowerCase().trim() : null,
+          amount: transactionData.amount || 3490,
+          currency: transactionData.currency || 'CLP',
+          status: transactionData.status || 'APROBADO',
+          payment_method: transactionData.paymentMethod || null,
+          authorization_code: transactionData.authorizationCode || null,
+          payer_email: transactionData.payerEmail || null,
+          metadata: transactionData
+        })
+      if (fallbackError) {
+        console.warn('[Supabase] Error saving transaction:', fallbackError.message)
+        return false
+      }
     }
     return true
   } catch {

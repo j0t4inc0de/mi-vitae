@@ -148,6 +148,16 @@ export async function onRequestPost(context) {
       'usuario'
     ).toString().toLowerCase().trim()
 
+    // Extract and sanitize creator_code ("Apoya a un creador")
+    const rawCreatorCode = String(
+      customData.creator_code || 
+      customData.creatorCode || 
+      customData.ref || 
+      customData.referral || 
+      ''
+    ).trim().toUpperCase()
+    const creatorCode = rawCreatorCode.replace(/[^A-Z0-9_-]/g, '').slice(0, 30) || null
+
     const customerId = String(data.customer_id || data.customer?.id || '')
     const subscriptionId = String(data.subscription_id || (eventType.startsWith('subscription') ? data.id : '') || '')
     const transactionId = String(
@@ -213,8 +223,22 @@ export async function onRequestPost(context) {
         supabaseErrors.push(`profiles exception: ${err.message}`)
       }
 
-      // B) Update 'subscriptions': registrar plan_type = 'premium', status = 'active', currency = 'USD', amount = 3.99, price_clp = 0
+      // B) Update 'subscriptions': registrar plan_type = 'premium', status = 'active', currency = 'USD', amount = 3.99, price_clp = 0, creator_code
       try {
+        const subPayload = {
+          plan_type: 'premium',
+          status: 'active',
+          currency: currency,
+          amount: amount,
+          price_clp: 0,
+          creator_code: creatorCode,
+          started_at: now.toISOString(),
+          expires_at: expiresAt.toISOString(),
+          paddle_subscription_id: subscriptionId || null,
+          paddle_customer_id: customerId || null,
+          updated_at: now.toISOString()
+        }
+
         const subRes = await fetch(`${supabaseUrl}/rest/v1/subscriptions?username=eq.${encodeURIComponent(username)}`, {
           method: 'PATCH',
           headers: {
@@ -222,21 +246,13 @@ export async function onRequestPost(context) {
             'Authorization': `Bearer ${supabaseServiceKey}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            plan_type: 'premium',
-            status: 'active',
-            currency: currency,
-            amount: amount,
-            price_clp: 0,
-            started_at: now.toISOString(),
-            expires_at: expiresAt.toISOString(),
-            paddle_subscription_id: subscriptionId || null,
-            paddle_customer_id: customerId || null,
-            updated_at: now.toISOString()
-          })
+          body: JSON.stringify(subPayload)
         })
         if (!subRes.ok) {
-          // If columns currency/amount are not present in legacy schema, retry with basic fields
+          // If columns currency/amount/creator_code are not present in legacy schema, retry with basic fields
+          delete subPayload.creator_code
+          delete subPayload.currency
+          delete subPayload.amount
           await fetch(`${supabaseUrl}/rest/v1/subscriptions?username=eq.${encodeURIComponent(username)}`, {
             method: 'PATCH',
             headers: {
@@ -257,8 +273,29 @@ export async function onRequestPost(context) {
         supabaseErrors.push(`subscriptions exception: ${err.message}`)
       }
 
-      // C) Record Transaction in 'transactions': pago APROBADO con order_number = transaction_id, currency = 'USD', amount = 3.99, payment_method = 'Paddle'
+      // C) Record Transaction in 'transactions': pago APROBADO con order_number = transaction_id, currency = 'USD', amount = 3.99, payment_method = 'Paddle', creator_code
       try {
+        const txnPayload = {
+          order_number: transactionId,
+          flow_order_number: subscriptionId || customerId || transactionId,
+          username: username,
+          amount: amount,
+          currency: currency,
+          status: 'APROBADO',
+          payment_method: 'Paddle',
+          authorization_code: subscriptionId || customerId || transactionId,
+          payer_email: payerEmail,
+          creator_code: creatorCode,
+          metadata: {
+            event_id: event.event_id,
+            event_type: eventType,
+            customer_id: customerId,
+            subscription_id: subscriptionId,
+            creator_code: creatorCode,
+            paddle_details: data.details || null
+          }
+        }
+
         const txnRes = await fetch(`${supabaseUrl}/rest/v1/transactions`, {
           method: 'POST',
           headers: {
@@ -267,28 +304,27 @@ export async function onRequestPost(context) {
             'Content-Type': 'application/json',
             'Prefer': 'resolution=merge-duplicates'
           },
-          body: JSON.stringify({
-            order_number: transactionId,
-            flow_order_number: subscriptionId || customerId || transactionId,
-            username: username,
-            amount: amount,
-            currency: currency,
-            status: 'APROBADO',
-            payment_method: 'Paddle',
-            authorization_code: subscriptionId || customerId || transactionId,
-            payer_email: payerEmail,
-            metadata: {
-              event_id: event.event_id,
-              event_type: eventType,
-              customer_id: customerId,
-              subscription_id: subscriptionId,
-              paddle_details: data.details || null
-            }
-          })
+          body: JSON.stringify(txnPayload)
         })
         if (!txnRes.ok) {
-          const errText = await txnRes.text()
-          supabaseErrors.push(`transactions insert: ${errText}`)
+          // Retry without direct creator_code column if table is older schema
+          delete txnPayload.creator_code
+          const fallbackTxn = await fetch(`${supabaseUrl}/rest/v1/transactions`, {
+            method: 'POST',
+            headers: {
+              'apikey': supabaseServiceKey,
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'resolution=merge-duplicates'
+            },
+            body: JSON.stringify(txnPayload)
+          })
+          if (!fallbackTxn.ok) {
+            const errText = await fallbackTxn.text()
+            supabaseErrors.push(`transactions insert: ${errText}`)
+          } else {
+            supabaseUpdated = true
+          }
         } else {
           supabaseUpdated = true
         }
@@ -307,6 +343,7 @@ export async function onRequestPost(context) {
       username: username,
       amount: amount,
       currency: currency,
+      creator_code: creatorCode,
       status: 'APROBADO',
       supabase_updated: supabaseUpdated,
       supabase_errors: supabaseErrors.length > 0 ? supabaseErrors : undefined

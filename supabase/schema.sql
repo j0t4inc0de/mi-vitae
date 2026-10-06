@@ -87,13 +87,14 @@ CREATE TABLE IF NOT EXISTS public.subscriptions (
   flow_subscription_id VARCHAR(100),
   paddle_subscription_id VARCHAR(100),
   paddle_customer_id VARCHAR(100),
+  creator_code VARCHAR(50), -- Código de Creador / Influencer de referencia (Apoya a un creador)
   auto_renew BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- ==============================================================================
--- 5. TABLE: TRANSACTIONS (Flow.cl Payment Records & Vouchers)
+-- 5. TABLE: TRANSACTIONS (Flow.cl & Paddle Payment Records & Vouchers)
 -- ==============================================================================
 CREATE TABLE IF NOT EXISTS public.transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -107,6 +108,7 @@ CREATE TABLE IF NOT EXISTS public.transactions (
   payment_method VARCHAR(100),
   authorization_code VARCHAR(100),
   payer_email VARCHAR(255),
+  creator_code VARCHAR(50), -- Código de Creador / Influencer
   metadata JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

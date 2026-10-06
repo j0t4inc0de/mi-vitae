@@ -34,8 +34,14 @@ export async function onRequestPost(context) {
     const {
       email = 'usuario@ejemplo.com',
       username = 'usuario',
-      subject = 'Suscripción Mi Vitae Pro ($3.490 CLP/mes)'
+      subject = 'Suscripción Mi Vitae Pro ($3.490 CLP/mes)',
+      creator_code = '',
+      creatorCode = ''
     } = body
+
+    // Sanitize creator code (A-Z0-9_-, max 30)
+    const rawCreator = String(creator_code || creatorCode || '').trim().toUpperCase()
+    const cleanCreatorCode = rawCreator.replace(/[^A-Z0-9_-]/g, '').slice(0, 30)
 
     // ponytail: Security - enforce canonical subscription price server-side, ignoring client tampering
     const amount = 3490
@@ -54,6 +60,7 @@ export async function onRequestPost(context) {
         amount,
         currency: 'CLP',
         subject,
+        creator_code: cleanCreatorCode || null,
         message: 'Flow.cl en modo simulación (sin credenciales API en variables de entorno)'
       }), {
         status: 200,
@@ -65,13 +72,18 @@ export async function onRequestPost(context) {
       ? 'https://sandbox.flow.cl/api'
       : 'https://www.flow.cl/api'
 
+    const optionalPayload = {
+      username,
+      creator_code: cleanCreatorCode || undefined
+    }
+
     const params = {
       apiKey: flowApiKey,
       commerceOrder,
       currency: 'CLP',
       amount: String(amount),
       email,
-      optional: JSON.stringify({ username }),
+      optional: JSON.stringify(optionalPayload),
       subject,
       urlConfirmation: `${appUrl}/api/flow-webhook`,
       urlReturn: `${appUrl}/dashboard?payment=complete&order=${commerceOrder}`

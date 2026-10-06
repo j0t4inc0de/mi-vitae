@@ -48,6 +48,7 @@ globalThis.localStorage = {
   removeItem(key) { delete this.store[key]; },
   clear() { this.store = {}; }
 };
+globalThis.window.localStorage = globalThis.localStorage;
 
 // -------------------------------------------------------------
 // SUITE 1: ROUTER ENGINE & ROUTE MATCHING (src/router/Router.jsx)
@@ -967,6 +968,95 @@ it('verifies zero secret keys or private credentials leaked in client-side codeb
       );
     }
   }
+});
+
+// -------------------------------------------------------------
+// SUITE 9: CREATOR CODE / REFERRAL SYSTEM ("APOYA A UN CREADOR")
+// -------------------------------------------------------------
+console.log('\n▶ Suite 9: Creator Code / Referral System (Apoya a un creador)');
+
+const creatorModule = await import(pathToFileURL(path.resolve(ROOT, 'src/lib/creatorCode.js')).href);
+
+it('sanitizes creator codes: uppercase, removes illegal chars, max 30 chars', () => {
+  assert.equal(creatorModule.sanitizeCreatorCode('influencer10'), 'INFLUENCER10');
+  assert.equal(creatorModule.sanitizeCreatorCode('  streamer_pro-2026!@#$%  '), 'STREAMER_PRO-2026');
+  assert.equal(creatorModule.sanitizeCreatorCode('a'.repeat(50)), 'A'.repeat(30));
+  assert.equal(creatorModule.sanitizeCreatorCode(''), '');
+  assert.equal(creatorModule.sanitizeCreatorCode(null), '');
+});
+
+it('captures creator code automatically from URL parameters (?ref= and ?creator=)', () => {
+  // Test ?ref=
+  const res1 = creatorModule.captureCreatorCodeFromUrl('?ref=dev_master');
+  assert.equal(res1, 'DEV_MASTER');
+  assert.equal(creatorModule.getStoredCreatorCode(), 'DEV_MASTER');
+
+  // Test ?creator= overrides
+  const res2 = creatorModule.captureCreatorCodeFromUrl('?creator=streamer99&utm_source=youtube');
+  assert.equal(res2, 'STREAMER99');
+  assert.equal(creatorModule.getStoredCreatorCode(), 'STREAMER99');
+
+  // Set and remove manually
+  creatorModule.setStoredCreatorCode('');
+  assert.equal(creatorModule.getStoredCreatorCode(), '');
+});
+
+it('verifies paddle-webhook processes and returns creator_code from custom_data', async () => {
+  const req = new Request('https://mivitae.wearesamod.com/api/paddle-webhook', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-simulation-test': 'true'
+    },
+    body: JSON.stringify({
+      event_type: 'transaction.completed',
+      data: {
+        id: 'txn_creator_test',
+        custom_data: {
+          username: 'carlos_dev',
+          creator_code: 'INFLUENCER_TOP'
+        }
+      }
+    })
+  });
+
+  const res = await paddleWebhookModule.onRequestPost({ request: req, env: {} });
+  assert.equal(res.status, 200);
+  const data = await res.json();
+  assert.equal(data.creator_code, 'INFLUENCER_TOP');
+});
+
+it('verifies create-flow-order serverless endpoint includes creator_code in optional payload', async () => {
+  const flowOrderModule = await import(pathToFileURL(path.resolve(ROOT, 'functions/api/create-flow-order.js')).href);
+  const req = new Request('https://mivitae.wearesamod.com/api/create-flow-order', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: 'test@ejemplo.cl',
+      username: 'carlos_dev',
+      creator_code: 'STREAMER_CHILE'
+    })
+  });
+
+  const res = await flowOrderModule.onRequestPost({
+    request: req,
+    env: {}
+  });
+  assert.equal(res.status, 200);
+  const data = await res.json();
+  assert.equal(data.creator_code, 'STREAMER_CHILE');
+});
+
+it('verifies FlowCheckoutModal integrates Apoya a un creador section and handlers', () => {
+  const modalPath = path.resolve(ROOT, 'src/components/Modals/FlowCheckoutModal.jsx');
+  const content = fs.readFileSync(modalPath, 'utf-8');
+
+  assert.ok(content.includes('Apoya a un Creador'), 'Must document Apoya a un Creador system');
+  assert.ok(content.includes('¿Tienes un código de creador / influencer?'), 'Must have prompt for creator code');
+  assert.ok(content.includes('Apoyando a:'), 'Must show green active creator badge');
+  assert.ok(content.includes('handleApplyCreatorCode'), 'Must implement apply handler');
+  assert.ok(content.includes('handleRemoveCreatorCode'), 'Must implement remove handler');
+  assert.ok(content.includes('creator_code'), 'Must pass creator_code to checkout');
 });
 
 await vite.close();
