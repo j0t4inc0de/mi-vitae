@@ -79,10 +79,14 @@ CREATE TABLE IF NOT EXISTS public.subscriptions (
   plan_type VARCHAR(30) NOT NULL DEFAULT 'free_trial', -- 'free_trial', 'premium', 'agency'
   status VARCHAR(30) NOT NULL DEFAULT 'active', -- 'active', 'past_due', 'canceled', 'expired'
   price_clp NUMERIC NOT NULL DEFAULT 0,
+  amount NUMERIC NOT NULL DEFAULT 0,
+  currency VARCHAR(10) NOT NULL DEFAULT 'CLP', -- 'CLP' (Flow.cl) o 'USD' (Paddle Billing)
   started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '30 days'),
   trial_ends_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '30 days'),
   flow_subscription_id VARCHAR(100),
+  paddle_subscription_id VARCHAR(100),
+  paddle_customer_id VARCHAR(100),
   auto_renew BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

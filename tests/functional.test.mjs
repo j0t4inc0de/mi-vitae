@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createServer } from 'vite';
 
 // ponytail: Native zero-dependency test runner using Node assert + Vite SSR module loader
@@ -447,12 +447,14 @@ it('verifies Supabase SQL production schema completeness', () => {
 it('verifies Cloudflare Pages Functions serverless endpoints exist', () => {
   const functionsDir = path.join(ROOT, 'functions', 'api');
   const webhookFile = path.join(functionsDir, 'flow-webhook.js');
+  const paddleWebhookFile = path.join(functionsDir, 'paddle-webhook.js');
   const createOrderFile = path.join(functionsDir, 'create-flow-order.js');
   const emailFile = path.join(functionsDir, 'send-email.js');
   const avatarFile = path.join(functionsDir, 'upload-avatar.js');
   const healthFile = path.join(functionsDir, 'health.js');
 
   assert.ok(fs.existsSync(webhookFile), 'functions/api/flow-webhook.js must exist');
+  assert.ok(fs.existsSync(paddleWebhookFile), 'functions/api/paddle-webhook.js must exist');
   assert.ok(fs.existsSync(createOrderFile), 'functions/api/create-flow-order.js must exist');
   assert.ok(fs.existsSync(emailFile), 'functions/api/send-email.js must exist');
   assert.ok(fs.existsSync(avatarFile), 'functions/api/upload-avatar.js must exist');
@@ -460,6 +462,9 @@ it('verifies Cloudflare Pages Functions serverless endpoints exist', () => {
 
   const webhookContent = fs.readFileSync(webhookFile, 'utf-8');
   assert.ok(webhookContent.includes('export async function onRequestPost'), 'flow-webhook must export onRequestPost');
+
+  const paddleWebhookContent = fs.readFileSync(paddleWebhookFile, 'utf-8');
+  assert.ok(paddleWebhookContent.includes('export async function onRequestPost'), 'paddle-webhook must export onRequestPost');
 
   const emailContent = fs.readFileSync(emailFile, 'utf-8');
   assert.ok(emailContent.includes('export async function onRequestPost'), 'send-email must export onRequestPost');
@@ -737,6 +742,231 @@ it('verifies RegisterFeedbackModal contains all 6 themes including Pop Tactile f
   assert.equal(modalThemeIds.length, 6, 'RegisterFeedbackModal must contain exactly 6 themes');
   assert.ok(modalThemeIds.includes('neo_brutalist'), 'RegisterFeedbackModal must include neo_brutalist (Pop Tactile)');
   assert.ok(registerModalContent.includes('grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2'), 'RegisterFeedbackModal must use symmetrical par grid layout');
+});
+
+// -------------------------------------------------------------
+// SUITE 8: PADDLE BILLING V2 & MULTI-GATEWAY PAYMENTS (PC 2 AUDIT)
+// -------------------------------------------------------------
+console.log('\n▶ Suite 8: Paddle Billing v2 & Multi-Gateway Checkout');
+
+const paddleWebhookModule = await import(pathToFileURL(path.resolve(ROOT, 'functions/api/paddle-webhook.js')).href);
+
+it('verifies paddle-webhook exports onRequestPost and onRequestGet', () => {
+  assert.ok(typeof paddleWebhookModule.onRequestPost === 'function', 'paddle-webhook must export onRequestPost');
+  assert.ok(typeof paddleWebhookModule.onRequestGet === 'function', 'paddle-webhook must export onRequestGet');
+});
+
+it('verifies paddle-webhook health check returns 200 and online status', async () => {
+  const res = await paddleWebhookModule.onRequestGet();
+  assert.equal(res.status, 200);
+  const data = await res.json();
+  assert.equal(data.status, 'online');
+  assert.ok(data.supported_events.includes('transaction.completed'));
+  assert.ok(data.supported_events.includes('subscription.activated'));
+});
+
+it('verifies paddle-webhook handles transaction.completed in simulation mode', async () => {
+  const mockPayload = {
+    event_id: 'evt_test_123',
+    event_type: 'transaction.completed',
+    data: {
+      id: 'txn_01test999',
+      customer_id: 'ctm_test_customer',
+      subscription_id: 'sub_test_sub',
+      custom_data: {
+        username: 'carlos_dev',
+        plan: 'premium'
+      },
+      details: {
+        totals: {
+          grand_total: '3.99',
+          currency_code: 'USD'
+        }
+      },
+      currency_code: 'USD',
+      customer: {
+        email: 'carlos@ejemplo.com'
+      }
+    }
+  };
+
+  const req = new Request('https://mivitae.wearesamod.com/api/paddle-webhook', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-simulation-test': 'true'
+    },
+    body: JSON.stringify(mockPayload)
+  });
+
+  const res = await paddleWebhookModule.onRequestPost({
+    request: req,
+    env: {}
+  });
+
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.success, true);
+  assert.equal(body.username, 'carlos_dev');
+  assert.equal(body.amount, 3.99);
+  assert.equal(body.currency, 'USD');
+  assert.equal(body.transaction_id, 'txn_01test999');
+  assert.equal(body.status, 'APROBADO');
+});
+
+it('verifies paddle-webhook handles subscription.activated in simulation mode', async () => {
+  const mockPayload = {
+    event_id: 'evt_sub_456',
+    event_type: 'subscription.activated',
+    data: {
+      id: 'sub_active_888',
+      customer_id: 'ctm_valeria',
+      custom_data: {
+        username: 'valeria_psico',
+        plan: 'premium'
+      },
+      details: {
+        totals: {
+          total: '3.99',
+          currency_code: 'USD'
+        }
+      },
+      currency_code: 'USD'
+    }
+  };
+
+  const req = new Request('https://mivitae.wearesamod.com/api/paddle-webhook', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-simulation-test': 'true'
+    },
+    body: JSON.stringify(mockPayload)
+  });
+
+  const res = await paddleWebhookModule.onRequestPost({
+    request: req,
+    env: {}
+  });
+
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.success, true);
+  assert.equal(body.username, 'valeria_psico');
+  assert.equal(body.amount, 3.99);
+  assert.equal(body.currency, 'USD');
+  assert.equal(body.status, 'APROBADO');
+});
+
+it('verifies paddle-webhook rejects invalid signatures when secret key is configured', async () => {
+  const req = new Request('https://mivitae.wearesamod.com/api/paddle-webhook', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'paddle-signature': 'ts=1690000000;h=invalid_tampered_hash_value'
+    },
+    body: JSON.stringify({ event_type: 'transaction.completed', data: {} })
+  });
+
+  const res = await paddleWebhookModule.onRequestPost({
+    request: req,
+    env: { PADDLE_WEBHOOK_SECRET_KEY: 'test_secret_key_12345' }
+  });
+
+  assert.equal(res.status, 401);
+  const body = await res.json();
+  assert.equal(body.error, 'Invalid Paddle-Signature');
+});
+
+it('verifies paddle-webhook accepts valid HMAC-SHA256 signature when secret key is configured', async () => {
+  const secret = 'pdl_ntfset_secret_test_98765';
+  const ts = Math.floor(Date.now() / 1000);
+  const rawBody = JSON.stringify({
+    event_id: 'evt_valid_sig',
+    event_type: 'transaction.completed',
+    data: {
+      id: 'txn_valid_sig_123',
+      custom_data: { username: 'rodrigo_ops', plan: 'premium' },
+      details: { totals: { grand_total: '3.99', currency_code: 'USD' } }
+    }
+  });
+
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const sigBuf = await crypto.subtle.sign('HMAC', key, enc.encode(`${ts}:${rawBody}`));
+  const hashHex = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+  const req = new Request('https://mivitae.wearesamod.com/api/paddle-webhook', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'paddle-signature': `ts=${ts};h=${hashHex}`
+    },
+    body: rawBody
+  });
+
+  const res = await paddleWebhookModule.onRequestPost({
+    request: req,
+    env: { PADDLE_WEBHOOK_SECRET_KEY: secret }
+  });
+
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.success, true);
+  assert.equal(body.username, 'rodrigo_ops');
+  assert.equal(body.amount, 3.99);
+  assert.equal(body.currency, 'USD');
+});
+
+it('verifies FlowCheckoutModal source includes multi-currency dual tabs and Paddle.js v2 CDN integration', () => {
+  const modalPath = path.resolve(ROOT, 'src/components/Modals/FlowCheckoutModal.jsx');
+  const content = fs.readFileSync(modalPath, 'utf-8');
+
+  assert.ok(content.includes('https://cdn.paddle.com/paddle/v2/paddle.js'), 'Must load Paddle.js v2 CDN directly');
+  assert.ok(content.includes('3.490 CLP'), 'Must support Chile Flow $3.490 CLP');
+  assert.ok(content.includes('3.99 USD'), 'Must support International Paddle $3.99 USD');
+  assert.ok(content.includes('Paddle.Checkout.open'), 'Must call Paddle.Checkout.open');
+  assert.ok(content.includes('paddle_sim'), 'Must support local dev simulation fallback');
+});
+
+it('verifies zero secret keys or private credentials leaked in client-side codebase', () => {
+  const srcDir = path.resolve(ROOT, 'src');
+  const scanFiles = (dir) => {
+    let files = [];
+    for (const item of fs.readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = path.join(dir, item.name);
+      if (item.isDirectory()) {
+        files = files.concat(scanFiles(fullPath));
+      } else if (item.name.endsWith('.js') || item.name.endsWith('.jsx')) {
+        files.push(fullPath);
+      }
+    }
+    return files;
+  };
+
+  const clientFiles = scanFiles(srcDir);
+  const prohibitedKeys = [
+    'PADDLE_WEBHOOK_SECRET',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'FLOW_SECRET_KEY',
+    'RESEND_API_KEY'
+  ];
+
+  for (const file of clientFiles) {
+    const fileContent = fs.readFileSync(file, 'utf-8');
+    for (const forbidden of prohibitedKeys) {
+      assert.ok(
+        !fileContent.includes(forbidden),
+        `CRITICAL SECURITY VIOLATION: ${forbidden} found in client file: ${path.relative(ROOT, file)}`
+      );
+    }
+  }
 });
 
 await vite.close();
