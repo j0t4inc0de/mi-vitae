@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useProfileStore } from '../../stores/profileStore'
 import { saveTransactionToSupabase } from '../../lib/supabaseClient'
 import { sendPaymentReceiptEmail } from '../../lib/emailService'
@@ -13,9 +13,6 @@ import {
   Check, Copy, CreditCard, Smartphone, Landmark, Building2,
   Globe, DollarSign, ExternalLink, HelpCircle
 } from 'lucide-react'
-
-// CDN URL for Paddle Billing v2
-const PADDLE_V2_CDN_URL = 'https://cdn.paddle.com/paddle/v2/paddle.js'
 
 // Chilean Payment Methods supported by Flow.cl
 const FLOW_PAYMENT_METHODS = [
@@ -57,54 +54,57 @@ const FLOW_PAYMENT_METHODS = [
   }
 ]
 
-// International Payment Methods supported by Paddle Billing
-const PADDLE_PAYMENT_FEATURES = [
+// International Payment Features supported by PayPal Checkout
+const PAYPAL_PAYMENT_FEATURES = [
   {
-    id: 'global_cards',
-    name: 'Tarjetas Internacionales',
-    desc: 'Visa, Mastercard, American Express, Discover, JCB',
-    tags: ['Visa', 'Mastercard', 'AMEX', '3D Secure 2.0']
+    id: 'paypal_cards',
+    name: 'Tarjetas de Crédito / Débito (Sin cuenta PayPal)',
+    desc: 'Visa, Mastercard, American Express directo como invitado (Guest Checkout)',
+    tags: ['Visa', 'Mastercard', 'AMEX', 'Guest Checkout']
   },
   {
-    id: 'digital_wallets',
-    name: 'Billeteras Digitales Express',
-    desc: 'Pago seguro en 1-clic desde tu móvil o computadora',
-    tags: ['Apple Pay', 'Google Pay', 'PayPal']
+    id: 'paypal_account',
+    name: 'Cuenta PayPal Express',
+    desc: 'Paga en 1-clic con tu saldo PayPal, cuenta bancaria o tarjetas vinculadas',
+    tags: ['PayPal Balance', 'One-Touch', 'Global']
   },
   {
-    id: 'merchant_of_record',
-    name: 'Facturación Global con Paddle',
-    desc: 'Impuestos locales (IVA/VAT) gestionados automáticamente sin cargos sorpresa',
-    tags: ['Merchant of Record', 'PCI-DSS Nivel 1', 'Factura Internacional']
+    id: 'paypal_security',
+    name: 'Protección al Comprador PayPal',
+    desc: 'Cifrado de extremo a extremo y garantía de transacción segura a nivel global',
+    tags: ['Protección al Comprador', 'SSL 256-Bit', 'USD Oficial']
   }
 ]
 
 /**
- * Dynamically loads Paddle.js v2 without npm bloat
+ * Dynamically loads PayPal JS SDK v2 without npm packages
  */
-function loadPaddleScript() {
+function loadPayPalScript(clientId) {
   return new Promise((resolve, reject) => {
     if (typeof window === 'undefined') return reject(new Error('SSR environment'))
-    if (window.Paddle) return resolve(window.Paddle)
+    if (window.paypal) return resolve(window.paypal)
 
-    const existingScript = document.querySelector(`script[src="${PADDLE_V2_CDN_URL}"]`)
+    const scriptId = 'paypal-js-sdk-v2'
+    const existingScript = document.getElementById(scriptId)
     if (existingScript) {
-      existingScript.addEventListener('load', () => resolve(window.Paddle))
+      if (window.paypal) return resolve(window.paypal)
+      existingScript.addEventListener('load', () => resolve(window.paypal))
       existingScript.addEventListener('error', reject)
       return
     }
 
     const script = document.createElement('script')
-    script.src = PADDLE_V2_CDN_URL
+    script.id = scriptId
+    script.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(clientId)}&currency=USD`
     script.async = true
     script.onload = () => {
-      if (window.Paddle) {
-        resolve(window.Paddle)
+      if (window.paypal) {
+        resolve(window.paypal)
       } else {
-        reject(new Error('Paddle script loaded but window.Paddle is undefined'))
+        reject(new Error('PayPal SDK loaded but window.paypal is undefined'))
       }
     }
-    script.onerror = () => reject(new Error('Failed to load Paddle.js v2 from CDN'))
+    script.onerror = () => reject(new Error('Failed to load PayPal SDK from CDN'))
     document.head.appendChild(script)
   })
 }
@@ -112,7 +112,7 @@ function loadPaddleScript() {
 /**
  * FlowCheckoutModal - Multi-Gateway & Multi-Currency Checkout Modal
  * Pestaña 1: 🇨🇱 Chile ($3.490 CLP/mes vía Flow.cl)
- * Pestaña 2: 🌎 Internacional ($3.99 USD/mes vía Paddle Billing v2)
+ * Pestaña 2: 🌎 Internacional ($3.99 USD/mes vía PayPal Checkout v2)
  * Incluye Sistema "Apoya a un Creador" estilo Epic Games
  */
 export default function FlowCheckoutModal({ 
@@ -130,10 +130,10 @@ export default function FlowCheckoutModal({
   const targetUsername = username || activeUsername
   const currentProfile = (targetUsername && profiles[targetUsername]) || {}
 
-  // Gateway Selector: 'flow' (🇨🇱 Chile) | 'paddle' (🌎 Internacional)
+  // Gateway Selector: 'flow' (🇨🇱 Chile) | 'paypal' (🌎 Internacional)
   const [activeGateway, setActiveGateway] = useState('flow')
 
-  // Flow payment states: 'select' | 'processing' | 'approved' | 'rejected' | 'error' | 'paddle_sim'
+  // Payment states: 'select' | 'processing' | 'approved' | 'rejected' | 'error' | 'paypal_sim'
   const [paymentState, setPaymentState] = useState('select')
   const [selectedMethodId, setSelectedMethodId] = useState('webpay')
   const [payerEmail, setPayerEmail] = useState(currentProfile?.personalInfo?.email || 'usuario@mivitae.cl')
@@ -142,7 +142,6 @@ export default function FlowCheckoutModal({
   const [transactionVoucher, setTransactionVoucher] = useState(null)
   const [voucherCopied, setVoucherCopied] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
-  const [isPaddleLoading, setIsPaddleLoading] = useState(false)
 
   // Creator / Referral Code ("Apoya a un creador")
   const [creatorCode, setCreatorCode] = useState(() => getStoredCreatorCode())
@@ -150,7 +149,24 @@ export default function FlowCheckoutModal({
   const [isEditingCreatorCode, setIsEditingCreatorCode] = useState(false)
   const [creatorCodeFeedback, setCreatorCodeFeedback] = useState('')
 
-  // Sync payer email if profile changes & reload stored creator code on open
+  // PayPal SDK states
+  const [isPayPalLoading, setIsPayPalLoading] = useState(false)
+  const [isPayPalSdkReady, setIsPayPalSdkReady] = useState(false)
+  const paypalContainerRef = useRef(null)
+
+  // Client ID detection
+  const paypalClientId = 
+    (typeof window !== 'undefined' && window.__ENV__?.VITE_PAYPAL_CLIENT_ID) ||
+    import.meta.env.VITE_PAYPAL_CLIENT_ID ||
+    ''
+
+  const hasValidPayPalClientId = Boolean(
+    paypalClientId && 
+    !paypalClientId.includes('client_id_aqui') && 
+    !paypalClientId.includes('xxxxxxxx')
+  )
+
+  // Sync payer email & creator code on open
   useEffect(() => {
     if (currentProfile?.personalInfo?.email) {
       setPayerEmail(currentProfile.personalInfo.email)
@@ -177,6 +193,75 @@ export default function FlowCheckoutModal({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, paymentState])
 
+  // Render PayPal Buttons when tab is active and Client ID is available
+  useEffect(() => {
+    let isCancelled = false
+
+    if (isOpen && paymentState === 'select' && activeGateway === 'paypal' && hasValidPayPalClientId) {
+      setIsPayPalLoading(true)
+
+      loadPayPalScript(paypalClientId)
+        .then((paypal) => {
+          if (isCancelled || !paypal || !paypal.Buttons) return
+          setIsPayPalSdkReady(true)
+          setIsPayPalLoading(false)
+
+          const container = document.getElementById('paypal-button-container')
+          if (container && container.childNodes.length === 0) {
+            paypal.Buttons({
+              style: {
+                layout: 'vertical',
+                color: 'gold',
+                shape: 'rect',
+                label: 'paypal'
+              },
+              createOrder: (data, actions) => {
+                return actions.order.create({
+                  purchase_units: [{
+                    description: 'Suscripción Mi Vitae Pro ($3.99 USD/mes)',
+                    custom_id: JSON.stringify({
+                      username: targetUsername,
+                      creator_code: creatorCode || null
+                    }),
+                    amount: {
+                      currency_code: 'USD',
+                      value: '3.99'
+                    }
+                  }]
+                })
+              },
+              onApprove: async (data, actions) => {
+                setPaymentState('processing')
+                setProcessingMessage('Capturando pago seguro con PayPal...')
+                try {
+                  const order = await actions.order.capture()
+                  await handleCompletePayPalPayment(order.id, order)
+                } catch (err) {
+                  console.error('[PayPal] Error capturing order:', err)
+                  setErrorMessage('Error al capturar la orden en PayPal. Por favor intenta de nuevo.')
+                  setPaymentState('error')
+                }
+              },
+              onError: (err) => {
+                console.error('[PayPal] Error in button:', err)
+                setErrorMessage('Ocurrió un error en el portal de PayPal. Puedes reintentar o usar otro método.')
+                setPaymentState('error')
+              }
+            }).render('#paypal-button-container').catch(() => {})
+          }
+        })
+        .catch((err) => {
+          console.warn('[PayPal] Could not load SDK, activating local fallback:', err)
+          if (!isCancelled) {
+            setIsPayPalLoading(false)
+            setIsPayPalSdkReady(false)
+          }
+        })
+    }
+
+    return () => { isCancelled = true }
+  }, [isOpen, paymentState, activeGateway, hasValidPayPalClientId, targetUsername, creatorCode])
+
   if (!isOpen) return null
 
   const handleModalClose = () => {
@@ -189,7 +274,7 @@ export default function FlowCheckoutModal({
     }, 200)
   }
 
-  // Handler: Apply manual creator code
+  // Handler: Apply creator code
   const handleApplyCreatorCode = (e) => {
     if (e) e.preventDefault()
     const sanitized = sanitizeCreatorCode(inputCreatorCode)
@@ -205,7 +290,7 @@ export default function FlowCheckoutModal({
     setTimeout(() => setCreatorCodeFeedback(''), 4000)
   }
 
-  // Handler: Remove active creator code
+  // Handler: Remove creator code
   const handleRemoveCreatorCode = () => {
     setStoredCreatorCode('')
     setCreatorCode('')
@@ -276,124 +361,14 @@ export default function FlowCheckoutModal({
   }
 
   // =========================================================================
-  // GATEWAY 2: PADDLE BILLING (INTERNACIONAL - $3.99 USD)
+  // GATEWAY 2: PAYPAL CHECKOUT (INTERNACIONAL - $3.99 USD)
   // =========================================================================
-  const handleProcessPaddlePayment = async () => {
-    setIsPaddleLoading(true)
-    setErrorMessage('')
-
-    const clientToken = 
-      import.meta.env.VITE_PADDLE_CLIENT_TOKEN || 
-      (typeof window !== 'undefined' && window.__ENV__?.VITE_PADDLE_CLIENT_TOKEN) || 
-      ''
-
-    const priceId = 
-      import.meta.env.VITE_PADDLE_PRICE_ID || 
-      (typeof window !== 'undefined' && window.__ENV__?.VITE_PADDLE_PRICE_ID) || 
-      ''
-
-    const paddleEnv = 
-      import.meta.env.VITE_PADDLE_ENV || 
-      (clientToken.startsWith('live_') ? 'production' : 'sandbox')
-
-    // If no real token is configured, activate clear simulation fallback for local development
-    if (!clientToken || clientToken === 'test_token' || clientToken.includes('xxxxxxxx')) {
-      console.warn('[Paddle] No live client token set. Opening development simulation mode.')
-      setIsPaddleLoading(false)
-      setPaymentState('paddle_sim')
-      return
-    }
-
-    try {
-      // 1. Dynamic safe load of Paddle.js v2
-      await loadPaddleScript()
-
-      if (!window.Paddle) {
-        throw new Error('No se pudo inicializar la librería Paddle.js')
-      }
-
-      // 2. Set environment and initialize
-      if (window.Paddle.Environment && typeof window.Paddle.Environment.set === 'function') {
-        window.Paddle.Environment.set(paddleEnv)
-      }
-
-      window.Paddle.Initialize({
-        token: clientToken,
-        environment: paddleEnv
-      })
-
-      // 3. Open Paddle Checkout Overlay with customData including creator_code
-      window.Paddle.Checkout.open({
-        items: [{ priceId: priceId || 'pri_subscription_premium', quantity: 1 }],
-        customer: { email: payerEmail },
-        customData: { 
-          username: targetUsername, 
-          plan: 'premium',
-          creator_code: creatorCode || undefined
-        },
-        settings: {
-          displayMode: 'overlay',
-          theme: 'dark'
-        }
-      })
-
-      setIsPaddleLoading(false)
-    } catch (err) {
-      console.error('[PaddleCheckout] Error initializing Paddle:', err)
-      setIsPaddleLoading(false)
-      // Fallback to simulation mode so application never crashes
-      setPaymentState('paddle_sim')
-    }
-  }
-
-  // Handler for completing a simulated Paddle payment in development
-  const handleConfirmPaddleSimulation = async () => {
-    setPaymentState('processing')
-    setProcessingMessage('Simulando procesamiento internacional vía Paddle Billing ($3.99 USD)...')
-
-    const simTxnId = `txn_sim_${Date.now()}`
-    const simSubId = `sub_sim_${Date.now()}`
+  const handleCompletePayPalPayment = async (orderId, orderDetails = {}) => {
     const now = new Date()
     const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
 
     try {
-      // 1. Trigger serverless webhook in simulation mode
-      await fetch('/api/paddle-webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-simulation-test': 'true'
-        },
-        body: JSON.stringify({
-          event_id: `evt_sim_${Date.now()}`,
-          event_type: 'transaction.completed',
-          occurred_at: now.toISOString(),
-          data: {
-            id: simTxnId,
-            status: 'completed',
-            customer_id: `ctm_sim_${targetUsername}`,
-            subscription_id: simSubId,
-            custom_data: {
-              username: targetUsername,
-              plan: 'premium',
-              creator_code: creatorCode || undefined
-            },
-            details: {
-              totals: {
-                total: '3.99',
-                grand_total: '3.99',
-                currency_code: 'USD'
-              }
-            },
-            currency_code: 'USD',
-            customer: {
-              email: payerEmail
-            }
-          }
-        })
-      }).catch((e) => console.warn('[Paddle Simulation] Webhook post fallback:', e))
-
-      // 2. Update local state in Zustand store
+      // 1. Update local state in Zustand store
       updateProfile(targetUsername, {
         plan: 'premium',
         planName: 'Suscripción Mi Vitae ($3.99 USD/mes)',
@@ -401,44 +376,45 @@ export default function FlowCheckoutModal({
         planExpiresAt: expiresAt.toISOString()
       })
 
-      // 3. Record in Supabase
+      // 2. Record in Supabase
       await saveTransactionToSupabase({
-        transactionId: simTxnId,
-        orderNumber: simTxnId,
-        flowOrderNumber: simSubId,
+        transactionId: orderId,
+        orderNumber: orderId,
         username: targetUsername,
         amount: 3.99,
         currency: 'USD',
         status: 'APROBADO',
-        paymentMethod: 'Paddle Billing (Simulación Dev)',
-        authorizationCode: `AUTH-PADDLE-${Date.now()}`,
-        payerEmail,
+        paymentMethod: 'PayPal',
+        authorizationCode: orderId,
+        payerEmail: payerEmail,
         creator_code: creatorCode || null,
         metadata: {
-          creator_code: creatorCode || null
+          paypal_order_id: orderId,
+          creator_code: creatorCode || null,
+          details: orderDetails
         }
       }).catch(() => {})
 
-      // 4. Send confirmation receipt
+      // 3. Send email receipt
       sendPaymentReceiptEmail({
         email: payerEmail,
         name: currentProfile?.personalInfo?.name || targetUsername,
-        orderNumber: simTxnId,
+        orderNumber: orderId,
         amount: '$3.99 USD',
-        paymentMethod: 'Paddle Billing (USD)',
+        paymentMethod: 'PayPal',
         planName: 'Suscripción Mi Vitae ($3.99 USD/mes)'
       }).catch(() => {})
 
-      // 5. Build voucher
+      // 4. Build voucher ticket
       setTransactionVoucher({
-        transactionId: simTxnId,
-        orderNumber: simTxnId,
-        authorizationCode: `PADDLE-AUTH-${Date.now()}`,
+        transactionId: orderId,
+        orderNumber: orderId,
+        authorizationCode: `PP-${Date.now().toString(36).toUpperCase()}`,
         dateFormatted: now.toLocaleString('es-CL'),
-        paymentMethod: 'Paddle Billing (Tarjetas / Apple Pay / PayPal)',
+        paymentMethod: 'PayPal (Tarjetas / Cuenta PayPal)',
         amount: 3.99,
         currency: 'USD',
-        commerceName: 'Mi Vitae (Paddle Merchant of Record)',
+        commerceName: 'Mi Vitae (PayPal Checkout)',
         payerEmail,
         payerRut: 'N/A (Internacional)',
         creatorCode: creatorCode || null
@@ -446,13 +422,21 @@ export default function FlowCheckoutModal({
 
       setPaymentState('approved')
     } catch (err) {
-      console.error('[Paddle Simulation] Error:', err)
-      setErrorMessage('Error al completar la simulación de pago.')
+      console.error('[PayPal Completion] Error:', err)
+      setErrorMessage('Error al completar el registro del pago con PayPal.')
       setPaymentState('error')
     }
   }
 
-  // Download printable text voucher (handles CLP, USD and Creator Code)
+  // Local development simulation fallback for PayPal
+  const handleSimulatePayPalPayment = async () => {
+    setPaymentState('processing')
+    setProcessingMessage('Simulando procesamiento seguro con PayPal ($3.99 USD)...')
+    const simOrderId = `PP-SIM-${Date.now()}`
+    await handleCompletePayPalPayment(simOrderId, { simulated: true })
+  }
+
+  // Download printable text voucher
   const handleDownloadVoucher = () => {
     if (!transactionVoucher) return
 
@@ -477,7 +461,7 @@ Código Autorización: ${transactionVoucher.authorizationCode}
 Fecha y Hora:        ${transactionVoucher.dateFormatted}
 Medio de Pago:       ${transactionVoucher.paymentMethod}
 Monto Total:         ${formattedAmount}
-Pasarela / Comercio: ${transactionVoucher.commerceName || (isUsd ? 'Paddle Billing' : 'Flow.cl')}
+Pasarela / Comercio: ${transactionVoucher.commerceName || (isUsd ? 'PayPal Checkout' : 'Flow.cl')}
 Usuario / Perfil:    @${targetUsername}
 Email Pagador:       ${transactionVoucher.payerEmail}
 RUT Pagador:         ${transactionVoucher.payerRut || 'N/A'}
@@ -493,7 +477,7 @@ Soporte técnico: contacto@wearesamod.com
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `comprobante-${isUsd ? 'paddle' : 'flow'}-${transactionVoucher.transactionId}.txt`
+    link.download = `comprobante-${isUsd ? 'paypal' : 'flow'}-${transactionVoucher.transactionId}.txt`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -626,7 +610,7 @@ Soporte técnico: contacto@wearesamod.com
         
         {/* Dynamic Gateway Header */}
         <div className={`p-5 sm:p-6 relative text-white transition-colors duration-300 ${
-          activeGateway === 'flow' ? 'bg-[#0F265C]' : 'bg-[#0B132B]'
+          activeGateway === 'flow' ? 'bg-[#0F265C]' : 'bg-[#003087]'
         }`}>
           
           <div className="flex items-center justify-between">
@@ -638,10 +622,13 @@ Soporte técnico: contacto@wearesamod.com
                   <span className="text-[10px] font-bold ml-1 opacity-90">.cl</span>
                 </div>
               ) : (
-                // Paddle Billing International Brand Badge
-                <div className="h-9 px-3.5 rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center font-black text-white text-sm tracking-tight shadow-md">
-                  <span>Paddle</span>
-                  <span className="text-[10px] font-mono font-normal ml-1.5 opacity-90 px-1 py-0.5 rounded bg-black/20">v2</span>
+                // PayPal Checkout International Brand Badge
+                <div className="h-9 px-3.5 rounded-xl bg-white text-[#003087] flex items-center justify-center font-black text-base italic tracking-tight shadow-md">
+                  <span className="text-[#003087]">Pay</span>
+                  <span className="text-[#0079C1]">Pal</span>
+                  <span className="text-[9px] font-sans font-bold not-italic ml-1 px-1.5 py-0.5 rounded bg-blue-100 text-[#003087]">
+                    Checkout
+                  </span>
                 </div>
               )}
 
@@ -649,7 +636,7 @@ Soporte técnico: contacto@wearesamod.com
                 <div className="text-xs font-bold text-cyan-300 uppercase tracking-wider flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5" />
                   <span>
-                    {activeGateway === 'flow' ? 'Pasarela Oficial Chile' : 'Cobro Internacional Seguro'}
+                    {activeGateway === 'flow' ? 'Pasarela Oficial Chile' : 'Pasarela Internacional PayPal'}
                   </span>
                 </div>
                 <div className="text-sm font-semibold text-slate-200">
@@ -732,15 +719,15 @@ Soporte técnico: contacto@wearesamod.com
                   </div>
                 </button>
 
-                {/* Tab 2: Internacional (Paddle Billing) */}
+                {/* Tab 2: Internacional (PayPal Checkout) */}
                 <button
                   type="button"
                   onClick={() => {
-                    setActiveGateway('paddle')
+                    setActiveGateway('paypal')
                     setErrorMessage('')
                   }}
                   className={`flex items-center gap-2.5 py-2.5 px-3 rounded-xl text-left transition-all cursor-pointer ${
-                    activeGateway === 'paddle'
+                    activeGateway === 'paypal'
                       ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm ring-1 ring-slate-300 dark:ring-slate-700'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
@@ -748,7 +735,7 @@ Soporte técnico: contacto@wearesamod.com
                   <span className="text-2xl shrink-0">🌎</span>
                   <div className="min-w-0">
                     <div className="text-xs sm:text-sm font-bold truncate">Internacional</div>
-                    <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 leading-none mt-0.5">
+                    <div className="text-[11px] font-bold text-[#0079C1] dark:text-cyan-400 leading-none mt-0.5">
                       $3.99 USD/mes
                     </div>
                   </div>
@@ -893,32 +880,32 @@ Soporte técnico: contacto@wearesamod.com
           )}
 
           {/* ========================================================================= */}
-          {/* TAB 2 CONTENT: PADDLE BILLING (INTERNACIONAL - $3.99 USD) */}
+          {/* TAB 2 CONTENT: PAYPAL CHECKOUT (INTERNACIONAL - $3.99 USD) */}
           {/* ========================================================================= */}
-          {paymentState === 'select' && activeGateway === 'paddle' && (
+          {paymentState === 'select' && activeGateway === 'paypal' && (
             <div className="space-y-5 animate-fadeIn">
               
-              {/* Paddle Official Trust Banner */}
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 border border-indigo-200 dark:border-indigo-800/60 text-xs text-indigo-950 dark:text-indigo-200 flex items-start gap-3">
-                <Globe className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+              {/* PayPal Trust Banner */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200 dark:border-blue-800/60 text-xs text-blue-950 dark:text-blue-200 flex items-start gap-3">
+                <Globe className="w-5 h-5 text-[#003087] dark:text-cyan-400 shrink-0 mt-0.5" />
                 <div className="text-[11px] leading-relaxed">
-                  <strong>Facturación Global en USD con Paddle:</strong> Tu pago es procesado por Paddle.com (Merchant of Record oficial de Mi Vitae). Acepta tarjetas internacionales en más de 150 países, Apple Pay y PayPal sin cargos ocultos de conversión.
+                  <strong>Facturación Global en USD con PayPal:</strong> Paga con tarjeta de débito o crédito internacional sin necesidad de registrarte (Guest Checkout), o mediante tu saldo de cuenta PayPal de manera 100% segura.
                 </div>
               </div>
 
-              {/* Supported Global Payment Methods Features */}
+              {/* Supported Global Payment Features */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2.5">
                   Medios de Pago Internacionales Soportados
                 </label>
 
                 <div className="space-y-2.5">
-                  {PADDLE_PAYMENT_FEATURES.map((feat) => (
+                  {PAYPAL_PAYMENT_FEATURES.map((feat) => (
                     <div 
                       key={feat.id}
                       className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 flex items-start gap-3"
                     >
-                      <div className="shrink-0 p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-indigo-600 dark:text-indigo-400">
+                      <div className="shrink-0 p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[#003087] dark:text-cyan-400">
                         <CreditCard className="w-4 h-4" />
                       </div>
                       <div className="flex-1">
@@ -932,7 +919,7 @@ Soporte técnico: contacto@wearesamod.com
                           {feat.tags.map((tag) => (
                             <span 
                               key={tag}
-                              className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40"
+                              className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/40"
                             >
                               {tag}
                             </span>
@@ -947,44 +934,57 @@ Soporte técnico: contacto@wearesamod.com
               {/* International Payer Email Input */}
               <div className="pt-1">
                 <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                  Correo Electrónico para la Cuenta y Factura Internacional
+                  Correo Electrónico para la Cuenta y Recibo Internacional
                 </label>
                 <input
                   type="email"
                   value={payerEmail}
                   onChange={(e) => setPayerEmail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#0079C1]"
                   placeholder="name@example.com"
                 />
-                <span className="text-[10px] text-slate-400 mt-1 block">
-                  Recibirás el recibo de compra oficial de Paddle Billing inmediatamente tras confirmar.
-                </span>
               </div>
 
               {/* Support a Creator Section */}
               {renderCreatorCodeSection()}
 
-              {/* Action Buttons for Paddle */}
-              <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
-                <button
-                  type="button"
-                  onClick={handleProcessPaddlePayment}
-                  disabled={isPaddleLoading}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-sm sm:text-base shadow-xl shadow-indigo-500/25 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                >
-                  {isPaddleLoading ? (
-                    <>
-                      <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                      <span>Cargando pasarela segura...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="w-5 h-5" />
-                      <span>Pagar con Paddle ($3.99 USD/mes)</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
+              {/* Official PayPal Buttons Container or Fallback */}
+              <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+                {hasValidPayPalClientId ? (
+                  <div className="space-y-3">
+                    {isPayPalLoading && (
+                      <div className="py-6 flex items-center justify-center gap-2 text-xs font-semibold text-slate-500">
+                        <div className="w-4 h-4 rounded-full border-2 border-[#003087] border-t-transparent animate-spin" />
+                        <span>Cargando botones oficiales de PayPal...</span>
+                      </div>
+                    )}
+                    {/* Official PayPal JS SDK Mount Point */}
+                    <div id="paypal-button-container" className="min-h-[100px] relative z-0" />
+                  </div>
+                ) : (
+                  // Local Development / Test Interactive Simulation Mode
+                  <div className="space-y-3">
+                    <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 text-xs">
+                      <div className="font-bold flex items-center gap-1.5">
+                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>Modo Simulación de PayPal Activo</span>
+                      </div>
+                      <p className="text-[11px] text-amber-800 dark:text-amber-300 mt-1">
+                        Configura <code>VITE_PAYPAL_CLIENT_ID</code> para desplegar los botones en vivo. Puedes simular el pago internacional con 1 clic para validar la activación del plan y la base de datos.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleSimulatePayPalPayment}
+                      className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#FFC439] via-[#FFB700] to-[#E5A500] hover:from-[#FFB700] hover:to-[#E5A500] text-[#003087] font-black text-sm sm:text-base shadow-lg shadow-amber-500/20 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Lock className="w-5 h-5 text-[#003087]" />
+                      <span>Pagar con PayPal ($3.99 USD/mes)</span>
+                      <ArrowRight className="w-4 h-4 text-[#003087]" />
+                    </button>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-center pt-1 text-xs">
                   <button
@@ -997,67 +997,6 @@ Soporte técnico: contacto@wearesamod.com
                 </div>
               </div>
 
-            </div>
-          )}
-
-          {/* ========================================================================= */}
-          {/* STATE: PADDLE LOCAL SIMULATION FALLBACK (When no live keys in dev) */}
-          {/* ========================================================================= */}
-          {paymentState === 'paddle_sim' && (
-            <div className="py-4 space-y-5 animate-fadeIn">
-              <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200">
-                <div className="flex items-center gap-2 font-bold text-xs sm:text-sm">
-                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>Modo Simulación de Desarrollo (Paddle Billing)</span>
-                </div>
-                <p className="text-[11px] text-amber-800 dark:text-amber-300 mt-1 leading-relaxed">
-                  No se detectó un <code>VITE_PADDLE_CLIENT_TOKEN</code> real en las variables de entorno. Puedes simular el flujo completo de pago internacional en USD sin cobros reales para verificar la activación del plan y la base de datos.
-                </p>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Plan:</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">Mi Vitae Premium</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Monto:</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">$3.99 USD</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Usuario Asignado:</span>
-                  <span className="font-mono font-bold text-slate-800 dark:text-slate-200">@{targetUsername}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Email:</span>
-                  <span className="font-mono text-slate-800 dark:text-slate-200">{payerEmail}</span>
-                </div>
-                {creatorCode && (
-                  <div className="flex justify-between pt-1 border-t border-slate-200 dark:border-slate-800">
-                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Creador Apoyado:</span>
-                    <span className="font-mono font-bold text-emerald-700 dark:text-emerald-300">{creatorCode}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={handleConfirmPaddleSimulation}
-                  className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <CheckCircle2 className="w-5 h-5" />
-                  <span>Aprobar Simulación de Pago ($3.99 USD)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPaymentState('select')}
-                  className="w-full py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs hover:bg-slate-200 transition-colors cursor-pointer"
-                >
-                  Volver al selector
-                </button>
-              </div>
             </div>
           )}
 
@@ -1185,7 +1124,7 @@ Soporte técnico: contacto@wearesamod.com
                   onClick={handleDownloadVoucher}
                   className="w-full py-3 rounded-2xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs sm:text-sm border border-slate-300 dark:border-slate-700 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                 >
-                  <Download className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <Download className="w-4 h-4 text-[#003087] dark:text-cyan-400" />
                   <span>Descargar Comprobante Oficial (TXT/Voucher)</span>
                 </button>
 

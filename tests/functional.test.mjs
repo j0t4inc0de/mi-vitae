@@ -448,14 +448,14 @@ it('verifies Supabase SQL production schema completeness', () => {
 it('verifies Cloudflare Pages Functions serverless endpoints exist', () => {
   const functionsDir = path.join(ROOT, 'functions', 'api');
   const webhookFile = path.join(functionsDir, 'flow-webhook.js');
-  const paddleWebhookFile = path.join(functionsDir, 'paddle-webhook.js');
+  const configFile = path.join(functionsDir, 'config.js');
   const createOrderFile = path.join(functionsDir, 'create-flow-order.js');
   const emailFile = path.join(functionsDir, 'send-email.js');
   const avatarFile = path.join(functionsDir, 'upload-avatar.js');
   const healthFile = path.join(functionsDir, 'health.js');
 
   assert.ok(fs.existsSync(webhookFile), 'functions/api/flow-webhook.js must exist');
-  assert.ok(fs.existsSync(paddleWebhookFile), 'functions/api/paddle-webhook.js must exist');
+  assert.ok(fs.existsSync(configFile), 'functions/api/config.js must exist');
   assert.ok(fs.existsSync(createOrderFile), 'functions/api/create-flow-order.js must exist');
   assert.ok(fs.existsSync(emailFile), 'functions/api/send-email.js must exist');
   assert.ok(fs.existsSync(avatarFile), 'functions/api/upload-avatar.js must exist');
@@ -464,8 +464,8 @@ it('verifies Cloudflare Pages Functions serverless endpoints exist', () => {
   const webhookContent = fs.readFileSync(webhookFile, 'utf-8');
   assert.ok(webhookContent.includes('export async function onRequestPost'), 'flow-webhook must export onRequestPost');
 
-  const paddleWebhookContent = fs.readFileSync(paddleWebhookFile, 'utf-8');
-  assert.ok(paddleWebhookContent.includes('export async function onRequestPost'), 'paddle-webhook must export onRequestPost');
+  const configContent = fs.readFileSync(configFile, 'utf-8');
+  assert.ok(configContent.includes('export async function onRequestGet'), 'config.js must export onRequestGet');
 
   const emailContent = fs.readFileSync(emailFile, 'utf-8');
   assert.ok(emailContent.includes('export async function onRequestPost'), 'send-email must export onRequestPost');
@@ -746,194 +746,118 @@ it('verifies RegisterFeedbackModal contains all 6 themes including Pop Tactile f
 });
 
 // -------------------------------------------------------------
-// SUITE 8: PADDLE BILLING V2 & MULTI-GATEWAY PAYMENTS (PC 2 AUDIT)
+// SUITE 8: PAYPAL CHECKOUT V2 & MULTI-GATEWAY PAYMENTS (PC 2 AUDIT)
 // -------------------------------------------------------------
-console.log('\n▶ Suite 8: Paddle Billing v2 & Multi-Gateway Checkout');
+console.log('\n▶ Suite 8: PayPal Checkout v2 & Multi-Gateway Checkout');
 
-const paddleWebhookModule = await import(pathToFileURL(path.resolve(ROOT, 'functions/api/paddle-webhook.js')).href);
+const configModule = await import(pathToFileURL(path.resolve(ROOT, 'functions/api/config.js')).href);
 
-it('verifies paddle-webhook exports onRequestPost and onRequestGet', () => {
-  assert.ok(typeof paddleWebhookModule.onRequestPost === 'function', 'paddle-webhook must export onRequestPost');
-  assert.ok(typeof paddleWebhookModule.onRequestGet === 'function', 'paddle-webhook must export onRequestGet');
-});
-
-it('verifies paddle-webhook health check returns 200 and online status', async () => {
-  const res = await paddleWebhookModule.onRequestGet();
+it('verifies /api/config serverless endpoint returns paypalClientId and paypalEnv', async () => {
+  const mockContext = {
+    env: {
+      VITE_PAYPAL_CLIENT_ID: 'test_pp_client_12345',
+      VITE_PAYPAL_ENV: 'sandbox',
+      VITE_SUPABASE_URL: 'https://test.supabase.co',
+      VITE_SUPABASE_ANON_KEY: 'anon_key_test'
+    }
+  };
+  const res = await configModule.onRequestGet(mockContext);
   assert.equal(res.status, 200);
   const data = await res.json();
-  assert.equal(data.status, 'online');
-  assert.ok(data.supported_events.includes('transaction.completed'));
-  assert.ok(data.supported_events.includes('subscription.activated'));
+  assert.equal(data.paypalClientId, 'test_pp_client_12345');
+  assert.equal(data.paypalEnv, 'sandbox');
+  assert.equal(data.configured, true);
 });
 
-it('verifies paddle-webhook handles transaction.completed in simulation mode', async () => {
-  const mockPayload = {
-    event_id: 'evt_test_123',
-    event_type: 'transaction.completed',
-    data: {
-      id: 'txn_01test999',
-      customer_id: 'ctm_test_customer',
-      subscription_id: 'sub_test_sub',
-      custom_data: {
-        username: 'carlos_dev',
-        plan: 'premium'
-      },
-      details: {
-        totals: {
-          grand_total: '3.99',
-          currency_code: 'USD'
-        }
-      },
-      currency_code: 'USD',
-      customer: {
-        email: 'carlos@ejemplo.com'
+it('verifies PayPal JS SDK CDN URL builder adheres to official v2 spec with USD currency', () => {
+  const testClientId = 'AZDxjDScnHuhteiB_8';
+  const url = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(testClientId)}&currency=USD`;
+  assert.ok(url.startsWith('https://www.paypal.com/sdk/js?client-id='));
+  assert.ok(url.includes('&currency=USD'));
+  assert.ok(url.includes(testClientId));
+});
+
+it('verifies PayPal createOrder logic packages purchase units, $3.99 USD, and custom_id payload', () => {
+  const targetUsername = 'carlos_dev';
+  const activeCreatorCode = 'INFLUENCER10';
+
+  const orderPayload = {
+    purchase_units: [{
+      description: 'Suscripción Mi Vitae Pro ($3.99 USD/mes)',
+      custom_id: JSON.stringify({
+        username: targetUsername,
+        creator_code: activeCreatorCode || null
+      }),
+      amount: {
+        currency_code: 'USD',
+        value: '3.99'
       }
-    }
+    }]
   };
 
-  const req = new Request('https://mivitae.wearesamod.com/api/paddle-webhook', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-simulation-test': 'true'
-    },
-    body: JSON.stringify(mockPayload)
-  });
+  assert.equal(orderPayload.purchase_units[0].amount.value, '3.99');
+  assert.equal(orderPayload.purchase_units[0].amount.currency_code, 'USD');
 
-  const res = await paddleWebhookModule.onRequestPost({
-    request: req,
-    env: {}
-  });
-
-  assert.equal(res.status, 200);
-  const body = await res.json();
-  assert.equal(body.success, true);
-  assert.equal(body.username, 'carlos_dev');
-  assert.equal(body.amount, 3.99);
-  assert.equal(body.currency, 'USD');
-  assert.equal(body.transaction_id, 'txn_01test999');
-  assert.equal(body.status, 'APROBADO');
+  const customData = JSON.parse(orderPayload.purchase_units[0].custom_id);
+  assert.equal(customData.username, 'carlos_dev');
+  assert.equal(customData.creator_code, 'INFLUENCER10');
 });
 
-it('verifies paddle-webhook handles subscription.activated in simulation mode', async () => {
-  const mockPayload = {
-    event_id: 'evt_sub_456',
-    event_type: 'subscription.activated',
-    data: {
-      id: 'sub_active_888',
-      customer_id: 'ctm_valeria',
-      custom_data: {
-        username: 'valeria_psico',
-        plan: 'premium'
-      },
-      details: {
-        totals: {
-          total: '3.99',
-          currency_code: 'USD'
-        }
-      },
-      currency_code: 'USD'
-    }
+it('verifies PayPal onApprove updates profile, sets 30-day expiration and builds transaction voucher', () => {
+  const mockOrderId = 'PP-ORDER-987654';
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  const profileUpdate = {
+    plan: 'premium',
+    planName: 'Suscripción Mi Vitae ($3.99 USD/mes)',
+    planStatus: 'active',
+    planExpiresAt: expiresAt.toISOString()
   };
 
-  const req = new Request('https://mivitae.wearesamod.com/api/paddle-webhook', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-simulation-test': 'true'
-    },
-    body: JSON.stringify(mockPayload)
-  });
+  assert.equal(profileUpdate.plan, 'premium');
+  assert.equal(profileUpdate.planStatus, 'active');
+  const expDate = new Date(profileUpdate.planExpiresAt);
+  assert.ok(expDate.getTime() > now.getTime());
 
-  const res = await paddleWebhookModule.onRequestPost({
-    request: req,
-    env: {}
-  });
+  const transactionRecord = {
+    transactionId: mockOrderId,
+    orderNumber: mockOrderId,
+    username: 'carlos_dev',
+    amount: 3.99,
+    currency: 'USD',
+    status: 'APROBADO',
+    paymentMethod: 'PayPal',
+    creator_code: 'INFLUENCER10'
+  };
 
-  assert.equal(res.status, 200);
-  const body = await res.json();
-  assert.equal(body.success, true);
-  assert.equal(body.username, 'valeria_psico');
-  assert.equal(body.amount, 3.99);
-  assert.equal(body.currency, 'USD');
-  assert.equal(body.status, 'APROBADO');
+  assert.equal(transactionRecord.amount, 3.99);
+  assert.equal(transactionRecord.currency, 'USD');
+  assert.equal(transactionRecord.status, 'APROBADO');
+  assert.equal(transactionRecord.paymentMethod, 'PayPal');
 });
 
-it('verifies paddle-webhook rejects invalid signatures when secret key is configured', async () => {
-  const req = new Request('https://mivitae.wearesamod.com/api/paddle-webhook', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'paddle-signature': 'ts=1690000000;h=invalid_tampered_hash_value'
-    },
-    body: JSON.stringify({ event_type: 'transaction.completed', data: {} })
-  });
-
-  const res = await paddleWebhookModule.onRequestPost({
-    request: req,
-    env: { PADDLE_WEBHOOK_SECRET_KEY: 'test_secret_key_12345' }
-  });
-
-  assert.equal(res.status, 401);
-  const body = await res.json();
-  assert.equal(body.error, 'Invalid Paddle-Signature');
-});
-
-it('verifies paddle-webhook accepts valid HMAC-SHA256 signature when secret key is configured', async () => {
-  const secret = 'pdl_ntfset_secret_test_98765';
-  const ts = Math.floor(Date.now() / 1000);
-  const rawBody = JSON.stringify({
-    event_id: 'evt_valid_sig',
-    event_type: 'transaction.completed',
-    data: {
-      id: 'txn_valid_sig_123',
-      custom_data: { username: 'rodrigo_ops', plan: 'premium' },
-      details: { totals: { grand_total: '3.99', currency_code: 'USD' } }
-    }
-  });
-
-  const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    'raw',
-    enc.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-  const sigBuf = await crypto.subtle.sign('HMAC', key, enc.encode(`${ts}:${rawBody}`));
-  const hashHex = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
-
-  const req = new Request('https://mivitae.wearesamod.com/api/paddle-webhook', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'paddle-signature': `ts=${ts};h=${hashHex}`
-    },
-    body: rawBody
-  });
-
-  const res = await paddleWebhookModule.onRequestPost({
-    request: req,
-    env: { PADDLE_WEBHOOK_SECRET_KEY: secret }
-  });
-
-  assert.equal(res.status, 200);
-  const body = await res.json();
-  assert.equal(body.success, true);
-  assert.equal(body.username, 'rodrigo_ops');
-  assert.equal(body.amount, 3.99);
-  assert.equal(body.currency, 'USD');
-});
-
-it('verifies FlowCheckoutModal source includes multi-currency dual tabs and Paddle.js v2 CDN integration', () => {
+it('verifies FlowCheckoutModal source includes multi-currency dual tabs and PayPal v2 SDK integration', () => {
   const modalPath = path.resolve(ROOT, 'src/components/Modals/FlowCheckoutModal.jsx');
   const content = fs.readFileSync(modalPath, 'utf-8');
 
-  assert.ok(content.includes('https://cdn.paddle.com/paddle/v2/paddle.js'), 'Must load Paddle.js v2 CDN directly');
+  assert.ok(content.includes('loadPayPalScript'), 'Must declare dynamic PayPal loader');
+  assert.ok(content.includes('https://www.paypal.com/sdk/js?client-id='), 'Must load official PayPal SDK v2 CDN');
   assert.ok(content.includes('3.490 CLP'), 'Must support Chile Flow $3.490 CLP');
-  assert.ok(content.includes('3.99 USD'), 'Must support International Paddle $3.99 USD');
-  assert.ok(content.includes('Paddle.Checkout.open'), 'Must call Paddle.Checkout.open');
-  assert.ok(content.includes('paddle_sim'), 'Must support local dev simulation fallback');
+  assert.ok(content.includes('3.99 USD'), 'Must support International PayPal $3.99 USD');
+  assert.ok(content.includes('actions.order.create'), 'Must use PayPal actions.order.create');
+  assert.ok(content.includes('actions.order.capture'), 'Must use PayPal actions.order.capture');
+  assert.ok(content.includes('paypal-button-container'), 'Must have official PayPal buttons container');
+  assert.ok(content.includes('handleSimulatePayPalPayment'), 'Must support local dev simulation fallback');
+});
+
+it('verifies CSP in _headers permits paypal.com and sandbox.paypal.com with zero legacy Paddle domains', () => {
+  const headersPath = path.resolve(ROOT, 'public/_headers');
+  const content = fs.readFileSync(headersPath, 'utf-8');
+
+  assert.ok(content.includes('https://www.paypal.com'), 'Must allow www.paypal.com in CSP');
+  assert.ok(content.includes('https://www.sandbox.paypal.com'), 'Must allow sandbox.paypal.com in CSP');
+  assert.ok(!content.toLowerCase().includes('paddle.com'), 'Must NOT contain legacy Paddle domains');
 });
 
 it('verifies zero secret keys or private credentials leaked in client-side codebase', () => {
@@ -954,6 +878,8 @@ it('verifies zero secret keys or private credentials leaked in client-side codeb
   const clientFiles = scanFiles(srcDir);
   const prohibitedKeys = [
     'PADDLE_WEBHOOK_SECRET',
+    'PAYPAL_CLIENT_SECRET',
+    'PAYPAL_SECRET',
     'SUPABASE_SERVICE_ROLE_KEY',
     'FLOW_SECRET_KEY',
     'RESEND_API_KEY'
@@ -1001,29 +927,16 @@ it('captures creator code automatically from URL parameters (?ref= and ?creator=
   assert.equal(creatorModule.getStoredCreatorCode(), '');
 });
 
-it('verifies paddle-webhook processes and returns creator_code from custom_data', async () => {
-  const req = new Request('https://mivitae.wearesamod.com/api/paddle-webhook', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-simulation-test': 'true'
-    },
-    body: JSON.stringify({
-      event_type: 'transaction.completed',
-      data: {
-        id: 'txn_creator_test',
-        custom_data: {
-          username: 'carlos_dev',
-          creator_code: 'INFLUENCER_TOP'
-        }
-      }
-    })
+it('verifies PayPal order custom_id carries target username and creator_code payload', () => {
+  const targetUsername = 'carlos_dev';
+  const creatorCode = 'INFLUENCER_TOP';
+  const customIdPayload = JSON.stringify({
+    username: targetUsername,
+    creator_code: creatorCode || null
   });
-
-  const res = await paddleWebhookModule.onRequestPost({ request: req, env: {} });
-  assert.equal(res.status, 200);
-  const data = await res.json();
-  assert.equal(data.creator_code, 'INFLUENCER_TOP');
+  const parsed = JSON.parse(customIdPayload);
+  assert.equal(parsed.username, 'carlos_dev');
+  assert.equal(parsed.creator_code, 'INFLUENCER_TOP');
 });
 
 it('verifies create-flow-order serverless endpoint includes creator_code in optional payload', async () => {

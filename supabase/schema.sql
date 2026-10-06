@@ -80,11 +80,12 @@ CREATE TABLE IF NOT EXISTS public.subscriptions (
   status VARCHAR(30) NOT NULL DEFAULT 'active', -- 'active', 'past_due', 'canceled', 'expired'
   price_clp NUMERIC NOT NULL DEFAULT 0,
   amount NUMERIC NOT NULL DEFAULT 0,
-  currency VARCHAR(10) NOT NULL DEFAULT 'CLP', -- 'CLP' (Flow.cl) o 'USD' (Paddle Billing)
+  currency VARCHAR(10) NOT NULL DEFAULT 'CLP', -- 'CLP' (Flow.cl) o 'USD' (PayPal Checkout)
   started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '30 days'),
   trial_ends_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '30 days'),
   flow_subscription_id VARCHAR(100),
+  paypal_order_id VARCHAR(100),
   paddle_subscription_id VARCHAR(100),
   paddle_customer_id VARCHAR(100),
   creator_code VARCHAR(50), -- Código de Creador / Influencer de referencia (Apoya a un creador)
@@ -94,7 +95,7 @@ CREATE TABLE IF NOT EXISTS public.subscriptions (
 );
 
 -- ==============================================================================
--- 5. TABLE: TRANSACTIONS (Flow.cl & Paddle Payment Records & Vouchers)
+-- 5. TABLE: TRANSACTIONS (Flow.cl & PayPal Payment Records & Vouchers)
 -- ==============================================================================
 CREATE TABLE IF NOT EXISTS public.transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
