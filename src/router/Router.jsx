@@ -35,7 +35,11 @@ export function matchRoute(path) {
   }
 
   if (firstSegment === 'admin') {
-    return { name: 'admin', path: '/admin', params: {} }
+    // Hidden admin route: only accessible via /admin/wearesamod
+    if (segments.length >= 2 && segments[1].toLowerCase() === 'wearesamod') {
+      return { name: 'admin', path: '/admin/wearesamod', params: { secret: 'wearesamod' } }
+    }
+    return { name: 'not_found', path: cleanPath, params: {} }
   }
 
   if (firstSegment === 'snake') {

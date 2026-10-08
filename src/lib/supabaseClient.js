@@ -614,6 +614,30 @@ export async function saveTransactionToSupabase(transactionData) {
 }
 
 /**
+ * Fetch all transactions from Supabase for Admin reporting
+ */
+export async function fetchTransactionsFromSupabase() {
+  await initSupabase()
+  if (!isSupabaseConfigured || !supabase) return []
+
+  try {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.warn('[Supabase] Error fetching transactions:', error.message)
+      return []
+    }
+    return data || []
+  } catch (err) {
+    console.warn('[Supabase] Exception fetching transactions:', err)
+    return []
+  }
+}
+
+/**
  * Atomic counter increment for analytics in Supabase with direct table fallback
  */
 export async function incrementAnalyticsInSupabase(username, metricName) {

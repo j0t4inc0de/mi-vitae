@@ -69,10 +69,13 @@ it('matches /dashboard route', () => {
   assert.equal(res.path, '/dashboard');
 });
 
-it('matches /admin route', () => {
-  const res = matchRoute('/admin');
-  assert.equal(res.name, 'admin');
-  assert.equal(res.path, '/admin');
+it('matches hidden /admin/wearesamod route and rejects bare /admin as not_found', () => {
+  const secretAdmin = matchRoute('/admin/wearesamod');
+  assert.equal(secretAdmin.name, 'admin');
+  assert.equal(secretAdmin.path, '/admin/wearesamod');
+
+  const bareAdmin = matchRoute('/admin');
+  assert.equal(bareAdmin.name, 'not_found');
 });
 
 it('matches /snake route', () => {

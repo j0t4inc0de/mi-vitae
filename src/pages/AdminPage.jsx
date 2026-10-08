@@ -1,12 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from '../router/Router'
 import { useProfileStore } from '../stores/profileStore'
-import { getCurrentUser } from '../lib/supabaseClient'
+import { getCurrentUser, fetchTransactionsFromSupabase } from '../lib/supabaseClient'
 import { 
   Shield, Users, Eye, MousePointerClick, DollarSign, 
   ExternalLink, TrendingUp, RefreshCw, CheckCircle2, 
   Search, UserCheck, Trash2, Edit3, X,
-  Sparkles, FileDown, ChevronDown, UserPlus, Lock
+  Sparkles, FileDown, ChevronDown, UserPlus, Lock,
+  Award, Copy, Check, Calendar, ArrowRight, LogOut, Receipt
 } from 'lucide-react'
 
 // Map theme IDs to user-friendly names and badge styling
@@ -98,17 +99,30 @@ export default function AdminPage() {
   const setActiveUsername = useProfileStore((state) => state.setActiveUsername)
   const resetToDefaults = useProfileStore((state) => state.resetToDefaults)
 
-  // Security & Authorization State
-  const [isAdminAuthorized, setIsAdminAuthorized] = useState(false)
+  // Security & Authorization State (user: jericesb5@gmail.com, pass: TeAmoSambi!@123a)
+  const [isAdminAuthorized, setIsAdminAuthorized] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('mi_vitae_admin_auth') === 'true'
+    }
+    return false
+  })
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
-  const [adminKey, setAdminKey] = useState('')
+  const [adminEmailInput, setAdminEmailInput] = useState('')
+  const [adminPasswordInput, setAdminPasswordInput] = useState('')
   const [authError, setAuthError] = useState('')
 
   useEffect(() => {
     let isMounted = true
+    if (sessionStorage.getItem('mi_vitae_admin_auth') === 'true') {
+      setIsAdminAuthorized(true)
+      setIsCheckingAuth(false)
+      return
+    }
+
     getCurrentUser().then((user) => {
       if (!isMounted) return
       const isSamodAdmin = user && (
+        user.email === 'jericesb5@gmail.com' ||
         user.app_metadata?.role === 'admin' ||
         user.user_metadata?.role === 'admin' ||
         user.email === 'admin@wearesamod.com' ||
@@ -116,6 +130,7 @@ export default function AdminPage() {
       )
       if (isSamodAdmin) {
         setIsAdminAuthorized(true)
+        sessionStorage.setItem('mi_vitae_admin_auth', 'true')
       }
       setIsCheckingAuth(false)
     }).catch(() => {
@@ -123,6 +138,57 @@ export default function AdminPage() {
     })
     return () => { isMounted = false }
   }, [])
+
+  const handleAdminLogin = (e) => {
+    e.preventDefault()
+    const cleanUser = adminEmailInput.trim().toLowerCase()
+    const pass = adminPasswordInput.trim()
+
+    // Canonical Admin Credentials: user: jericesb5@gmail.com, pass: TeAmoSambi!@123a
+    if (cleanUser === 'jericesb5@gmail.com' && pass === 'TeAmoSambi!@123a') {
+      setIsAdminAuthorized(true)
+      sessionStorage.setItem('mi_vitae_admin_auth', 'true')
+      setAuthError('')
+      showToast('¡Bienvenido Jeric! Acceso concedido al Super Admin.')
+    } else {
+      setAuthError('Usuario o contraseña de administrador incorrectos.')
+    }
+  }
+
+  const handleAdminLogout = () => {
+    sessionStorage.removeItem('mi_vitae_admin_auth')
+    setIsAdminAuthorized(false)
+    setAdminPasswordInput('')
+    navigate('/')
+  }
+
+  // Navigation tab: 'users' (Portafolios & Usuarios) | 'creators' (Afiliados & Creadores)
+  const [activeAdminTab, setActiveAdminTab] = useState('users')
+
+  // Real Transactions from Supabase & Profile state
+  const [transactions, setTransactions] = useState([])
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(false)
+  const [creatorSearch, setCreatorSearch] = useState('')
+  const [selectedCreatorDetails, setSelectedCreatorDetails] = useState(null)
+  const [copiedCreatorCode, setCopiedCreatorCode] = useState(null)
+
+  // Fetch transactions from Supabase on authorization
+  useEffect(() => {
+    if (!isAdminAuthorized) return
+    let isMounted = true
+    setIsLoadingTransactions(true)
+    fetchTransactionsFromSupabase()
+      .then((txns) => {
+        if (!isMounted) return
+        setTransactions(txns || [])
+        setIsLoadingTransactions(false)
+      })
+      .catch((err) => {
+        console.warn('Error loading transactions in admin:', err)
+        if (isMounted) setIsLoadingTransactions(false)
+      })
+    return () => { isMounted = false }
+  }, [isAdminAuthorized])
 
   // Filter and search state
   const [searchTerm, setSearchTerm] = useState('')
@@ -299,6 +365,223 @@ export default function AdminPage() {
     showToast('Reporte CSV de usuarios exportado exitosamente.')
   }
 
+  // ---------------------------------------------------------------------------
+  // AFFILIATES & CREATORS ("APOYA A UN CREADOR") BUSINESS LOGIC
+  // Chilean Flow.cl sales: $600 CLP commission per paying user
+  // International PayPal sales: $2.60 USD commission per paying user
+  // ---------------------------------------------------------------------------
+  const creatorsSummary = useMemo(() => {
+    const map = {}
+
+    // 1. Process real transactions from Supabase
+    transactions.forEach((tx) => {
+      const code = String(tx.creator_code || tx.metadata?.creator_code || '').trim().toUpperCase()
+      if (!code || tx.status !== 'APROBADO') return
+
+      if (!map[code]) {
+        map[code] = {
+          code,
+          salesClp: 0,
+          salesUsd: 0,
+          totalRevenueClp: 0,
+          totalRevenueUsd: 0,
+          commissionClp: 0, // $600 CLP por cada venta Flow
+          commissionUsd: 0, // $2.60 USD por cada venta PayPal
+          transactions: []
+        }
+      }
+
+      const isUsd = (tx.currency || '').toUpperCase() === 'USD'
+      if (isUsd) {
+        map[code].salesUsd += 1
+        map[code].totalRevenueUsd += Number(tx.amount || 3.99)
+        map[code].commissionUsd += 2.60
+      } else {
+        map[code].salesClp += 1
+        map[code].totalRevenueClp += Number(tx.amount || 3490)
+        map[code].commissionClp += 600
+      }
+
+      map[code].transactions.push({
+        id: tx.order_number || tx.id,
+        date: tx.created_at || new Date().toISOString(),
+        username: tx.username || 'usuario',
+        payerEmail: tx.payer_email || 'cliente@ejemplo.com',
+        currency: isUsd ? 'USD' : 'CLP',
+        amount: Number(tx.amount || (isUsd ? 3.99 : 3490)),
+        paymentMethod: tx.payment_method || (isUsd ? 'PayPal' : 'Flow.cl'),
+        commissionEarned: isUsd ? 2.60 : 600
+      })
+    })
+
+    // 2. Process transactions from local profile state
+    profileList.forEach((p) => {
+      const history = p.transactionsHistory || (p.lastTransaction ? [p.lastTransaction] : [])
+      history.forEach((tx) => {
+        const code = String(tx.creator_code || tx.creatorCode || '').trim().toUpperCase()
+        if (!code || (tx.status && tx.status !== 'APROBADO')) return
+
+        const orderId = tx.orderNumber || tx.transactionId
+        const alreadyExists = map[code]?.transactions.some((t) => t.id === orderId)
+        if (alreadyExists) return
+
+        if (!map[code]) {
+          map[code] = {
+            code,
+            salesClp: 0,
+            salesUsd: 0,
+            totalRevenueClp: 0,
+            totalRevenueUsd: 0,
+            commissionClp: 0,
+            commissionUsd: 0,
+            transactions: []
+          }
+        }
+
+        const isUsd = (tx.currency || '').toUpperCase() === 'USD'
+        if (isUsd) {
+          map[code].salesUsd += 1
+          map[code].totalRevenueUsd += Number(tx.amount || 3.99)
+          map[code].commissionUsd += 2.60
+        } else {
+          map[code].salesClp += 1
+          map[code].totalRevenueClp += Number(tx.amount || 3490)
+          map[code].commissionClp += 600
+        }
+
+        map[code].transactions.push({
+          id: orderId || `TX-${Date.now()}`,
+          date: tx.date || new Date().toISOString(),
+          username: p.username,
+          payerEmail: tx.payerEmail || p.personalInfo?.email || 'cliente@ejemplo.com',
+          currency: isUsd ? 'USD' : 'CLP',
+          amount: Number(tx.amount || (isUsd ? 3.99 : 3490)),
+          paymentMethod: tx.paymentMethod || (isUsd ? 'PayPal' : 'Flow.cl'),
+          commissionEarned: isUsd ? 2.60 : 600
+        })
+      })
+    })
+
+    // If no real transactions exist yet, supply default reference creators
+    if (Object.keys(map).length === 0) {
+      return [
+        {
+          code: 'STREAMER_CHILE',
+          salesClp: 5,
+          salesUsd: 2,
+          totalRevenueClp: 5 * 3490,
+          totalRevenueUsd: 2 * 3.99,
+          commissionClp: 5 * 600, // $3.000 CLP
+          commissionUsd: 2 * 2.60, // $5.20 USD
+          isDemo: true,
+          transactions: [
+            { id: 'ORD-FLOW-771', date: new Date().toISOString(), username: 'carlos_dev', payerEmail: 'carlos@ejemplo.cl', currency: 'CLP', amount: 3490, paymentMethod: 'Webpay Plus', commissionEarned: 600 },
+            { id: 'ORD-PP-882', date: new Date().toISOString(), username: 'antonia_ux', payerEmail: 'antonia@gmail.com', currency: 'USD', amount: 3.99, paymentMethod: 'PayPal', commissionEarned: 2.60 }
+          ]
+        },
+        {
+          code: 'DEV_MASTER',
+          salesClp: 8,
+          salesUsd: 4,
+          totalRevenueClp: 8 * 3490,
+          totalRevenueUsd: 4 * 3.99,
+          commissionClp: 8 * 600, // $4.800 CLP
+          commissionUsd: 4 * 2.60, // $10.40 USD
+          isDemo: true,
+          transactions: [
+            { id: 'ORD-FLOW-993', date: new Date().toISOString(), username: 'rodrigo_ops', payerEmail: 'rodrigo@ejemplo.cl', currency: 'CLP', amount: 3490, paymentMethod: 'CuentaRUT', commissionEarned: 600 },
+            { id: 'ORD-PP-104', date: new Date().toISOString(), username: 'valeria_psico', payerEmail: 'valeria@gmail.com', currency: 'USD', amount: 3.99, paymentMethod: 'PayPal', commissionEarned: 2.60 }
+          ]
+        }
+      ]
+    }
+
+    return Object.values(map)
+  }, [transactions, profileList])
+
+  // Filtered creators list by search term
+  const filteredCreators = useMemo(() => {
+    if (!creatorSearch.trim()) return creatorsSummary
+    const q = creatorSearch.trim().toUpperCase()
+    return creatorsSummary.filter((c) => c.code.includes(q))
+  }, [creatorsSummary, creatorSearch])
+
+  // Global creator totals
+  const totalCreatorSalesClp = creatorsSummary.reduce((acc, c) => acc + c.salesClp, 0)
+  const totalCreatorSalesUsd = creatorsSummary.reduce((acc, c) => acc + c.salesUsd, 0)
+  const totalCreatorRevenueClp = creatorsSummary.reduce((acc, c) => acc + c.totalRevenueClp, 0)
+  const totalCreatorRevenueUsd = creatorsSummary.reduce((acc, c) => acc + c.totalRevenueUsd, 0)
+  const totalCreatorCommissionClp = creatorsSummary.reduce((acc, c) => acc + c.commissionClp, 0)
+  const totalCreatorCommissionUsd = creatorsSummary.reduce((acc, c) => acc + c.commissionUsd, 0)
+
+  // Copy monthly settlement summary for transferring on the 30th
+  const handleCopyCreatorSettlement = (creator) => {
+    const totalUsers = creator.salesClp + creator.salesUsd
+    const text = `
+==================================================
+LIQUIDACIÓN CREADOR / AFILIADO (CORTE DÍA 30)
+Mi Vitae by We Are Samod
+==================================================
+Código de Creador:          ${creator.code}
+Fecha de Emisión:            ${new Date().toLocaleDateString('es-CL')}
+
+RESUMEN DE VENTAS Y CONVERSIONES:
+• Ventas Chile (Flow.cl):         ${creator.salesClp} usuarios ($600 CLP comisión c/u)
+• Ventas Internacional (PayPal):  ${creator.salesUsd} usuarios ($2.60 USD comisión c/u)
+• Total Usuarios Pagados:         ${totalUsers} usuarios
+
+TOTAL A TRANSFERIR ESTE MES:
+${creator.commissionClp > 0 ? `👉 Total en Pesos:  $${creator.commissionClp.toLocaleString('es-CL')} CLP\n` : ''}${creator.commissionUsd > 0 ? `👉 Total en Dólares: $${creator.commissionUsd.toFixed(2)} USD (PayPal)\n` : ''}
+Administrador autorizado: jericesb5@gmail.com
+==================================================
+`.trim()
+
+    navigator.clipboard.writeText(text)
+    setCopiedCreatorCode(creator.code)
+    setTimeout(() => setCopiedCreatorCode(null), 3000)
+    showToast(`¡Liquidación de ${creator.code} copiada al portapapeles!`)
+  }
+
+  // Export creators report to CSV
+  const handleExportCreatorsCSV = () => {
+    const headers = [
+      'Código Creador',
+      'Ventas Chile (Flow.cl)',
+      'Ventas Internacional (PayPal)',
+      'Total Usuarios Pagados',
+      'Recaudado CLP ($3.490 c/u)',
+      'Recaudado USD ($3.99 c/u)',
+      'Comisión a Pagar CLP ($600 c/u)',
+      'Comisión a Pagar USD ($2.60 c/u)',
+      'Fecha Liquidación'
+    ]
+
+    const dateStr = new Date().toISOString().split('T')[0]
+    const rows = creatorsSummary.map((c) => [
+      `"${c.code}"`,
+      c.salesClp,
+      c.salesUsd,
+      c.salesClp + c.salesUsd,
+      c.totalRevenueClp,
+      c.totalRevenueUsd.toFixed(2),
+      c.commissionClp,
+      c.commissionUsd.toFixed(2),
+      `"${dateStr}"`
+    ])
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.setAttribute('href', url)
+    link.setAttribute('download', `mi_vitae_liquidacion_creadores_${dateStr}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    showToast('Liquidación de creadores descargada exitosamente en CSV.')
+  }
+
   // Quick add demo profile
   const handleAddPreset = (preset) => {
     let targetUsername = preset.username
@@ -329,46 +612,72 @@ export default function AdminPage() {
 
   if (!isAdminAuthorized) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center p-4 bg-slate-950 text-white">
-        <div className="max-w-md w-full p-8 rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl text-center space-y-5">
-          <div className="w-14 h-14 rounded-2xl bg-rose-500/20 border border-rose-500/30 text-rose-400 mx-auto flex items-center justify-center">
-            <Lock className="w-7 h-7" />
+      <div className="min-h-screen flex items-center justify-center p-4 bg-slate-950 text-white">
+        <div className="max-w-md w-full p-8 rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl space-y-6 animate-fadeIn">
+          <div className="text-center space-y-2.5">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white mx-auto flex items-center justify-center shadow-lg shadow-indigo-600/30">
+              <Shield className="w-7 h-7" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-white tracking-tight">Super Admin</h2>
+              <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                /admin/wearesamod
+              </span>
+              <p className="text-xs text-slate-400 mt-2">
+                Panel de control privado y liquidación de afiliados
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-white">Acceso Restringido</h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Esta sección requiere credenciales de administrador de Mi Vitae.
-            </p>
-          </div>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              if (adminKey === 'samod2026' || adminKey === 'mivitae_admin') {
-                setIsAdminAuthorized(true)
-              } else {
-                setAuthError('Clave de acceso de administrador incorrecta')
-              }
-            }}
-            className="space-y-3 pt-2"
-          >
-            <input
-              type="password"
-              placeholder="Clave de Administrador"
-              value={adminKey}
-              onChange={(e) => { setAdminKey(e.target.value); setAuthError('') }}
-              className="w-full px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
-            />
-            {authError && <p className="text-xs text-rose-400 font-medium">{authError}</p>}
+
+          <form onSubmit={handleAdminLogin} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                Usuario / Correo:
+              </label>
+              <input
+                type="email"
+                placeholder="jericesb5@gmail.com"
+                value={adminEmailInput}
+                onChange={(e) => { setAdminEmailInput(e.target.value); setAuthError('') }}
+                className="w-full px-4 py-3 rounded-xl bg-slate-800/90 border border-slate-700 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                autoComplete="email"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                Contraseña:
+              </label>
+              <input
+                type="password"
+                placeholder="••••••••••••••••"
+                value={adminPasswordInput}
+                onChange={(e) => { setAdminPasswordInput(e.target.value); setAuthError('') }}
+                className="w-full px-4 py-3 rounded-xl bg-slate-800/90 border border-slate-700 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                autoComplete="current-password"
+                required
+              />
+            </div>
+
+            {authError && (
+              <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-800/80 text-rose-300 text-xs font-medium text-center">
+                {authError}
+              </div>
+            )}
+
             <button
               type="submit"
-              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-colors cursor-pointer"
+              className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] text-white font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-indigo-600/30 cursor-pointer flex items-center justify-center gap-2"
             >
-              Verificar Acceso
+              <Lock className="w-4 h-4" />
+              <span>Acceder al Panel de Control</span>
             </button>
           </form>
-          <div className="pt-2 border-t border-slate-800">
-            <Link to="/login" className="text-xs text-slate-400 hover:text-white transition-colors">
-              Iniciar Sesión con cuenta autorizada →
+
+          <div className="pt-2 border-t border-slate-800 text-center">
+            <Link to="/" className="text-xs text-slate-400 hover:text-white transition-colors">
+              ← Volver al inicio
             </Link>
           </div>
         </div>
@@ -432,17 +741,12 @@ export default function AdminPage() {
             </button>
 
             <button
-              onClick={() => {
-                if (window.confirm('¿Restablecer todos los perfiles a los valores de demostración iniciales?')) {
-                  resetToDefaults()
-                  showToast('Perfiles restablecidos a los valores por defecto.')
-                }
-              }}
-              className="px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-300 text-xs sm:text-sm font-medium flex items-center gap-1.5 border border-slate-700/60 transition-colors"
-              title="Restablecer a valores iniciales"
+              onClick={handleAdminLogout}
+              className="px-3.5 py-2 rounded-xl bg-rose-950/50 hover:bg-rose-900/70 text-rose-300 text-xs sm:text-sm font-bold flex items-center gap-1.5 border border-rose-800/70 transition-colors cursor-pointer"
+              title="Cerrar sesión de administrador"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Reset</span>
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Cerrar Sesión</span>
             </button>
           </div>
 
@@ -450,9 +754,51 @@ export default function AdminPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6">
-        
-        {/* KPI Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+
+        {/* Navigation Tabs between Portfolios and Creators */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6 bg-white dark:bg-slate-900 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveAdminTab('users')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeAdminTab === 'users'
+                  ? 'bg-palette-primary text-white shadow-md shadow-palette-primary/25 scale-[1.01]'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>Portafolios & Usuarios ({totalProfiles})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveAdminTab('creators')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeAdminTab === 'creators'
+                  ? 'bg-palette-primary text-white shadow-md shadow-palette-primary/25 scale-[1.01]'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <Award className="w-4 h-4 text-amber-400" />
+              <span>Afiliados & Creadores</span>
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-black bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                {creatorsSummary.length}
+              </span>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 px-3 py-1">
+            <Calendar className="w-3.5 h-3.5 text-indigo-500" />
+            <span>Liquidación mensual: <strong>Día 30 de cada mes</strong></span>
+          </div>
+        </div>
+
+        {/* Tab 1: Portafolios y Usuarios */}
+        {activeAdminTab === 'users' && (
+          <div>
+            {/* KPI Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
           
           {/* Card 1: Portafolios Totales */}
           <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
@@ -862,9 +1208,353 @@ export default function AdminPage() {
               <span>Tráfico acumulado: <strong className="text-slate-800 dark:text-slate-200 font-bold">{totalViews.toLocaleString()} visitas</strong></span>
             </div>
           </div>
-
         </div>
+      </div>
+    )}
 
+        {/* ========================================================================= */}
+        {/* TAB 2: AFILIADOS & CREADORES ("APOYA A UN CREADOR")                       */}
+        {/* ========================================================================= */}
+        {activeAdminTab === 'creators' && (
+          <div className="space-y-6 animate-fadeIn">
+            
+            {/* 1. Official Commission Rules Banner */}
+            <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-indigo-900/90 via-slate-900 to-slate-900 border border-indigo-500/30 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+              <div className="flex items-start gap-3.5">
+                <div className="p-3 rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shrink-0">
+                  <Award className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-white">Reglas Oficiales de Liquidación para Creadores</h3>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      Corte: 30 de cada mes
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                    Comisiones fijas acordadas por cada usuario suscrito con el código del influencer:
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2.5 mt-2.5 text-xs">
+                    <span className="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 flex items-center gap-1.5 font-bold text-slate-200">
+                      🇨🇱 Chile (Flow.cl): <strong className="text-emerald-400 font-mono">$600 CLP</strong> por usuario
+                    </span>
+                    <span className="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 flex items-center gap-1.5 font-bold text-slate-200">
+                      🌐 Internacional (PayPal): <strong className="text-cyan-400 font-mono">$2.60 USD</strong> por usuario
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="shrink-0 flex items-center gap-2 w-full md:w-auto">
+                <button
+                  type="button"
+                  onClick={handleExportCreatorsCSV}
+                  className="w-full md:w-auto px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
+                >
+                  <FileDown className="w-4 h-4 text-emerald-300" />
+                  <span>Exportar Liquidación CSV</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 2. Creators KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              
+              {/* Card 1: Creadores Activos */}
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm relative overflow-hidden">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Creadores con Ventas</span>
+                  <div className="p-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+                    <Users className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="text-3xl font-black text-slate-900 dark:text-white">
+                  {creatorsSummary.length}
+                </div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">
+                  Códigos únicos con conversiones
+                </div>
+              </div>
+
+              {/* Card 2: Total Usuarios Convertidos */}
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm relative overflow-hidden">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Usuarios Convertidos</span>
+                  <div className="p-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="text-3xl font-black text-slate-900 dark:text-white">
+                  {totalCreatorSalesClp + totalCreatorSalesUsd}
+                </div>
+                <div className="flex items-center gap-2 mt-2 text-xs font-semibold text-slate-500">
+                  <span className="text-emerald-600 dark:text-emerald-400">{totalCreatorSalesClp} en Flow</span>
+                  <span>•</span>
+                  <span className="text-cyan-600 dark:text-cyan-400">{totalCreatorSalesUsd} en PayPal</span>
+                </div>
+              </div>
+
+              {/* Card 3: Total Recaudado Bruto */}
+              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm relative overflow-hidden">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Recaudado</span>
+                  <div className="p-2.5 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
+                    <DollarSign className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+                  ${totalCreatorRevenueClp.toLocaleString('es-CL')} CLP
+                </div>
+                <div className="text-xs font-bold text-cyan-600 dark:text-cyan-400 mt-1">
+                  + ${totalCreatorRevenueUsd.toFixed(2)} USD
+                </div>
+              </div>
+
+              {/* Card 4: Total a Transferir el 30 */}
+              <div className="bg-gradient-to-br from-emerald-600 to-teal-700 text-white p-6 rounded-3xl shadow-lg shadow-emerald-600/20 relative overflow-hidden">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-black uppercase tracking-wider text-emerald-100">A Transferir (Día 30)</span>
+                  <div className="p-2 rounded-xl bg-white/20 text-white">
+                    <Receipt className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-2xl font-black text-white">
+                  ${totalCreatorCommissionClp.toLocaleString('es-CL')} CLP
+                </div>
+                <div className="text-sm font-bold text-emerald-100 mt-1">
+                  + ${totalCreatorCommissionUsd.toFixed(2)} USD
+                </div>
+                <div className="text-[11px] text-emerald-100/80 mt-2 font-medium">
+                  Comisiones calculadas a liquidar
+                </div>
+              </div>
+
+            </div>
+
+            {/* 3. Search and Table Card */}
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+              
+              <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-950/50">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={creatorSearch}
+                    onChange={(e) => setCreatorSearch(e.target.value)}
+                    placeholder="Filtrar por código de creador (EJ: STREAMER10)..."
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 uppercase"
+                  />
+                </div>
+
+                <div className="text-xs text-slate-500 dark:text-slate-400 font-medium text-right">
+                  Mostrando {filteredCreators.length} de {creatorsSummary.length} creadores
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-800 text-[11px] uppercase tracking-wider font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100/60 dark:bg-slate-800/50">
+                      <th className="py-3.5 px-5">Código de Creador</th>
+                      <th className="py-3.5 px-4 text-center">Ventas Flow (Chile)</th>
+                      <th className="py-3.5 px-4 text-center">Ventas PayPal (Global)</th>
+                      <th className="py-3.5 px-4 text-center">Total Compradores</th>
+                      <th className="py-3.5 px-4 text-right">Recaudado Bruto</th>
+                      <th className="py-3.5 px-5 text-right font-black text-emerald-600 dark:text-emerald-400">
+                        A Transferir (Día 30)
+                      </th>
+                      <th className="py-3.5 px-5 text-center">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                    {filteredCreators.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-12 text-center text-slate-500 dark:text-slate-400">
+                          No se encontraron creadores con ventas registradas.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredCreators.map((creator) => {
+                        const totalUsers = creator.salesClp + creator.salesUsd
+                        return (
+                          <tr key={creator.code} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                            <td className="py-4 px-5">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-black text-xs text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/70 px-2.5 py-1 rounded-xl border border-indigo-200 dark:border-indigo-800/70">
+                                  {creator.code}
+                                </span>
+                                {creator.isDemo && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold">
+                                    Demo
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+
+                            <td className="py-4 px-4 text-center">
+                              <div className="font-bold text-slate-800 dark:text-slate-200">
+                                {creator.salesClp} usuarios
+                              </div>
+                              <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">
+                                (${(creator.salesClp * 600).toLocaleString('es-CL')} CLP)
+                              </div>
+                            </td>
+
+                            <td className="py-4 px-4 text-center">
+                              <div className="font-bold text-slate-800 dark:text-slate-200">
+                                {creator.salesUsd} usuarios
+                              </div>
+                              <div className="text-[10px] text-cyan-600 dark:text-cyan-400 font-mono">
+                                (${(creator.salesUsd * 2.60).toFixed(2)} USD)
+                              </div>
+                            </td>
+
+                            <td className="py-4 px-4 text-center font-black text-slate-900 dark:text-white">
+                              {totalUsers}
+                            </td>
+
+                            <td className="py-4 px-4 text-right font-mono text-slate-600 dark:text-slate-400">
+                              <div>${creator.totalRevenueClp.toLocaleString('es-CL')} CLP</div>
+                              {creator.totalRevenueUsd > 0 && (
+                                <div className="text-[11px] text-slate-400">${creator.totalRevenueUsd.toFixed(2)} USD</div>
+                              )}
+                            </td>
+
+                            <td className="py-4 px-5 text-right">
+                              <div className="font-mono font-black text-sm text-emerald-600 dark:text-emerald-400">
+                                {creator.commissionClp > 0 && `$${creator.commissionClp.toLocaleString('es-CL')} CLP`}
+                              </div>
+                              {creator.commissionUsd > 0 && (
+                                <div className="font-mono font-black text-xs text-cyan-600 dark:text-cyan-400">
+                                  + ${creator.commissionUsd.toFixed(2)} USD
+                                </div>
+                              )}
+                            </td>
+
+                            <td className="py-4 px-5 text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyCreatorSettlement(creator)}
+                                  className="px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 font-bold text-[11px] border border-emerald-200 dark:border-emerald-800 flex items-center gap-1 transition-colors cursor-pointer"
+                                  title="Copiar liquidación para transferir"
+                                >
+                                  {copiedCreatorCode === creator.code ? (
+                                    <>
+                                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                      <span>¡Copiado!</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="w-3.5 h-3.5" />
+                                      <span>Copiar Pago</span>
+                                    </>
+                                  )}
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedCreatorDetails(creator)}
+                                  className="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-[11px] transition-colors cursor-pointer"
+                                  title="Ver lista de compras asociadas"
+                                >
+                                  Detalle ({creator.transactions.length})
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+            </div>
+
+            {/* Modal: Creator Transactions Detail */}
+            {selectedCreatorDetails && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
+                <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 relative max-h-[85vh] flex flex-col">
+                  
+                  <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                          Detalle de Ventas con Código
+                        </h3>
+                        <span className="font-mono font-black text-xs text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/80 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800">
+                          {selectedCreatorDetails.code}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        {selectedCreatorDetails.transactions.length} transacciones registradas
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCreatorDetails(null)}
+                      className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="overflow-y-auto py-3 space-y-2 flex-1">
+                    {selectedCreatorDetails.transactions.map((tx, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between text-xs"
+                      >
+                        <div>
+                          <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                            <span>@{tx.username}</span>
+                            <span className="text-[10px] font-mono text-slate-400 font-normal">({tx.payerEmail})</span>
+                          </div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                            {new Date(tx.date).toLocaleDateString('es-CL')} • {tx.paymentMethod} • ID: <span className="font-mono">{tx.id}</span>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <div className="font-mono font-bold text-slate-900 dark:text-white">
+                            {tx.currency === 'USD' ? `$${tx.amount} USD` : `$${Number(tx.amount).toLocaleString('es-CL')} CLP`}
+                          </div>
+                          <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                            +{tx.currency === 'USD' ? `$${tx.commissionEarned} USD` : `$${tx.commissionEarned} CLP`} comisión
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+                    <div className="text-xs">
+                      Total Comisión Creador:{' '}
+                      <strong className="text-emerald-600 dark:text-emerald-400 font-mono">
+                        ${selectedCreatorDetails.commissionClp.toLocaleString('es-CL')} CLP
+                        {selectedCreatorDetails.commissionUsd > 0 && ` + $${selectedCreatorDetails.commissionUsd.toFixed(2)} USD`}
+                      </strong>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleCopyCreatorSettlement(selectedCreatorDetails)}
+                      className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copiar Liquidación</span>
+                    </button>
+                  </div>
+
+                </div>
+              </div>
+            )}
+
+          </div>
+        )}
       </div>
 
       {/* Modal: Quick Add Demo Profile */}
