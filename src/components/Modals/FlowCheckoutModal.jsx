@@ -11,7 +11,7 @@ import {
   X, ShieldCheck, CheckCircle2, AlertCircle, 
   Download, ArrowRight, RefreshCw, Lock, Sparkles,
   Check, Copy, CreditCard, Smartphone, Landmark, Building2,
-  Globe, DollarSign, ExternalLink, HelpCircle
+  Globe, DollarSign, ExternalLink, HelpCircle, Mail
 } from 'lucide-react'
 
 // Chilean Payment Methods supported by Flow.cl
@@ -54,27 +54,6 @@ const FLOW_PAYMENT_METHODS = [
   }
 ]
 
-// International Payment Features supported by PayPal Checkout
-const PAYPAL_PAYMENT_FEATURES = [
-  {
-    id: 'paypal_cards',
-    name: 'Tarjetas de Crédito / Débito (Sin cuenta PayPal)',
-    desc: 'Visa, Mastercard, American Express directo como invitado (Guest Checkout)',
-    tags: ['Visa', 'Mastercard', 'AMEX', 'Guest Checkout']
-  },
-  {
-    id: 'paypal_account',
-    name: 'Cuenta PayPal Express',
-    desc: 'Paga en 1-clic con tu saldo PayPal, cuenta bancaria o tarjetas vinculadas',
-    tags: ['PayPal Balance', 'One-Touch', 'Global']
-  },
-  {
-    id: 'paypal_security',
-    name: 'Protección al Comprador PayPal',
-    desc: 'Cifrado de extremo a extremo y garantía de transacción segura a nivel global',
-    tags: ['Protección al Comprador', 'SSL 256-Bit', 'USD Oficial']
-  }
-]
 
 /**
  * Dynamically loads PayPal JS SDK v2 without npm packages
@@ -110,9 +89,49 @@ function loadPayPalScript(clientId) {
 }
 
 /**
+ * Minimalist Crisp Chile Flag SVG Icon
+ */
+function ChileFlagIcon({ className = 'w-6 h-4' }) {
+  return (
+    <svg 
+      viewBox="0 0 30 20" 
+      className={`${className} rounded-[3px] shadow-xs shrink-0 overflow-hidden border border-slate-300/80 dark:border-slate-700/80`}
+      aria-label="Bandera de Chile"
+    >
+      <rect x="0" y="10" width="30" height="10" fill="#D52B1E" />
+      <rect x="10" y="0" width="20" height="10" fill="#FFFFFF" />
+      <rect x="0" y="0" width="10" height="10" fill="#0039A6" />
+      <polygon
+        points="5,2.4 5.59,4.19 7.47,4.2 5.95,5.31 6.53,7.1 5,6 3.47,7.1 4.05,5.31 2.53,4.2 4.41,4.19"
+        fill="#FFFFFF"
+      />
+    </svg>
+  )
+}
+
+/**
+ * Minimalist Crisp World Globe SVG Icon
+ */
+function WorldGlobeIcon({ className = 'w-[22px] h-[22px]' }) {
+  return (
+    <svg 
+      viewBox="0 0 24 24" 
+      className={`${className} shrink-0`}
+      aria-label="Internacional"
+    >
+      <circle cx="12" cy="12" r="11.2" fill="#0079C1" />
+      <ellipse cx="12" cy="12" rx="5" ry="11.2" fill="none" stroke="#FFFFFF" strokeWidth="1.3" strokeOpacity="0.9" />
+      <line x1="0.8" y1="12" x2="23.2" y2="12" stroke="#FFFFFF" strokeWidth="1.3" strokeOpacity="0.9" />
+      <path d="M3.5 7h17M3.5 17h17" fill="none" stroke="#FFFFFF" strokeWidth="1.1" strokeOpacity="0.75" />
+      <circle cx="12" cy="12" r="11.2" fill="none" stroke="#FFFFFF" strokeWidth="1.2" strokeOpacity="0.3" />
+    </svg>
+  )
+}
+
+/**
  * FlowCheckoutModal - Multi-Gateway & Multi-Currency Checkout Modal
- * Pestaña 1: 🇨🇱 Chile ($3.490 CLP/mes vía Flow.cl)
- * Pestaña 2: 🌎 Internacional ($3.99 USD/mes vía PayPal Checkout v2)
+ * Pestaña 1: Chile ($3.490 CLP/mes vía Flow.cl)
+ * Pestaña 2: Internacional ($3.99 USD/mes vía PayPal Checkout v2)
  * Incluye Sistema "Apoya a un Creador" estilo Epic Games
  */
 export default function FlowCheckoutModal({ 
@@ -130,7 +149,7 @@ export default function FlowCheckoutModal({
   const targetUsername = username || activeUsername
   const currentProfile = (targetUsername && profiles[targetUsername]) || {}
 
-  // Gateway Selector: 'flow' (🇨🇱 Chile) | 'paypal' (🌎 Internacional)
+  // Gateway Selector: 'flow' (Chile) | 'paypal' (Internacional)
   const [activeGateway, setActiveGateway] = useState('flow')
 
   // Payment states: 'select' | 'processing' | 'approved' | 'rejected' | 'error' | 'paypal_sim'
@@ -148,6 +167,7 @@ export default function FlowCheckoutModal({
   const [inputCreatorCode, setInputCreatorCode] = useState('')
   const [isEditingCreatorCode, setIsEditingCreatorCode] = useState(false)
   const [creatorCodeFeedback, setCreatorCodeFeedback] = useState('')
+  const [isEditingEmail, setIsEditingEmail] = useState(false)
 
   // PayPal SDK states
   const [isPayPalLoading, setIsPayPalLoading] = useState(false)
@@ -179,6 +199,7 @@ export default function FlowCheckoutModal({
       setIsEditingCreatorCode(false)
       setInputCreatorCode('')
       setCreatorCodeFeedback('')
+      setIsEditingEmail(false)
     }
   }, [isOpen])
 
@@ -271,6 +292,7 @@ export default function FlowCheckoutModal({
       setPaymentState('select')
       setTransactionVoucher(null)
       setErrorMessage('')
+      setIsEditingEmail(false)
     }, 200)
   }
 
@@ -597,7 +619,14 @@ Soporte técnico: contacto@wearesamod.com
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md transition-all animate-fadeIn">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md transition-all animate-fadeIn"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && paymentState !== 'processing') {
+          handleModalClose()
+        }
+      }}
+    >
       
       {/* Modal Dialog Card */}
       <div 
@@ -610,16 +639,16 @@ Soporte técnico: contacto@wearesamod.com
         
         {/* Dynamic Gateway Header */}
         <div className={`p-5 sm:p-6 relative text-white transition-colors duration-300 ${
-          activeGateway === 'flow' ? 'bg-[#0F265C]' : 'bg-[#003087]'
+          activeGateway === 'flow' ? 'bg-[#677023]' : 'bg-[#003087]'
         }`}>
           
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {activeGateway === 'flow' ? (
                 // Flow.cl Chilean Brand Badge
-                <div className="h-9 px-3 rounded-xl bg-gradient-to-r from-[#00A3E0] to-[#27AE60] flex items-center justify-center font-black text-white text-base tracking-tight shadow-md">
-                  <span>flow</span>
-                  <span className="text-[10px] font-bold ml-1 opacity-90">.cl</span>
+                <div className="h-9 px-3 rounded-xl bg-black/35 border border-white/10 flex items-center justify-center font-black text-base tracking-tight shadow-md">
+                  <span style={{ color: '#dbff00' }}>flow</span>
+                  <span className="text-[10px] font-bold ml-0.5" style={{ color: '#dbff00' }}>.cl</span>
                 </div>
               ) : (
                 // PayPal Checkout International Brand Badge
@@ -633,14 +662,16 @@ Soporte técnico: contacto@wearesamod.com
               )}
 
               <div>
-                <div className="text-xs font-bold text-cyan-300 uppercase tracking-wider flex items-center gap-1">
+                <div className={`text-xs font-bold uppercase tracking-wider flex items-center gap-1 ${
+                  activeGateway === 'flow' ? 'text-[#dbff00]' : 'text-cyan-300'
+                }`}>
                   <ShieldCheck className="w-3.5 h-3.5" />
                   <span>
                     {activeGateway === 'flow' ? 'Pasarela Oficial Chile' : 'Pasarela Internacional PayPal'}
                   </span>
                 </div>
-                <div className="text-sm font-semibold text-slate-200">
-                  Mi Vitae <span className="text-xs text-slate-400 font-normal">by We Are Samod</span>
+                <div className="text-sm font-semibold text-slate-100">
+                  Mi Vitae <span className="text-xs text-slate-300 font-normal">by We Are Samod</span>
                 </div>
               </div>
             </div>
@@ -659,24 +690,23 @@ Soporte técnico: contacto@wearesamod.com
           {/* Amount and Order Banner */}
           <div className="mt-4 pt-3 border-t border-white/15 flex items-center justify-between">
             <div>
-              <span className="text-[11px] text-slate-300">Total Mensual</span>
+              <span className="text-[11px] text-slate-200">Total Mensual</span>
               <div className="text-2xl font-black text-white tracking-tight">
                 {activeGateway === 'flow' ? (
                   <>
                     ${amount.toLocaleString('es-CL')}{' '}
-                    <span className="text-xs font-bold text-cyan-300">CLP</span>
+                    <span className="text-xs font-bold" style={{ color: '#dbff00' }}>CLP</span>
                   </>
                 ) : (
                   <>
                     $3.99{' '}
-                    <span className="text-xs font-bold text-emerald-300">USD</span>
+                    <span className="text-xs font-bold text-cyan-300">USD</span>
                   </>
                 )}
               </div>
             </div>
 
             <div className="text-right">
-              <span className="text-[11px] text-slate-300">Usuario Asignado</span>
               <div className="text-xs font-mono font-bold text-white bg-white/10 px-2.5 py-1 rounded-lg">
                 @{targetUsername}
               </div>
@@ -710,7 +740,9 @@ Soporte técnico: contacto@wearesamod.com
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
-                  <span className="text-2xl shrink-0">🇨🇱</span>
+                  <div className="w-7 h-6 flex items-center justify-center shrink-0">
+                    <ChileFlagIcon className="w-6 h-4" />
+                  </div>
                   <div className="min-w-0">
                     <div className="text-xs sm:text-sm font-bold truncate">Chile</div>
                     <div className="text-[11px] font-bold text-[#00A3E0] leading-none mt-0.5">
@@ -732,7 +764,9 @@ Soporte técnico: contacto@wearesamod.com
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
-                  <span className="text-2xl shrink-0">🌎</span>
+                  <div className="w-7 h-6 flex items-center justify-center shrink-0">
+                    <WorldGlobeIcon className="w-[22px] h-[22px]" />
+                  </div>
                   <div className="min-w-0">
                     <div className="text-xs sm:text-sm font-bold truncate">Internacional</div>
                     <div className="text-[11px] font-bold text-[#0079C1] dark:text-cyan-400 leading-none mt-0.5">
@@ -745,107 +779,55 @@ Soporte técnico: contacto@wearesamod.com
           )}
 
           {/* ========================================================================= */}
-          {/* TAB 1 CONTENT: FLOW.CL CHILE */}
+          {/* ========================================================================= */}
+          {/* ========================================================================= */}
+          {/* ========================================================================= */}
+          {/* TAB 1 CONTENT: FLOW.CL CHILE (OPCIÓN C: ULTRA-COMPACT BAR) */}
           {/* ========================================================================= */}
           {paymentState === 'select' && activeGateway === 'flow' && (
-            <div className="space-y-5 animate-fadeIn">
+            <div className="space-y-3 animate-fadeIn">
               
-              {/* Flow Security Banner */}
-              <div className="p-3.5 rounded-2xl bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-800 text-xs text-cyan-900 dark:text-cyan-200 flex items-start gap-2.5">
-                <ShieldCheck className="w-4 h-4 text-[#00A3E0] shrink-0 mt-0.5" />
-                <div className="text-[11px] leading-relaxed">
-                  <strong>Pago Seguro en Chile con Flow.cl:</strong> Serás redirigido a los servidores seguros y oficiales de Flow para procesar tu pago de forma encriptada vía Webpay, BancoEstado o transferencias electrónicas.
+              {/* Barra de Medios Inline Ultra-Compacta */}
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="h-5 px-1.5 rounded bg-[#677023] text-[#dbff00] font-black text-[11px] flex items-center justify-center border border-[#dbff00]/30 shadow-xs">
+                    flow
+                  </div>
+                  <ChileFlagIcon className="w-5 h-3.5" />
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Chile
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 overflow-x-auto no-scrollbar">
+                  <span className="bg-white dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+                    Webpay
+                  </span>
+                  <span className="bg-white dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+                    CuentaRUT
+                  </span>
+                  <span className="bg-white dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+                    Mach
+                  </span>
+                  <span className="bg-white dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+                    Servipag
+                  </span>
                 </div>
               </div>
 
-              {/* Payment Method Selector */}
+              {/* Campo de Correo Directo y Limpio */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2.5">
-                  Selecciona tu Medio de Pago en Chile
+                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                  Correo para tu Comprobante de Pago:
                 </label>
-
-                <div className="space-y-2.5">
-                  {FLOW_PAYMENT_METHODS.map((method) => {
-                    const isSelected = selectedMethodId === method.id
-                    return (
-                      <button
-                        key={method.id}
-                        type="button"
-                        onClick={() => setSelectedMethodId(method.id)}
-                        className={`w-full p-3.5 rounded-2xl border text-left transition-all flex items-start gap-3.5 cursor-pointer ${
-                          isSelected
-                            ? 'border-[#00A3E0] bg-cyan-50/40 dark:bg-cyan-950/20 ring-2 ring-[#00A3E0]/20'
-                            : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 hover:border-slate-300'
-                        }`}
-                      >
-                        <div className="shrink-0 p-2 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-center">
-                          <method.icon className={`w-5 h-5 ${method.iconColor}`} />
-                        </div>
-
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white">
-                              {method.name}
-                            </h4>
-                            {method.popular && (
-                              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
-                                Más Usado
-                              </span>
-                            )}
-                          </div>
-                          
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                            {method.desc}
-                          </p>
-
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {method.tags.map((tag) => (
-                              <span
-                                key={tag}
-                                className="text-[10px] font-medium px-2 py-0.5 rounded bg-slate-200/70 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className={`w-4 h-4 rounded-full border mt-1 flex items-center justify-center shrink-0 ${
-                          isSelected ? 'border-[#00A3E0] bg-[#00A3E0] text-white' : 'border-slate-400'
-                        }`}>
-                          {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Payer Details */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                    Email para el Comprobante
-                  </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="email"
                     value={payerEmail}
                     onChange={(e) => setPayerEmail(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#00A3E0]"
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#00A3E0]"
                     placeholder="correo@ejemplo.cl"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                    RUT del Titular (Opcional)
-                  </label>
-                  <input
-                    type="text"
-                    value={payerRut}
-                    onChange={(e) => setPayerRut(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#00A3E0]"
-                    placeholder="12.345.678-9"
                   />
                 </div>
               </div>
@@ -853,19 +835,32 @@ Soporte técnico: contacto@wearesamod.com
               {/* Support a Creator Section */}
               {renderCreatorCodeSection()}
 
-              {/* Action Buttons */}
-              <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
+              {/* Botón de Pago Principal */}
+              <div className="pt-1.5 space-y-2">
                 <button
                   type="button"
                   onClick={handleProcessFlowPayment}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#00A3E0] via-[#0082B4] to-[#0F265C] hover:from-[#0082B4] hover:to-[#0F265C] text-white font-black text-sm sm:text-base shadow-xl shadow-[#00A3E0]/25 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="font-sans flex justify-center gap-2.5 items-center w-full shadow-xl shadow-palette-primary/25 hover:shadow-palette-primary/35 text-sm sm:text-base text-white bg-palette-primary hover:bg-palette-hover font-bold rounded-2xl px-5 py-3.5 sm:py-4 group cursor-pointer transition-all active:scale-[0.99]"
                 >
-                  <Lock className="w-5 h-5" />
-                  <span>Continuar a Flow.cl ($3.490 CLP)</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <span>Obtener Premium</span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 16 19"
+                    className="w-7 h-7 sm:w-8 sm:h-8 justify-end bg-white text-slate-900 transition-transform ease-out duration-300 rounded-full p-1.5 sm:p-2 rotate-45 shrink-0 shadow-xs group-hover:rotate-90"
+                    aria-hidden="true"
+                  >
+                    <path
+                      className="fill-slate-900"
+                      d="M7 18C7 18.5523 7.44772 19 8 19C8.55228 19 9 18.5523 9 18H7ZM8.70711 0.292893C8.31658 -0.0976311 7.68342 -0.0976311 7.29289 0.292893L0.928932 6.65685C0.538408 7.04738 0.538408 7.68054 0.928932 8.07107C1.31946 8.46159 1.95262 8.46159 2.34315 8.07107L8 2.41421L13.6569 8.07107C14.0474 8.46159 14.6805 8.46159 15.0711 8.07107C15.4616 7.68054 15.4616 7.04738 15.0711 6.65685L8.70711 0.292893ZM9 18L9 1H7L7 18H9Z"
+                    />
+                  </svg>
                 </button>
 
-                <div className="flex items-center justify-center pt-1 text-xs">
+                <p className="text-[11px] text-center text-slate-400 dark:text-slate-500">
+                  🔒 Conexión segura oficial con Flow.cl. Acreditación automática.
+                </p>
+
+                <div className="flex items-center justify-center pt-0.5 text-xs">
                   <button
                     type="button"
                     onClick={handleModalClose}
@@ -883,73 +878,58 @@ Soporte técnico: contacto@wearesamod.com
           {/* TAB 2 CONTENT: PAYPAL CHECKOUT (INTERNACIONAL - $3.99 USD) */}
           {/* ========================================================================= */}
           {paymentState === 'select' && activeGateway === 'paypal' && (
-            <div className="space-y-5 animate-fadeIn">
+            <div className="space-y-3 animate-fadeIn">
               
-              {/* PayPal Trust Banner */}
-              <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200 dark:border-blue-800/60 text-xs text-blue-950 dark:text-blue-200 flex items-start gap-3">
-                <Globe className="w-5 h-5 text-[#003087] dark:text-cyan-400 shrink-0 mt-0.5" />
-                <div className="text-[11px] leading-relaxed">
-                  <strong>Facturación Global en USD con PayPal:</strong> Paga con tarjeta de débito o crédito internacional sin necesidad de registrarte (Guest Checkout), o mediante tu saldo de cuenta PayPal de manera 100% segura.
+              {/* Barra de Medios Inline Ultra-Compacta (Symmetrical to Tab 1 Flow) */}
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="h-5 px-1.5 rounded bg-[#003087] text-white font-black text-[11px] flex items-center justify-center shadow-xs">
+                    PayPal
+                  </div>
+                  <WorldGlobeIcon className="w-4 h-4" />
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Global
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 overflow-x-auto no-scrollbar">
+                  <span className="bg-white dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+                    Visa
+                  </span>
+                  <span className="bg-white dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+                    Mastercard
+                  </span>
+                  <span className="bg-white dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+                    AMEX
+                  </span>
+                  <span className="bg-white dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+                    Saldo PayPal
+                  </span>
                 </div>
               </div>
 
-              {/* Supported Global Payment Features */}
+              {/* Campo de Correo Directo y Limpio */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2.5">
-                  Medios de Pago Internacionales Soportados
+                <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
+                  Correo para tu Comprobante de Pago:
                 </label>
-
-                <div className="space-y-2.5">
-                  {PAYPAL_PAYMENT_FEATURES.map((feat) => (
-                    <div 
-                      key={feat.id}
-                      className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 flex items-start gap-3"
-                    >
-                      <div className="shrink-0 p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[#003087] dark:text-cyan-400">
-                        <CreditCard className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-bold text-xs text-slate-900 dark:text-white">
-                          {feat.name}
-                        </h4>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                          {feat.desc}
-                        </p>
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {feat.tags.map((tag) => (
-                            <span 
-                              key={tag}
-                              className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/40"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="email"
+                    value={payerEmail}
+                    onChange={(e) => setPayerEmail(e.target.value)}
+                    className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#0079C1]"
+                    placeholder="name@example.com"
+                  />
                 </div>
-              </div>
-
-              {/* International Payer Email Input */}
-              <div className="pt-1">
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1">
-                  Correo Electrónico para la Cuenta y Recibo Internacional
-                </label>
-                <input
-                  type="email"
-                  value={payerEmail}
-                  onChange={(e) => setPayerEmail(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#0079C1]"
-                  placeholder="name@example.com"
-                />
               </div>
 
               {/* Support a Creator Section */}
               {renderCreatorCodeSection()}
 
               {/* Official PayPal Buttons Container or Fallback */}
-              <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+              <div className="pt-1.5 space-y-2">
                 {hasValidPayPalClientId ? (
                   <div className="space-y-3">
                     {isPayPalLoading && (
@@ -963,30 +943,31 @@ Soporte técnico: contacto@wearesamod.com
                   </div>
                 ) : (
                   // Local Development / Test Interactive Simulation Mode
-                  <div className="space-y-3">
-                    <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-900 dark:text-amber-200 text-xs">
-                      <div className="font-bold flex items-center gap-1.5">
-                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                        <span>Modo Simulación de PayPal Activo</span>
-                      </div>
-                      <p className="text-[11px] text-amber-800 dark:text-amber-300 mt-1">
-                        Configura <code>VITE_PAYPAL_CLIENT_ID</code> para desplegar los botones en vivo. Puedes simular el pago internacional con 1 clic para validar la activación del plan y la base de datos.
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleSimulatePayPalPayment}
-                      className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#FFC439] via-[#FFB700] to-[#E5A500] hover:from-[#FFB700] hover:to-[#E5A500] text-[#003087] font-black text-sm sm:text-base shadow-lg shadow-amber-500/20 hover:scale-[1.01] active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  <button
+                    type="button"
+                    onClick={handleSimulatePayPalPayment}
+                    className="font-sans flex justify-center gap-2.5 items-center w-full shadow-xl shadow-palette-primary/25 hover:shadow-palette-primary/35 text-sm sm:text-base text-white bg-palette-primary hover:bg-palette-hover font-bold rounded-2xl px-5 py-3.5 sm:py-4 group cursor-pointer transition-all active:scale-[0.99]"
+                  >
+                    <span>Obtener Premium ($3.99 USD)</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 16 19"
+                      className="w-7 h-7 sm:w-8 sm:h-8 justify-end bg-white text-slate-900 transition-transform ease-out duration-300 rounded-full p-1.5 sm:p-2 rotate-45 shrink-0 shadow-xs group-hover:rotate-90"
+                      aria-hidden="true"
                     >
-                      <Lock className="w-5 h-5 text-[#003087]" />
-                      <span>Pagar con PayPal ($3.99 USD/mes)</span>
-                      <ArrowRight className="w-4 h-4 text-[#003087]" />
-                    </button>
-                  </div>
+                      <path
+                        className="fill-slate-900"
+                        d="M7 18C7 18.5523 7.44772 19 8 19C8.55228 19 9 18.5523 9 18H7ZM8.70711 0.292893C8.31658 -0.0976311 7.68342 -0.0976311 7.29289 0.292893L0.928932 6.65685C0.538408 7.04738 0.538408 7.68054 0.928932 8.07107C1.31946 8.46159 1.95262 8.46159 2.34315 8.07107L8 2.41421L13.6569 8.07107C14.0474 8.46159 14.6805 8.46159 15.0711 8.07107C15.4616 7.68054 15.4616 7.04738 15.0711 6.65685L8.70711 0.292893ZM9 18L9 1H7L7 18H9Z"
+                      />
+                    </svg>
+                  </button>
                 )}
 
-                <div className="flex items-center justify-center pt-1 text-xs">
+                <p className="text-[11px] text-center text-slate-400 dark:text-slate-500">
+                  🔒 Conexión segura oficial con PayPal Checkout v2. Acreditación automática.
+                </p>
+
+                <div className="flex items-center justify-center pt-0.5 text-xs">
                   <button
                     type="button"
                     onClick={handleModalClose}
