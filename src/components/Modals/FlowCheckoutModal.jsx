@@ -565,7 +565,7 @@ Soporte técnico: contacto@wearesamod.com
         <div className="flex items-center justify-between">
           <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-            <span>¿Tienes un código de creador / influencer?</span>
+            <span>¿Tienes un código de creador?</span>
           </label>
           <span className="text-[10px] text-slate-400 font-medium">Opcional</span>
         </div>
@@ -859,16 +859,6 @@ Soporte técnico: contacto@wearesamod.com
                 <p className="text-[11px] text-center text-slate-400 dark:text-slate-500">
                   Conexión segura oficial con Flow.cl. Acreditación automática.
                 </p>
-
-                <div className="flex items-center justify-center pt-0.5 text-xs">
-                  <button
-                    type="button"
-                    onClick={handleModalClose}
-                    className="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors font-medium cursor-pointer"
-                  >
-                    Cancelar y Volver
-                  </button>
-                </div>
               </div>
 
             </div>
@@ -967,15 +957,6 @@ Soporte técnico: contacto@wearesamod.com
                   Conexión segura oficial con PayPal Checkout v2. Acreditación automática.
                 </p>
 
-                <div className="flex items-center justify-center pt-0.5 text-xs">
-                  <button
-                    type="button"
-                    onClick={handleModalClose}
-                    className="text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors font-medium cursor-pointer"
-                  >
-                    Cancelar y Volver
-                  </button>
-                </div>
               </div>
 
             </div>

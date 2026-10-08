@@ -965,7 +965,7 @@ it('verifies FlowCheckoutModal integrates Apoya a un creador section and handler
   const content = fs.readFileSync(modalPath, 'utf-8');
 
   assert.ok(content.includes('Apoya a un Creador'), 'Must document Apoya a un Creador system');
-  assert.ok(content.includes('¿Tienes un código de creador / influencer?'), 'Must have prompt for creator code');
+  assert.ok(content.includes('¿Tienes un código de creador?'), 'Must have prompt for creator code');
   assert.ok(content.includes('Apoyando a:'), 'Must show green active creator badge');
   assert.ok(content.includes('handleApplyCreatorCode'), 'Must implement apply handler');
   assert.ok(content.includes('handleRemoveCreatorCode'), 'Must implement remove handler');
