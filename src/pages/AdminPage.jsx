@@ -52,6 +52,10 @@ const PLAN_INFO = {
   }
 }
 
+// Comisiones oficiales acordadas para afiliados / creadores
+export const CREATOR_COMMISSION_CLP = 600
+export const CREATOR_COMMISSION_USD = 0.70
+
 // Directorio oficial de Creadores Afiliados Registrados en Producción
 const REGISTERED_AFFILIATES = [
   {
@@ -525,7 +529,7 @@ export default function AdminPage() {
   // ---------------------------------------------------------------------------
   // AFFILIATES & CREATORS ("APOYA A UN CREADOR") REAL BUSINESS LOGIC
   // Chilean Flow.cl sales: $600 CLP commission per paying user
-  // International PayPal sales: $2.60 USD commission per paying user
+  // International PayPal sales: $0.70 USD commission per paying user
   // ---------------------------------------------------------------------------
   const creatorsSummary = useMemo(() => {
     const map = {}
@@ -603,11 +607,11 @@ export default function AdminPage() {
       if (isUsd) {
         map[code].salesUsd += 1
         map[code].totalRevenueUsd += Number(tx.amount || 3.99)
-        map[code].commissionUsd += 2.60
+        map[code].commissionUsd += CREATOR_COMMISSION_USD
       } else {
         map[code].salesClp += 1
         map[code].totalRevenueClp += Number(tx.amount || 3490)
-        map[code].commissionClp += 600
+        map[code].commissionClp += CREATOR_COMMISSION_CLP
       }
 
       map[code].transactions.push({
@@ -618,7 +622,7 @@ export default function AdminPage() {
         currency: isUsd ? 'USD' : 'CLP',
         amount: Number(tx.amount || (isUsd ? 3.99 : 3490)),
         paymentMethod: tx.payment_method || (isUsd ? 'PayPal' : 'Flow.cl'),
-        commissionEarned: isUsd ? 2.60 : 600
+        commissionEarned: isUsd ? CREATOR_COMMISSION_USD : CREATOR_COMMISSION_CLP
       })
     })
 
@@ -650,11 +654,11 @@ export default function AdminPage() {
         if (isUsd) {
           map[code].salesUsd += 1
           map[code].totalRevenueUsd += Number(tx.amount || 3.99)
-          map[code].commissionUsd += 2.60
+          map[code].commissionUsd += CREATOR_COMMISSION_USD
         } else {
           map[code].salesClp += 1
           map[code].totalRevenueClp += Number(tx.amount || 3490)
-          map[code].commissionClp += 600
+          map[code].commissionClp += CREATOR_COMMISSION_CLP
         }
 
         map[code].transactions.push({
@@ -665,7 +669,7 @@ export default function AdminPage() {
           currency: isUsd ? 'USD' : 'CLP',
           amount: Number(tx.amount || (isUsd ? 3.99 : 3490)),
           paymentMethod: tx.paymentMethod || (isUsd ? 'PayPal' : 'Flow.cl'),
-          commissionEarned: isUsd ? 2.60 : 600
+          commissionEarned: isUsd ? CREATOR_COMMISSION_USD : CREATOR_COMMISSION_CLP
         })
       })
     })
@@ -700,8 +704,8 @@ Codigo de Creador:          ${creator.code}
 Fecha de Emision:            ${new Date().toLocaleDateString('es-CL')}
 
 RESUMEN DE VENTAS Y CONVERSIONES:
-- Ventas Chile (Flow.cl):         ${creator.salesClp} usuarios ($600 CLP comision c/u)
-- Ventas Internacional (PayPal):  ${creator.salesUsd} usuarios ($2.60 USD comision c/u)
+- Ventas Chile (Flow.cl):         ${creator.salesClp} usuarios ($${CREATOR_COMMISSION_CLP.toLocaleString('es-CL')} CLP comision c/u)
+- Ventas Internacional (PayPal):  ${creator.salesUsd} usuarios ($${CREATOR_COMMISSION_USD.toFixed(2)} USD comision c/u)
 - Total Usuarios Pagados:         ${totalUsers} usuarios
 
 TOTAL A TRANSFERIR ESTE MES:
@@ -802,8 +806,8 @@ Administrador autorizado: jericesb5@gmail.com
       'Total Usuarios Pagados',
       'Recaudado CLP ($3.490 c/u)',
       'Recaudado USD ($3.99 c/u)',
-      'Comisión a Pagar CLP ($600 c/u)',
-      'Comisión a Pagar USD ($2.60 c/u)',
+      `Comisión a Pagar CLP ($${CREATOR_COMMISSION_CLP.toLocaleString('es-CL')} c/u)`,
+      `Comisión a Pagar USD ($${CREATOR_COMMISSION_USD.toFixed(2)} c/u)`,
       'Fecha Liquidación'
     ]
 
@@ -1527,11 +1531,11 @@ Administrador autorizado: jericesb5@gmail.com
                   <div className="flex flex-wrap items-center gap-2.5 mt-2.5 text-xs">
                     <span className="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 flex items-center gap-1.5 font-bold text-slate-200">
                       <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                      <span>Chile (Flow.cl):</span> <strong className="text-emerald-400 font-mono">$600 CLP</strong> por usuario
+                      <span>Chile (Flow.cl):</span> <strong className="text-emerald-400 font-mono">${CREATOR_COMMISSION_CLP.toLocaleString('es-CL')} CLP</strong> por usuario
                     </span>
                     <span className="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 flex items-center gap-1.5 font-bold text-slate-200">
                       <Globe className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Internacional (PayPal):</span> <strong className="text-cyan-400 font-mono">$2.60 USD</strong> por usuario
+                      <span>Internacional (PayPal):</span> <strong className="text-cyan-400 font-mono">${CREATOR_COMMISSION_USD.toFixed(2)} USD</strong> por usuario
                     </span>
                   </div>
                 </div>
@@ -1702,7 +1706,7 @@ Administrador autorizado: jericesb5@gmail.com
                                 {creator.salesClp} usuarios
                               </div>
                               <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">
-                                (${(creator.salesClp * 600).toLocaleString('es-CL')} CLP)
+                                (${(creator.salesClp * CREATOR_COMMISSION_CLP).toLocaleString('es-CL')} CLP)
                               </div>
                             </td>
 
@@ -1711,7 +1715,7 @@ Administrador autorizado: jericesb5@gmail.com
                                 {creator.salesUsd} usuarios
                               </div>
                               <div className="text-[10px] text-cyan-600 dark:text-cyan-400 font-mono">
-                                (${(creator.salesUsd * 2.60).toFixed(2)} USD)
+                                (${(creator.salesUsd * CREATOR_COMMISSION_USD).toFixed(2)} USD)
                               </div>
                             </td>
 
@@ -2071,7 +2075,7 @@ Administrador autorizado: jericesb5@gmail.com
                   />
                 </div>
                 <p className="text-[11px] text-slate-400 mt-1">
-                  Se autoconvierte a mayúsculas. Por cada usuario que use este código al pagar: $600 CLP (Flow) o $2.60 USD (PayPal).
+                  Se autoconvierte a mayúsculas. Por cada usuario que use este código al pagar: ${CREATOR_COMMISSION_CLP.toLocaleString('es-CL')} CLP (Flow) o ${CREATOR_COMMISSION_USD.toFixed(2)} USD (PayPal).
                 </p>
               </div>
 
