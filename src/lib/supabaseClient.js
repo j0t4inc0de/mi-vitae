@@ -638,6 +638,141 @@ export async function fetchTransactionsFromSupabase() {
 }
 
 /**
+ * Fetch all user profiles from Supabase for Super Admin management
+ */
+export async function fetchAllProfilesFromSupabase() {
+  await initSupabase()
+  if (!isSupabaseConfigured || !supabase) return []
+
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.warn('[Supabase] Error fetching all profiles:', error.message)
+      return []
+    }
+
+    if (!data || data.length === 0) return []
+
+    return data.map((d) => {
+      const isLifetime = Boolean(d.plan_expires_at && new Date(d.plan_expires_at).getFullYear() >= 2090)
+      const plan = isLifetime ? 'lifetime' : (d.plan === 'premium' ? 'premium' : d.plan === 'free_trial' ? 'trial' : (d.plan || 'trial'))
+      const planStatus = d.plan_status || 'active'
+      const planName = isLifetime 
+        ? 'Plan Pro (De por vida)' 
+        : (d.plan_name || (plan === 'premium' ? 'Suscripción Activa ($3.490 CLP/mes)' : '1er Mes Gratis ($0 CLP)'))
+
+      return {
+        id: d.id,
+        username: d.username,
+        theme: d.theme || 'tech',
+        plan,
+        planName,
+        planStatus,
+        isLifetime,
+        personalInfo: d.personal_info || {},
+        floatingButton: d.floating_button || {},
+        socialLinks: d.social_links || d.personal_info?.socialLinks || [],
+        experience: d.experience || [],
+        education: d.education || [],
+        projects: d.projects || [],
+        skills: d.skills || [],
+        certifications: d.certifications || d.personal_info?.certifications || [],
+        languages: d.languages || [],
+        qrCode: d.qr_code || d.personal_info?.qrCode || {},
+        analytics: d.analytics || { views: 0, contactClicks: 0, cvDownloads: 0 },
+        trialActivatedAt: d.trial_activated_at,
+        planExpiresAt: d.plan_expires_at,
+        createdAt: d.created_at,
+        updatedAt: d.updated_at
+      }
+    })
+  } catch (err) {
+    console.warn('[Supabase] Exception fetching all profiles:', err)
+    return []
+  }
+}
+
+/**
+ * Update profile plan and expiration date directly in Supabase
+ */
+export async function updateProfilePlanInSupabase(username, plan) {
+  await initSupabase()
+  if (!isSupabaseConfigured || !supabase || !username) return false
+
+  try {
+    const isLifetime = plan === 'lifetime'
+    const isPremium = plan === 'premium' || isLifetime
+    const isInactive = plan === 'inactive'
+
+    let planExpiresAt
+    if (isLifetime) {
+      planExpiresAt = '2099-12-31T23:59:59.000Z'
+    } else if (isPremium) {
+      const now = new Date()
+      planExpiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    } else if (isInactive) {
+      planExpiresAt = new Date(Date.now() - 1000).toISOString()
+    } else {
+      // trial
+      const now = new Date()
+      planExpiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    }
+
+    const updates = {
+      plan: isLifetime ? 'premium' : plan,
+      plan_name: isLifetime 
+        ? 'Plan Pro (De por vida)' 
+        : (isPremium ? 'Suscripción Mi Vitae ($3.490 CLP/mes)' : '1er Mes Gratis ($0 CLP)'),
+      plan_status: isInactive ? 'expired' : 'active',
+      plan_expires_at: planExpiresAt,
+      updated_at: new Date().toISOString()
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('username', username.toLowerCase().trim())
+
+    if (error) {
+      console.warn('[Supabase] Error updating profile plan:', error.message)
+      return false
+    }
+    return true
+  } catch (err) {
+    console.error('[Supabase] Exception updating profile plan:', err)
+    return false
+  }
+}
+
+/**
+ * Delete a profile from Supabase
+ */
+export async function deleteProfileFromSupabase(username) {
+  await initSupabase()
+  if (!isSupabaseConfigured || !supabase || !username) return false
+
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('username', username.toLowerCase().trim())
+
+    if (error) {
+      console.warn('[Supabase] Error deleting profile:', error.message)
+      return false
+    }
+    return true
+  } catch (err) {
+    console.error('[Supabase] Exception deleting profile:', err)
+    return false
+  }
+}
+
+/**
  * Atomic counter increment for analytics in Supabase with direct table fallback
  */
 export async function incrementAnalyticsInSupabase(username, metricName) {

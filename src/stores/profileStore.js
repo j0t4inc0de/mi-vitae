@@ -98,6 +98,20 @@ export const useProfileStore = create(
           activeUsername: normalized
         }))
       },
+      // Batch synchronize remote profiles into store without altering activeUsername
+      setRemoteProfiles: (profileList) => {
+        if (!Array.isArray(profileList)) return
+        set((state) => {
+          const next = { ...state.profiles }
+          profileList.forEach((p) => {
+            if (p && p.username) {
+              const u = p.username.toLowerCase().trim()
+              next[u] = { ...(next[u] || {}), ...p, username: u }
+            }
+          })
+          return { profiles: next }
+        })
+      },
 
       // Getters & Lookups
       getProfileByUsername: (username) => {

@@ -1,7 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { Link, useNavigate } from '../router/Router'
 import { useProfileStore } from '../stores/profileStore'
-import { getCurrentUser, fetchTransactionsFromSupabase } from '../lib/supabaseClient'
+import { 
+  getCurrentUser, 
+  fetchTransactionsFromSupabase,
+  fetchAllProfilesFromSupabase,
+  updateProfilePlanInSupabase,
+  deleteProfileFromSupabase
+} from '../lib/supabaseClient'
 import { 
   Shield, Users, Eye, MousePointerClick, DollarSign, 
   ExternalLink, TrendingUp, RefreshCw, CheckCircle2, 
@@ -21,10 +27,39 @@ const THEME_INFO = {
 }
 
 const PLAN_INFO = {
-  premium: { name: 'Suscripción Activa', color: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' },
-  trial: { name: '1er Mes Gratis', color: 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800' },
-  inactive: { name: 'Inactivo', color: 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800' }
+  lifetime: { 
+    name: 'Plan Pro (De por vida)', 
+    shortName: 'De por vida', 
+    color: 'bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700' 
+  },
+  premium: { 
+    name: 'Suscripción Activa', 
+    shortName: 'Suscripción ($3.490)', 
+    color: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800' 
+  },
+  trial: { 
+    name: '1er Mes Gratis', 
+    shortName: 'Prueba (30d)', 
+    color: 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800' 
+  },
+  inactive: { 
+    name: 'Inactivo', 
+    shortName: 'Inactivo', 
+    color: 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800' 
+  }
 }
+
+// Directorio oficial de Creadores Afiliados Registrados en Producción
+const REGISTERED_AFFILIATES = [
+  {
+    code: 'SANTIAGOQ7',
+    creatorUsername: 'santiagoq7',
+    creatorName: 'Santiago Quevedo',
+    creatorTitle: 'Marketing Digital, Growth & Desarrollo Comercial',
+    isOfficial: true,
+    isLifetime: true
+  }
+]
 
 // Preset archetypes for 1-click test user creation
 const DEMO_PRESETS = [
@@ -97,7 +132,7 @@ export default function AdminPage() {
   const deleteProfile = useProfileStore((state) => state.deleteProfile)
   const addProfile = useProfileStore((state) => state.addProfile)
   const setActiveUsername = useProfileStore((state) => state.setActiveUsername)
-  const resetToDefaults = useProfileStore((state) => state.resetToDefaults)
+  const setRemoteProfiles = useProfileStore((state) => state.setRemoteProfiles)
 
   // Security & Authorization State (user: jericesb5@gmail.com, pass: TeAmoSambi!@123a)
   const [isAdminAuthorized, setIsAdminAuthorized] = useState(() => {
@@ -165,36 +200,50 @@ export default function AdminPage() {
   // Navigation tab: 'users' (Portafolios & Usuarios) | 'creators' (Afiliados & Creadores)
   const [activeAdminTab, setActiveAdminTab] = useState('users')
 
-  // Real Transactions from Supabase & Profile state
+  // Live Database State from Supabase
+  const [remoteProfiles, setRemoteProfilesState] = useState([])
+  const [isLoadingProfiles, setIsLoadingProfiles] = useState(true)
   const [transactions, setTransactions] = useState([])
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false)
   const [creatorSearch, setCreatorSearch] = useState('')
   const [selectedCreatorDetails, setSelectedCreatorDetails] = useState(null)
   const [copiedCreatorCode, setCopiedCreatorCode] = useState(null)
 
-  // Fetch transactions from Supabase on authorization
+  // Fetch real data from Supabase Cloud
+  const loadAdminData = async () => {
+    setIsLoadingProfiles(true)
+    setIsLoadingTransactions(true)
+    try {
+      const [dbProfiles, dbTransactions] = await Promise.all([
+        fetchAllProfilesFromSupabase(),
+        fetchTransactionsFromSupabase()
+      ])
+
+      if (dbProfiles && dbProfiles.length > 0) {
+        setRemoteProfilesState(dbProfiles)
+        if (setRemoteProfiles) {
+          setRemoteProfiles(dbProfiles)
+        }
+      }
+      setTransactions(dbTransactions || [])
+    } catch (err) {
+      console.warn('Error loading admin live data from Supabase:', err)
+    } finally {
+      setIsLoadingProfiles(false)
+      setIsLoadingTransactions(false)
+    }
+  }
+
   useEffect(() => {
     if (!isAdminAuthorized) return
-    let isMounted = true
-    setIsLoadingTransactions(true)
-    fetchTransactionsFromSupabase()
-      .then((txns) => {
-        if (!isMounted) return
-        setTransactions(txns || [])
-        setIsLoadingTransactions(false)
-      })
-      .catch((err) => {
-        console.warn('Error loading transactions in admin:', err)
-        if (isMounted) setIsLoadingTransactions(false)
-      })
-    return () => { isMounted = false }
+    loadAdminData()
   }, [isAdminAuthorized])
 
   // Filter and search state
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all') // 'all', 'premium', 'trial', 'inactive'
-  const [themeFilter, setThemeFilter] = useState('all') // 'all', 'minimalist', 'creative', 'tech', 'warm', 'executive'
-  const [sortField, setSortField] = useState('views') // 'views', 'name', 'createdAt', 'mrr'
+  const [statusFilter, setStatusFilter] = useState('all') // 'all', 'lifetime', 'premium', 'trial', 'inactive'
+  const [themeFilter, setThemeFilter] = useState('all') // 'all', 'minimalist', 'neo_brutalist', 'creative', 'tech', 'warm', 'executive'
+  const [sortField, setSortField] = useState('views') // 'views', 'name', 'createdAt'
   const [sortOrder, setSortOrder] = useState('desc') // 'asc', 'desc'
 
   // UI state
@@ -209,18 +258,36 @@ export default function AdminPage() {
   }
 
   const profileList = useMemo(() => {
-    return Object.values(profiles).map(p => ({
-      ...p,
-      plan: p.plan || (p.status === 'trial' ? 'trial' : p.status === 'inactive' ? 'inactive' : 'premium'),
-      status: p.status || (p.plan === 'inactive' ? 'inactive' : p.plan === 'trial' ? 'trial' : 'active')
-    }))
-  }, [profiles])
+    // In production, when remote profiles are loaded, use EXCLUSIVELY the real Supabase profiles!
+    const sourceProfiles = remoteProfiles.length > 0
+      ? remoteProfiles
+      : Object.values(profiles) // Fallback only for isolated local testing without Supabase
+
+    return sourceProfiles.map((p) => {
+      const isLifetime = Boolean(
+        p.isLifetime ||
+        (p.planExpiresAt && new Date(p.planExpiresAt).getFullYear() >= 2090) ||
+        (p.plan_expires_at && new Date(p.plan_expires_at).getFullYear() >= 2090)
+      )
+      const rawPlan = p.plan || (p.status === 'trial' ? 'trial' : p.status === 'inactive' ? 'inactive' : 'premium')
+      const plan = isLifetime ? 'lifetime' : (rawPlan === 'free_trial' ? 'trial' : rawPlan)
+      const status = p.status || p.planStatus || (plan === 'inactive' ? 'inactive' : plan === 'trial' ? 'trial' : 'active')
+
+      return {
+        ...p,
+        plan,
+        status,
+        isLifetime
+      }
+    })
+  }, [remoteProfiles, profiles])
 
   // Aggregate Key KPIs
   const totalProfiles = profileList.length
-  const activePremiumProfiles = profileList.filter(p => p.plan === 'premium').length
-  const trialProfiles = profileList.filter(p => p.plan === 'trial').length
-  const inactiveProfiles = profileList.filter(p => p.plan === 'inactive').length
+  const lifetimeProfiles = profileList.filter((p) => p.plan === 'lifetime').length
+  const activePremiumProfiles = profileList.filter((p) => p.plan === 'premium').length
+  const trialProfiles = profileList.filter((p) => p.plan === 'trial').length
+  const inactiveProfiles = profileList.filter((p) => p.plan === 'inactive').length
 
   const totalViews = profileList.reduce((acc, p) => acc + (p.analytics?.views || 0), 0)
   const totalClicks = profileList.reduce((acc, p) => acc + (p.analytics?.contactClicks || 0), 0)
@@ -228,7 +295,7 @@ export default function AdminPage() {
   const globalInteractions = totalClicks + totalDownloads
   const globalConversionRate = totalViews > 0 ? ((globalInteractions / totalViews) * 100).toFixed(1) : '0.0'
 
-  // Pricing: $3.490 CLP / month for Premium plan
+  // Pricing: $3.490 CLP / month for recurring Premium subscriptions
   const PRICE_PER_PREMIUM_CLP = 3490
   const projectedMrr = activePremiumProfiles * PRICE_PER_PREMIUM_CLP
   const projectedArr = projectedMrr * 12
@@ -238,8 +305,9 @@ export default function AdminPage() {
     return profileList
       .filter((p) => {
         // Status filter
-        if (statusFilter !== 'all' && p.plan !== statusFilter) {
-          return false
+        if (statusFilter !== 'all') {
+          if (statusFilter === 'lifetime' && !p.isLifetime && p.plan !== 'lifetime') return false
+          if (statusFilter !== 'lifetime' && p.plan !== statusFilter) return false
         }
 
         // Theme filter
@@ -289,16 +357,45 @@ export default function AdminPage() {
       })
   }, [profileList, searchTerm, statusFilter, themeFilter, sortField, sortOrder])
 
-  // Handle plan status change
-  const handlePlanChange = (username, newPlan) => {
-    setProfilePlan(username, newPlan)
-    showToast(`Plan de @${username} actualizado a ${PLAN_INFO[newPlan]?.name || newPlan}`)
+  // Handle plan status change with persistence to Supabase
+  const handlePlanChange = async (username, newPlan) => {
+    const isLifetime = newPlan === 'lifetime'
+
+    // 1. Optimistic update in remoteProfilesState
+    setRemoteProfilesState((prev) => prev.map((p) => {
+      if (p.username.toLowerCase() === username.toLowerCase()) {
+        return {
+          ...p,
+          plan: newPlan,
+          isLifetime,
+          planStatus: newPlan === 'inactive' ? 'expired' : 'active',
+          planExpiresAt: isLifetime ? '2099-12-31T23:59:59.000Z' : p.planExpiresAt
+        }
+      }
+      return p
+    }))
+
+    // 2. Update Zustand store
+    setProfilePlan(username, isLifetime ? 'premium' : newPlan)
+
+    // 3. Persist directly to Supabase
+    const success = await updateProfilePlanInSupabase(username, newPlan)
+    if (success) {
+      showToast(`Plan de @${username} actualizado a ${PLAN_INFO[newPlan]?.name || newPlan}`)
+    } else {
+      showToast(`Plan actualizado localmente.`)
+    }
   }
 
-  // Handle user deletion
-  const handleDelete = (username) => {
+  // Handle user deletion with persistence to Supabase
+  const handleDelete = async (username) => {
+    // 1. Remove from local state
+    setRemoteProfilesState((prev) => prev.filter((p) => p.username.toLowerCase() !== username.toLowerCase()))
     deleteProfile(username)
     setConfirmDeleteUser(null)
+
+    // 2. Delete from Supabase
+    await deleteProfileFromSupabase(username)
     showToast(`Portafolio de @${username} eliminado correctamente.`)
   }
 
@@ -366,14 +463,33 @@ export default function AdminPage() {
   }
 
   // ---------------------------------------------------------------------------
-  // AFFILIATES & CREATORS ("APOYA A UN CREADOR") BUSINESS LOGIC
+  // AFFILIATES & CREATORS ("APOYA A UN CREADOR") REAL BUSINESS LOGIC
   // Chilean Flow.cl sales: $600 CLP commission per paying user
   // International PayPal sales: $2.60 USD commission per paying user
   // ---------------------------------------------------------------------------
   const creatorsSummary = useMemo(() => {
     const map = {}
 
-    // 1. Process real transactions from Supabase
+    // Initialize registered official creator(s)
+    REGISTERED_AFFILIATES.forEach((aff) => {
+      map[aff.code] = {
+        code: aff.code,
+        creatorUsername: aff.creatorUsername,
+        creatorName: aff.creatorName,
+        creatorTitle: aff.creatorTitle,
+        isOfficial: true,
+        isLifetime: true,
+        salesClp: 0,
+        salesUsd: 0,
+        totalRevenueClp: 0,
+        totalRevenueUsd: 0,
+        commissionClp: 0,
+        commissionUsd: 0,
+        transactions: []
+      }
+    })
+
+    // 1. Process real transactions from Supabase transactions table
     transactions.forEach((tx) => {
       const code = String(tx.creator_code || tx.metadata?.creator_code || '').trim().toUpperCase()
       if (!code || tx.status !== 'APROBADO') return
@@ -385,8 +501,8 @@ export default function AdminPage() {
           salesUsd: 0,
           totalRevenueClp: 0,
           totalRevenueUsd: 0,
-          commissionClp: 0, // $600 CLP por cada venta Flow
-          commissionUsd: 0, // $2.60 USD por cada venta PayPal
+          commissionClp: 0,
+          commissionUsd: 0,
           transactions: []
         }
       }
@@ -414,7 +530,7 @@ export default function AdminPage() {
       })
     })
 
-    // 2. Process transactions from local profile state
+    // 2. Process transactions from profiles history
     profileList.forEach((p) => {
       const history = p.transactionsHistory || (p.lastTransaction ? [p.lastTransaction] : [])
       history.forEach((tx) => {
@@ -461,40 +577,6 @@ export default function AdminPage() {
         })
       })
     })
-
-    // If no real transactions exist yet, supply default reference creators
-    if (Object.keys(map).length === 0) {
-      return [
-        {
-          code: 'STREAMER_CHILE',
-          salesClp: 5,
-          salesUsd: 2,
-          totalRevenueClp: 5 * 3490,
-          totalRevenueUsd: 2 * 3.99,
-          commissionClp: 5 * 600, // $3.000 CLP
-          commissionUsd: 2 * 2.60, // $5.20 USD
-          isDemo: true,
-          transactions: [
-            { id: 'ORD-FLOW-771', date: new Date().toISOString(), username: 'carlos_dev', payerEmail: 'carlos@ejemplo.cl', currency: 'CLP', amount: 3490, paymentMethod: 'Webpay Plus', commissionEarned: 600 },
-            { id: 'ORD-PP-882', date: new Date().toISOString(), username: 'antonia_ux', payerEmail: 'antonia@gmail.com', currency: 'USD', amount: 3.99, paymentMethod: 'PayPal', commissionEarned: 2.60 }
-          ]
-        },
-        {
-          code: 'DEV_MASTER',
-          salesClp: 8,
-          salesUsd: 4,
-          totalRevenueClp: 8 * 3490,
-          totalRevenueUsd: 4 * 3.99,
-          commissionClp: 8 * 600, // $4.800 CLP
-          commissionUsd: 4 * 2.60, // $10.40 USD
-          isDemo: true,
-          transactions: [
-            { id: 'ORD-FLOW-993', date: new Date().toISOString(), username: 'rodrigo_ops', payerEmail: 'rodrigo@ejemplo.cl', currency: 'CLP', amount: 3490, paymentMethod: 'CuentaRUT', commissionEarned: 600 },
-            { id: 'ORD-PP-104', date: new Date().toISOString(), username: 'valeria_psico', payerEmail: 'valeria@gmail.com', currency: 'USD', amount: 3.99, paymentMethod: 'PayPal', commissionEarned: 2.60 }
-          ]
-        }
-      ]
-    }
 
     return Object.values(map)
   }, [transactions, profileList])
@@ -725,6 +807,16 @@ Administrador autorizado: jericesb5@gmail.com
           {/* Action Toolbar */}
           <div className="flex flex-wrap items-center gap-2.5">
             <button
+              onClick={loadAdminData}
+              disabled={isLoadingProfiles || isLoadingTransactions}
+              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-bold flex items-center gap-1.5 border border-slate-700 hover:border-slate-600 transition-colors cursor-pointer"
+              title="Recargar usuarios y transacciones en tiempo real desde Supabase"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingProfiles ? 'animate-spin text-indigo-400' : 'text-emerald-400'}`} />
+              <span>Refrescar</span>
+            </button>
+
+            <button
               onClick={() => setIsModalOpen(true)}
               className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-md shadow-indigo-600/20 transition-all hover:scale-105 active:scale-95"
             >
@@ -812,10 +904,17 @@ Administrador autorizado: jericesb5@gmail.com
             <div className="text-3xl font-black text-slate-900 dark:text-white">
               {totalProfiles}
             </div>
-            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/60 text-xs font-semibold text-slate-500 dark:text-slate-400">
+            <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/60 text-xs font-semibold text-slate-500 dark:text-slate-400">
+              {lifetimeProfiles > 0 && (
+                <span className="text-indigo-600 dark:text-indigo-400 flex items-center gap-0.5 font-bold">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                  {lifetimeProfiles} De por vida
+                </span>
+              )}
+              {lifetimeProfiles > 0 && <span>•</span>}
               <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                {activePremiumProfiles} Premium
+                {activePremiumProfiles} Suscripción
               </span>
               <span>•</span>
               <span className="text-amber-600 dark:text-amber-400">
@@ -834,11 +933,11 @@ Administrador autorizado: jericesb5@gmail.com
               </div>
             </div>
             <div className="text-3xl font-black text-slate-900 dark:text-white">
-              {activePremiumProfiles}
+              {activePremiumProfiles + lifetimeProfiles}
             </div>
             <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/60 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
               <TrendingUp className="w-3.5 h-3.5" />
-              <span>{totalProfiles > 0 ? ((activePremiumProfiles / totalProfiles) * 100).toFixed(0) : 0}% tasa de retención</span>
+              <span>{lifetimeProfiles} VIP De por vida + {activePremiumProfiles} suscriptores</span>
             </div>
           </div>
 
@@ -928,6 +1027,18 @@ Administrador autorizado: jericesb5@gmail.com
                 >
                   Todos ({totalProfiles})
                 </button>
+                {lifetimeProfiles > 0 && (
+                  <button
+                    onClick={() => setStatusFilter('lifetime')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
+                      statusFilter === 'lifetime'
+                        ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm font-black'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    ✨ De por vida ({lifetimeProfiles})
+                  </button>
+                )}
                 <button
                   onClick={() => setStatusFilter('premium')}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
@@ -936,7 +1047,7 @@ Administrador autorizado: jericesb5@gmail.com
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
-                  Suscripción Activa ({activePremiumProfiles})
+                  Suscripción ({activePremiumProfiles})
                 </button>
                 <button
                   onClick={() => setStatusFilter('trial')}
@@ -1090,6 +1201,12 @@ Administrador autorizado: jericesb5@gmail.com
                             <div className="min-w-0">
                               <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 truncate">
                                 <span>{p.personalInfo?.name || p.username}</span>
+                                {p.isLifetime && (
+                                  <span className="px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 text-[10px] font-black border border-indigo-200 dark:border-indigo-800 flex items-center gap-1 shadow-xs" title="Plan Premium Vitalicio">
+                                    <Sparkles className="w-3 h-3 text-amber-500 fill-amber-500" />
+                                    <span>VIP De por vida</span>
+                                  </span>
+                                )}
                                 {p.personalInfo?.availableForWork && (
                                   <span className="w-2 h-2 rounded-full bg-emerald-500" title="Disponible para trabajar" />
                                 )}
@@ -1111,13 +1228,16 @@ Administrador autorizado: jericesb5@gmail.com
                               value={p.plan}
                               onChange={(e) => handlePlanChange(p.username, e.target.value)}
                               className={`appearance-none text-xs font-extrabold px-3 py-1.5 pr-7 rounded-xl border transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                                p.plan === 'premium'
+                                p.plan === 'lifetime'
+                                  ? 'bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700 hover:bg-indigo-100'
+                                  : p.plan === 'premium'
                                   ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
                                   : p.plan === 'trial'
                                   ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 hover:bg-amber-100'
                                   : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800 hover:bg-rose-100'
                               }`}
                             >
+                              <option value="lifetime">✨ De por vida</option>
                               <option value="premium">Suscripción ($3.490)</option>
                               <option value="trial">1er Mes Gratis</option>
                               <option value="inactive">Inactivo</option>
@@ -1384,12 +1504,17 @@ Administrador autorizado: jericesb5@gmail.com
                                 <span className="font-mono font-black text-xs text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/70 px-2.5 py-1 rounded-xl border border-indigo-200 dark:border-indigo-800/70">
                                   {creator.code}
                                 </span>
-                                {creator.isDemo && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold">
-                                    Demo
+                                {creator.isOfficial && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-700">
+                                    Oficial (De por vida)
                                   </span>
                                 )}
                               </div>
+                              {creator.creatorName && (
+                                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                                  {creator.creatorName} {creator.creatorUsername && `(@${creator.creatorUsername})`}
+                                </div>
+                              )}
                             </td>
 
                             <td className="py-4 px-4 text-center">
@@ -1416,18 +1541,24 @@ Administrador autorizado: jericesb5@gmail.com
 
                             <td className="py-4 px-4 text-right font-mono text-slate-600 dark:text-slate-400">
                               <div>${creator.totalRevenueClp.toLocaleString('es-CL')} CLP</div>
-                              {creator.totalRevenueUsd > 0 && (
+                              {creator.totalRevenueUsd > 0 ? (
                                 <div className="text-[11px] text-slate-400">${creator.totalRevenueUsd.toFixed(2)} USD</div>
+                              ) : (
+                                <div className="text-[11px] text-slate-400">$0.00 USD</div>
                               )}
                             </td>
 
                             <td className="py-4 px-5 text-right">
                               <div className="font-mono font-black text-sm text-emerald-600 dark:text-emerald-400">
-                                {creator.commissionClp > 0 && `$${creator.commissionClp.toLocaleString('es-CL')} CLP`}
+                                ${creator.commissionClp.toLocaleString('es-CL')} CLP
                               </div>
-                              {creator.commissionUsd > 0 && (
+                              {creator.commissionUsd > 0 ? (
                                 <div className="font-mono font-black text-xs text-cyan-600 dark:text-cyan-400">
                                   + ${creator.commissionUsd.toFixed(2)} USD
+                                </div>
+                              ) : (
+                                <div className="text-[11px] text-slate-400 font-mono">
+                                  $0.00 USD
                                 </div>
                               )}
                             </td>
