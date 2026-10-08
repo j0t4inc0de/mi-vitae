@@ -331,3 +331,66 @@ BEGIN
   RETURN result;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ==============================================================================
+-- 11. RPC FUNCTIONS: SUPER ADMIN MANAGEMENT (Bypass RLS securely)
+-- ==============================================================================
+CREATE OR REPLACE FUNCTION public.admin_set_profile_plan(
+  target_username TEXT,
+  new_plan TEXT,
+  new_plan_name TEXT,
+  new_plan_status TEXT,
+  new_expires_at TIMESTAMPTZ,
+  admin_token TEXT
+)
+RETURNS JSONB AS $$
+DECLARE
+  updated_record JSONB;
+BEGIN
+  -- Validate Canonical Admin Secret
+  IF admin_token <> 'TeAmoSambi!@123a' THEN
+    RAISE EXCEPTION 'Unauthorized: invalid admin token';
+  END IF;
+
+  UPDATE public.profiles
+  SET 
+    plan = new_plan,
+    plan_name = new_plan_name,
+    plan_status = new_plan_status,
+    plan_expires_at = new_expires_at,
+    updated_at = NOW()
+  WHERE LOWER(username) = LOWER(TRIM(target_username))
+  RETURNING to_jsonb(public.profiles.*) INTO updated_record;
+
+  -- Symmetrically update subscriptions table
+  UPDATE public.subscriptions
+  SET
+    status = new_plan_status,
+    plan_type = CASE WHEN new_plan = 'free_trial' THEN 'free_trial' ELSE 'premium' END,
+    expires_at = new_expires_at,
+    updated_at = NOW()
+  WHERE LOWER(username) = LOWER(TRIM(target_username));
+
+  RETURN updated_record;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.admin_delete_profile(
+  target_username TEXT,
+  admin_token TEXT
+)
+RETURNS BOOLEAN AS $$
+BEGIN
+  -- Validate Canonical Admin Secret
+  IF admin_token <> 'TeAmoSambi!@123a' THEN
+    RAISE EXCEPTION 'Unauthorized: invalid admin token';
+  END IF;
+
+  DELETE FROM public.subscriptions WHERE LOWER(username) = LOWER(TRIM(target_username));
+  DELETE FROM public.feedbacks WHERE LOWER(username) = LOWER(TRIM(target_username));
+  DELETE FROM public.profiles WHERE LOWER(username) = LOWER(TRIM(target_username));
+
+  RETURN true;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+

@@ -698,78 +698,176 @@ export async function fetchAllProfilesFromSupabase() {
 
 /**
  * Update profile plan and expiration date directly in Supabase
+ * Uses serverless /api/admin-manage-user endpoint (Service Role Key) or RPC to bypass RLS.
  */
-export async function updateProfilePlanInSupabase(username, plan) {
-  await initSupabase()
-  if (!isSupabaseConfigured || !supabase || !username) return false
+export async function updateProfilePlanInSupabase(username, plan, adminSecret = 'TeAmoSambi!@123a') {
+  if (!username) return false
 
+  const cleanUsername = username.toLowerCase().trim()
+  const isLifetime = plan === 'lifetime'
+  const isPremium = plan === 'premium' || isLifetime
+  const isInactive = plan === 'inactive'
+
+  let planExpiresAt
+  if (isLifetime) {
+    planExpiresAt = '2099-12-31T23:59:59.000Z'
+  } else if (isPremium) {
+    const now = new Date()
+    planExpiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+  } else if (isInactive) {
+    planExpiresAt = new Date(Date.now() - 1000).toISOString()
+  } else {
+    // trial
+    const now = new Date()
+    planExpiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+  }
+
+  const updates = {
+    plan: isLifetime ? 'premium' : (isInactive ? 'free_trial' : plan),
+    plan_name: isLifetime 
+      ? 'Plan Pro (De por vida)' 
+      : (isPremium ? 'Suscripción Mi Vitae ($3.490 CLP/mes)' : isInactive ? 'Plan Inactivo' : '1er Mes Gratis ($0 CLP)'),
+    plan_status: isInactive ? 'expired' : 'active',
+    plan_expires_at: planExpiresAt,
+    updated_at: new Date().toISOString()
+  }
+
+  // 1. Primary path: Serverless Edge API (Uses backend service role to bypass RLS)
   try {
-    const isLifetime = plan === 'lifetime'
-    const isPremium = plan === 'premium' || isLifetime
-    const isInactive = plan === 'inactive'
+    const res = await fetch('/api/admin-manage-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'update_plan',
+        username: cleanUsername,
+        plan,
+        adminSecret
+      })
+    })
 
-    let planExpiresAt
-    if (isLifetime) {
-      planExpiresAt = '2099-12-31T23:59:59.000Z'
-    } else if (isPremium) {
-      const now = new Date()
-      planExpiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
-    } else if (isInactive) {
-      planExpiresAt = new Date(Date.now() - 1000).toISOString()
-    } else {
-      // trial
-      const now = new Date()
-      planExpiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    if (res.ok) {
+      const data = await res.json()
+      if (data.success && data.updated) {
+        return true
+      }
+    }
+  } catch (apiErr) {
+    // Serverless endpoint might not be reachable in some test or offline environments
+  }
+
+  // 2. Secondary path: Direct Supabase RPC admin_set_profile_plan
+  await initSupabase()
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data: rpcData, error: rpcError } = await supabase.rpc('admin_set_profile_plan', {
+        target_username: cleanUsername,
+        new_plan: updates.plan,
+        new_plan_name: updates.plan_name,
+        new_plan_status: updates.plan_status,
+        new_expires_at: updates.plan_expires_at,
+        admin_token: adminSecret
+      })
+
+      if (!rpcError && rpcData) {
+        return true
+      }
+    } catch (rpcEx) {
+      // RPC might not be installed yet
     }
 
-    const updates = {
-      plan: isLifetime ? 'premium' : plan,
-      plan_name: isLifetime 
-        ? 'Plan Pro (De por vida)' 
-        : (isPremium ? 'Suscripción Mi Vitae ($3.490 CLP/mes)' : '1er Mes Gratis ($0 CLP)'),
-      plan_status: isInactive ? 'expired' : 'active',
-      plan_expires_at: planExpiresAt,
-      updated_at: new Date().toISOString()
-    }
+    // 3. Third path: Direct client-side update with select representation check
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('username', cleanUsername)
+        .select()
 
-    const { error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('username', username.toLowerCase().trim())
+      if (error) {
+        console.warn('[Supabase] Error updating profile plan:', error.message)
+        return false
+      }
 
-    if (error) {
-      console.warn('[Supabase] Error updating profile plan:', error.message)
+      // If RLS blocked the update, data is empty: []
+      if (!data || data.length === 0) {
+        console.warn(`[Supabase] ⚠️ RLS blocked update for @${cleanUsername} (0 rows modified). Server endpoint or RPC required.`)
+        return false
+      }
+
+      return true
+    } catch (err) {
+      console.error('[Supabase] Exception updating profile plan:', err)
       return false
     }
-    return true
-  } catch (err) {
-    console.error('[Supabase] Exception updating profile plan:', err)
-    return false
   }
+
+  return false
 }
 
 /**
  * Delete a profile from Supabase
+ * Uses serverless /api/admin-manage-user endpoint (Service Role Key) or RPC to bypass RLS.
  */
-export async function deleteProfileFromSupabase(username) {
-  await initSupabase()
-  if (!isSupabaseConfigured || !supabase || !username) return false
+export async function deleteProfileFromSupabase(username, adminSecret = 'TeAmoSambi!@123a') {
+  if (!username) return false
+  const cleanUsername = username.toLowerCase().trim()
 
+  // 1. Primary path: Serverless Edge API
   try {
-    const { error } = await supabase
-      .from('profiles')
-      .delete()
-      .eq('username', username.toLowerCase().trim())
+    const res = await fetch('/api/admin-manage-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'delete_user',
+        username: cleanUsername,
+        adminSecret
+      })
+    })
 
-    if (error) {
-      console.warn('[Supabase] Error deleting profile:', error.message)
+    if (res.ok) {
+      const data = await res.json()
+      if (data.success && data.deleted) {
+        return true
+      }
+    }
+  } catch (apiErr) {
+    // Fallback if offline
+  }
+
+  // 2. Secondary path: Supabase RPC admin_delete_profile
+  await initSupabase()
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data: rpcData, error: rpcError } = await supabase.rpc('admin_delete_profile', {
+        target_username: cleanUsername,
+        admin_token: adminSecret
+      })
+
+      if (!rpcError && rpcData) {
+        return true
+      }
+    } catch (rpcEx) {}
+
+    // 3. Third path: Direct client delete
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('username', cleanUsername)
+        .select()
+
+      if (error) {
+        console.warn('[Supabase] Error deleting profile:', error.message)
+        return false
+      }
+      return Boolean(data && data.length > 0)
+    } catch (err) {
+      console.error('[Supabase] Exception deleting profile:', err)
       return false
     }
-    return true
-  } catch (err) {
-    console.error('[Supabase] Exception deleting profile:', err)
-    return false
   }
+
+  return false
 }
 
 /**

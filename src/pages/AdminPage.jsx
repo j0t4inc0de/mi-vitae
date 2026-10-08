@@ -378,12 +378,18 @@ export default function AdminPage() {
     // 2. Update Zustand store
     setProfilePlan(username, isLifetime ? 'premium' : newPlan)
 
-    // 3. Persist directly to Supabase
-    const success = await updateProfilePlanInSupabase(username, newPlan)
+    // 3. Persist directly to Supabase via serverless endpoint bypassing RLS
+    const success = await updateProfilePlanInSupabase(username, newPlan, 'TeAmoSambi!@123a')
     if (success) {
-      showToast(`Plan de @${username} actualizado a ${PLAN_INFO[newPlan]?.name || newPlan}`)
+      showToast(`✅ Plan de @${username} actualizado a ${PLAN_INFO[newPlan]?.name || newPlan} en Supabase`)
+      // Refresh remote profiles directly from Supabase
+      fetchAllProfilesFromSupabase().then((refreshed) => {
+        if (refreshed && refreshed.length > 0) {
+          setRemoteProfilesState(refreshed)
+        }
+      }).catch(() => {})
     } else {
-      showToast(`Plan actualizado localmente.`)
+      showToast(`⚠️ No se pudo guardar en Supabase (error de permisos o RLS).`)
     }
   }
 
@@ -394,9 +400,18 @@ export default function AdminPage() {
     deleteProfile(username)
     setConfirmDeleteUser(null)
 
-    // 2. Delete from Supabase
-    await deleteProfileFromSupabase(username)
-    showToast(`Portafolio de @${username} eliminado correctamente.`)
+    // 2. Delete from Supabase via serverless endpoint bypassing RLS
+    const success = await deleteProfileFromSupabase(username, 'TeAmoSambi!@123a')
+    if (success) {
+      showToast(`✅ Portafolio de @${username} eliminado de Supabase.`)
+      fetchAllProfilesFromSupabase().then((refreshed) => {
+        if (refreshed && refreshed.length > 0) {
+          setRemoteProfilesState(refreshed)
+        }
+      }).catch(() => {})
+    } else {
+      showToast(`Portafolio de @${username} eliminado localmente.`)
+    }
   }
 
   // Handle edit navigation

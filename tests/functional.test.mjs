@@ -1051,6 +1051,49 @@ it('verifies z-index stacking hierarchy: FlowCheckoutModal (z-[70]) renders abov
   assert.ok(flowIdx > accountIdx, 'FlowCheckoutModal must be rendered after UserAccountModal in JSX tree');
 });
 
+// -------------------------------------------------------------
+// SUITE 11: Serverless Admin User Management & RLS Bypass Guard
+// -------------------------------------------------------------
+console.log('\n▶ Suite 11: Serverless Admin User Management & RLS Bypass Guard');
+
+it('verifies /api/admin-manage-user rejects unauthorized requests without valid adminSecret', async () => {
+  const adminFnPath = path.resolve(ROOT, 'functions/api/admin-manage-user.js');
+  assert.ok(fs.existsSync(adminFnPath), 'functions/api/admin-manage-user.js must exist');
+
+  const { onRequestPost } = await import(`file://${adminFnPath}`);
+  
+  // Test request with invalid secret
+  const fakeReq = new Request('https://mi-vitae.wearesamod.com/api/admin-manage-user', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'update_plan', username: 'testuser', plan: 'lifetime', adminSecret: 'wrongpass' })
+  });
+  const res = await onRequestPost({ request: fakeReq, env: {} });
+  assert.equal(res.status, 401, 'Must reject with 401 Unauthorized');
+  const body = await res.json();
+  assert.equal(body.success, false);
+});
+
+it('verifies /api/admin-manage-user maps lifetime plan to 2099-12-31 and Pro plan name', async () => {
+  const adminFnContent = fs.readFileSync(path.resolve(ROOT, 'functions/api/admin-manage-user.js'), 'utf-8');
+  assert.ok(adminFnContent.includes("'2099-12-31T23:59:59.000Z'"), 'Must set lifetime expiration to year 2099');
+  assert.ok(adminFnContent.includes("'Plan Pro (De por vida)'"), 'Must set lifetime plan name');
+  assert.ok(adminFnContent.includes("SUPABASE_SERVICE_ROLE_KEY"), 'Must use SUPABASE_SERVICE_ROLE_KEY to bypass RLS');
+});
+
+it('verifies worker.js registers /api/admin-manage-user route', () => {
+  const workerContent = fs.readFileSync(path.resolve(ROOT, 'worker.js'), 'utf-8');
+  assert.ok(workerContent.includes("pathname === '/api/admin-manage-user'"), 'worker.js must route /api/admin-manage-user');
+  assert.ok(workerContent.includes("handleAdminManageUser"), 'worker.js must import handleAdminManageUser');
+});
+
+it('verifies supabase/schema.sql provides SECURITY DEFINER admin RPC functions', () => {
+  const schemaContent = fs.readFileSync(path.resolve(ROOT, 'supabase/schema.sql'), 'utf-8');
+  assert.ok(schemaContent.includes('CREATE OR REPLACE FUNCTION public.admin_set_profile_plan'), 'Must define admin_set_profile_plan RPC');
+  assert.ok(schemaContent.includes('CREATE OR REPLACE FUNCTION public.admin_delete_profile'), 'Must define admin_delete_profile RPC');
+  assert.ok(schemaContent.includes('SECURITY DEFINER'), 'Admin RPC must have SECURITY DEFINER to bypass RLS');
+});
+
 await vite.close();
 
 // -------------------------------------------------------------
