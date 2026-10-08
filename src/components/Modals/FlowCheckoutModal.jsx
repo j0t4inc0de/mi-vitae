@@ -938,7 +938,7 @@ Soporte técnico: contacto@wearesamod.com
                     onClick={handleSimulatePayPalPayment}
                     className="font-sans flex justify-center gap-2.5 items-center w-full shadow-xl shadow-palette-primary/25 hover:shadow-palette-primary/35 text-sm sm:text-base text-white bg-palette-primary hover:bg-palette-hover font-bold rounded-2xl px-5 py-3.5 sm:py-4 group cursor-pointer transition-all active:scale-[0.99]"
                   >
-                    <span>Obtener Premium ($3.99 USD)</span>
+                    <span>Obtener Premium</span>
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 16 19"
