@@ -966,10 +966,11 @@ it('verifies FlowCheckoutModal integrates Apoya a un creador section and handler
 
   assert.ok(content.includes('Apoya a un Creador'), 'Must document Apoya a un Creador system');
   assert.ok(content.includes('¿Tienes un código de creador?'), 'Must have prompt for creator code');
-  assert.ok(content.includes('Apoyando a:'), 'Must show green active creator badge');
   assert.ok(content.includes('handleApplyCreatorCode'), 'Must implement apply handler');
   assert.ok(content.includes('handleRemoveCreatorCode'), 'Must implement remove handler');
   assert.ok(content.includes('creator_code'), 'Must pass creator_code to checkout');
+  assert.ok(!content.includes('Apoyando a:'), 'Must NOT show "Apoyando a:" text in active badge for compact layout');
+  assert.ok(content.includes('hidden sm:flex items-center justify-between p-3 rounded-2xl bg-slate-50'), 'Media bars must be hidden on mobile');
 });
 
 // -------------------------------------------------------------

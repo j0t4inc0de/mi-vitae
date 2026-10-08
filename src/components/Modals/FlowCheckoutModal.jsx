@@ -522,20 +522,12 @@ Soporte técnico: contacto@wearesamod.com
   const renderCreatorCodeSection = () => {
     if (creatorCode && !isEditingCreatorCode) {
       return (
-        <div className="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 flex items-center justify-between gap-3 animate-fadeIn">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="p-1.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 shrink-0">
-              <Sparkles className="w-4 h-4" />
-            </div>
-            <div className="min-w-0 text-xs">
-              <span className="text-emerald-800 dark:text-emerald-300 font-semibold block sm:inline">
-                ✨ Apoyando a:
-              </span>
-              <span className="font-mono font-black text-emerald-900 dark:text-emerald-200 bg-white dark:bg-slate-900 px-2 py-0.5 rounded-lg border border-emerald-300 dark:border-emerald-700 ml-0 sm:ml-1.5 text-xs tracking-wider">
-                {creatorCode}
-              </span>
-              <span className="text-emerald-600 dark:text-emerald-400 font-bold ml-1.5">✓</span>
-            </div>
+        <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 flex items-center justify-between gap-3 animate-fadeIn">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="font-mono font-black text-emerald-900 dark:text-emerald-200 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-emerald-300 dark:border-emerald-700 text-xs tracking-wider">
+              {creatorCode}
+            </span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs">✓</span>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -789,8 +781,8 @@ Soporte técnico: contacto@wearesamod.com
           {paymentState === 'select' && activeGateway === 'flow' && (
             <div className="space-y-3 animate-fadeIn">
               
-              {/* Barra de Medios Inline Ultra-Compacta */}
-              <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800">
+              {/* Barra de Medios Inline Ultra-Compacta (Oculta en móviles para pantallas pequeñas) */}
+              <div className="hidden sm:flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-1.5 shrink-0">
                   <div className="h-5 px-1.5 rounded bg-[#677023] text-[#dbff00] font-black text-[11px] flex items-center justify-center border border-[#dbff00]/30 shadow-xs">
                     flow
@@ -872,8 +864,8 @@ Soporte técnico: contacto@wearesamod.com
           {paymentState === 'select' && activeGateway === 'paypal' && (
             <div className="space-y-3 animate-fadeIn">
               
-              {/* Barra de Medios Inline Ultra-Compacta (Symmetrical to Tab 1 Flow) */}
-              <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800">
+              {/* Barra de Medios Inline Ultra-Compacta (Symmetrical to Tab 1 Flow, oculta en móviles) */}
+              <div className="hidden sm:flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800">
                 <div className="flex items-center gap-1.5 shrink-0">
                   <div className="h-5 px-1.5 rounded bg-[#003087] text-white font-black text-[11px] flex items-center justify-center shadow-xs">
                     PayPal
