@@ -4,10 +4,8 @@
  * 
  * Secure administrative mutations (plan changes, lifetime upgrades, user deletions)
  * executed server-side with SUPABASE_SERVICE_ROLE_KEY to bypass Row Level Security (RLS).
+ * Authenticated via server-side ADMIN_SECRET or Supabase Auth Admin JWT token.
  */
-
-const CANONICAL_ADMIN_SECRET = 'TeAmoSambi!@123a'
-const CANONICAL_ADMIN_EMAIL = 'jericesb5@gmail.com'
 
 export async function onRequestPost(context) {
   const { request, env } = context
@@ -20,14 +18,78 @@ export async function onRequestPost(context) {
 
   try {
     const body = await request.json().catch(() => ({}))
-    const { action, username, plan, adminSecret, adminPassword } = body
+    const { action, username, plan, adminSecret, adminPassword, adminEmail } = body
 
-    // 2. Validate Admin Authorization Secret
+    const expectedAdminSecret = env.ADMIN_SECRET || env.ADMIN_PASSWORD || 'TeAmoSambi!@123a'
+    const canonicalAdminEmail = (env.ADMIN_EMAIL || 'jericesb5@gmail.com').toLowerCase().trim()
+    const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL || 'https://ewptcglzykqvnvxxwwhm.supabase.co'
+    const supabaseServiceKey = env.SUPABASE_SERVICE_ROLE_KEY
+
+    // 2. Authorization Check (Secret token OR Supabase Auth JWT Bearer)
+    let isAuthorized = false
+    let authorizedBy = ''
+
     const providedSecret = adminSecret || adminPassword || request.headers.get('x-admin-secret')
-    if (providedSecret !== CANONICAL_ADMIN_SECRET) {
+    if (providedSecret && providedSecret === expectedAdminSecret) {
+      isAuthorized = true
+      authorizedBy = 'secret'
+    }
+
+    // Check Bearer JWT from Supabase Auth if provided
+    const authHeader = request.headers.get('authorization') || ''
+    if (!isAuthorized && authHeader.startsWith('Bearer ') && supabaseServiceKey) {
+      const token = authHeader.replace('Bearer ', '').trim()
+      try {
+        const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+          headers: {
+            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        if (userRes.ok) {
+          const userData = await userRes.json()
+          const userEmail = (userData?.email || '').toLowerCase().trim()
+          const role = userData?.app_metadata?.role || userData?.user_metadata?.role
+          if (userEmail === canonicalAdminEmail || role === 'admin' || userEmail.endsWith('@wearesamod.com')) {
+            isAuthorized = true
+            authorizedBy = `jwt:${userEmail}`
+          }
+        }
+      } catch (_) {}
+    }
+
+    // =========================================================================
+    // ACTION: VERIFY ADMIN LOGIN
+    // =========================================================================
+    if (action === 'verify_admin') {
+      const cleanEmail = (adminEmail || body.email || '').toLowerCase().trim()
+      const isEmailValid = cleanEmail === canonicalAdminEmail || cleanEmail.endsWith('@wearesamod.com')
+
+      if (isAuthorized && (isEmailValid || authorizedBy.startsWith('jwt:'))) {
+        return new Response(JSON.stringify({ 
+          success: true, 
+          authorized: true, 
+          email: cleanEmail || canonicalAdminEmail 
+        }), {
+          status: 200,
+          headers: jsonHeaders
+        })
+      }
+
       return new Response(JSON.stringify({ 
         success: false, 
-        error: 'No autorizado. Credenciales de administrador inválidas.' 
+        error: 'Credenciales de administrador inválidas.' 
+      }), {
+        status: 401,
+        headers: jsonHeaders
+      })
+    }
+
+    // For all mutation actions, authorization is mandatory
+    if (!isAuthorized) {
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'No autorizado. Se requieren credenciales de administrador válidas.' 
       }), {
         status: 401,
         headers: jsonHeaders
@@ -45,8 +107,6 @@ export async function onRequestPost(context) {
     }
 
     const cleanUsername = username.toLowerCase().trim()
-    const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL || 'https://ewptcglzykqvnvxxwwhm.supabase.co'
-    const supabaseServiceKey = env.SUPABASE_SERVICE_ROLE_KEY
 
     if (!supabaseServiceKey) {
       return new Response(JSON.stringify({ 
@@ -236,7 +296,7 @@ export async function onRequestPost(context) {
 
     return new Response(JSON.stringify({ 
       success: false, 
-      error: `Acción '${action}' no reconocida. Use 'update_plan' o 'delete_user'.` 
+      error: `Acción '${action}' no reconocida. Use 'verify_admin', 'update_plan' o 'delete_user'.` 
     }), {
       status: 400,
       headers: jsonHeaders

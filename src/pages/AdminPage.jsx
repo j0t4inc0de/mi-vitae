@@ -134,7 +134,7 @@ export default function AdminPage() {
   const setActiveUsername = useProfileStore((state) => state.setActiveUsername)
   const setRemoteProfiles = useProfileStore((state) => state.setRemoteProfiles)
 
-  // Security & Authorization State (user: jericesb5@gmail.com, pass: TeAmoSambi!@123a)
+  // Security & Authorization State (verified dynamically via serverless endpoint)
   const [isAdminAuthorized, setIsAdminAuthorized] = useState(() => {
     if (typeof window !== 'undefined') {
       return sessionStorage.getItem('mi_vitae_admin_auth') === 'true'
@@ -142,6 +142,7 @@ export default function AdminPage() {
     return false
   })
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const [isVerifyingLogin, setIsVerifyingLogin] = useState(false)
   const [adminEmailInput, setAdminEmailInput] = useState('')
   const [adminPasswordInput, setAdminPasswordInput] = useState('')
   const [authError, setAuthError] = useState('')
@@ -174,24 +175,52 @@ export default function AdminPage() {
     return () => { isMounted = false }
   }, [])
 
-  const handleAdminLogin = (e) => {
+  const handleAdminLogin = async (e) => {
     e.preventDefault()
     const cleanUser = adminEmailInput.trim().toLowerCase()
     const pass = adminPasswordInput.trim()
 
-    // Canonical Admin Credentials: user: jericesb5@gmail.com, pass: TeAmoSambi!@123a
-    if (cleanUser === 'jericesb5@gmail.com' && pass === 'TeAmoSambi!@123a') {
-      setIsAdminAuthorized(true)
-      sessionStorage.setItem('mi_vitae_admin_auth', 'true')
-      setAuthError('')
-      showToast('¡Bienvenido Jeric! Acceso concedido al Super Admin.')
-    } else {
-      setAuthError('Usuario o contraseña de administrador incorrectos.')
+    if (!cleanUser || !pass) {
+      setAuthError('Ingresa tu correo y contraseña.')
+      return
+    }
+
+    setIsVerifyingLogin(true)
+    setAuthError('')
+
+    try {
+      // Verify credentials on the secure serverless edge
+      const res = await fetch('/api/admin-manage-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'verify_admin',
+          adminEmail: cleanUser,
+          adminSecret: pass
+        })
+      })
+
+      const data = await res.json().catch(() => ({}))
+
+      if (res.ok && data.success && data.authorized) {
+        setIsAdminAuthorized(true)
+        sessionStorage.setItem('mi_vitae_admin_auth', 'true')
+        sessionStorage.setItem('mi_vitae_admin_token', pass)
+        setAuthError('')
+        showToast('¡Bienvenido Jeric! Acceso concedido al Super Admin.')
+      } else {
+        setAuthError(data.error || 'Usuario o contraseña de administrador incorrectos.')
+      }
+    } catch (err) {
+      setAuthError('Error de conexión al verificar credenciales con el servidor.')
+    } finally {
+      setIsVerifyingLogin(false)
     }
   }
 
   const handleAdminLogout = () => {
     sessionStorage.removeItem('mi_vitae_admin_auth')
+    sessionStorage.removeItem('mi_vitae_admin_token')
     setIsAdminAuthorized(false)
     setAdminPasswordInput('')
     navigate('/')
@@ -379,7 +408,8 @@ export default function AdminPage() {
     setProfilePlan(username, isLifetime ? 'premium' : newPlan)
 
     // 3. Persist directly to Supabase via serverless endpoint bypassing RLS
-    const success = await updateProfilePlanInSupabase(username, newPlan, 'TeAmoSambi!@123a')
+    const adminToken = typeof window !== 'undefined' ? sessionStorage.getItem('mi_vitae_admin_token') : null
+    const success = await updateProfilePlanInSupabase(username, newPlan, adminToken)
     if (success) {
       showToast(`✅ Plan de @${username} actualizado a ${PLAN_INFO[newPlan]?.name || newPlan} en Supabase`)
       // Refresh remote profiles directly from Supabase
@@ -401,7 +431,8 @@ export default function AdminPage() {
     setConfirmDeleteUser(null)
 
     // 2. Delete from Supabase via serverless endpoint bypassing RLS
-    const success = await deleteProfileFromSupabase(username, 'TeAmoSambi!@123a')
+    const adminToken = typeof window !== 'undefined' ? sessionStorage.getItem('mi_vitae_admin_token') : null
+    const success = await deleteProfileFromSupabase(username, adminToken)
     if (success) {
       showToast(`✅ Portafolio de @${username} eliminado de Supabase.`)
       fetchAllProfilesFromSupabase().then((refreshed) => {
@@ -765,10 +796,20 @@ Administrador autorizado: jericesb5@gmail.com
 
             <button
               type="submit"
-              className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] text-white font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-indigo-600/30 cursor-pointer flex items-center justify-center gap-2"
+              disabled={isVerifyingLogin}
+              className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 active:scale-[0.99] text-white font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-indigo-600/30 cursor-pointer flex items-center justify-center gap-2"
             >
-              <Lock className="w-4 h-4" />
-              <span>Acceder al Panel de Control</span>
+              {isVerifyingLogin ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Verificando credenciales...</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-4 h-4" />
+                  <span>Acceder al Panel de Control</span>
+                </>
+              )}
             </button>
           </form>
 

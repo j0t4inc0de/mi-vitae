@@ -340,16 +340,16 @@ CREATE OR REPLACE FUNCTION public.admin_set_profile_plan(
   new_plan TEXT,
   new_plan_name TEXT,
   new_plan_status TEXT,
-  new_expires_at TIMESTAMPTZ,
-  admin_token TEXT
+  new_expires_at TIMESTAMPTZ
 )
 RETURNS JSONB AS $$
 DECLARE
   updated_record JSONB;
 BEGIN
-  -- Validate Canonical Admin Secret
-  IF admin_token <> 'TeAmoSambi!@123a' THEN
-    RAISE EXCEPTION 'Unauthorized: invalid admin token';
+  -- Strict Access Guard: Only backend service_role or admin account can execute
+  IF auth.jwt() ->> 'role' <> 'service_role' 
+     AND COALESCE(auth.jwt() ->> 'email', '') <> 'jericesb5@gmail.com' THEN
+    RAISE EXCEPTION 'Access denied: administrative privileges required';
   END IF;
 
   UPDATE public.profiles
@@ -375,15 +375,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+REVOKE EXECUTE ON FUNCTION public.admin_set_profile_plan FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.admin_set_profile_plan TO authenticated, service_role;
+
 CREATE OR REPLACE FUNCTION public.admin_delete_profile(
-  target_username TEXT,
-  admin_token TEXT
+  target_username TEXT
 )
 RETURNS BOOLEAN AS $$
 BEGIN
-  -- Validate Canonical Admin Secret
-  IF admin_token <> 'TeAmoSambi!@123a' THEN
-    RAISE EXCEPTION 'Unauthorized: invalid admin token';
+  -- Strict Access Guard: Only backend service_role or admin account can execute
+  IF auth.jwt() ->> 'role' <> 'service_role' 
+     AND COALESCE(auth.jwt() ->> 'email', '') <> 'jericesb5@gmail.com' THEN
+    RAISE EXCEPTION 'Access denied: administrative privileges required';
   END IF;
 
   DELETE FROM public.subscriptions WHERE LOWER(username) = LOWER(TRIM(target_username));
@@ -393,4 +396,8 @@ BEGIN
   RETURN true;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+REVOKE EXECUTE ON FUNCTION public.admin_delete_profile FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.admin_delete_profile TO authenticated, service_role;
+
 

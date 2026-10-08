@@ -700,13 +700,15 @@ export async function fetchAllProfilesFromSupabase() {
  * Update profile plan and expiration date directly in Supabase
  * Uses serverless /api/admin-manage-user endpoint (Service Role Key) or RPC to bypass RLS.
  */
-export async function updateProfilePlanInSupabase(username, plan, adminSecret = 'TeAmoSambi!@123a') {
+export async function updateProfilePlanInSupabase(username, plan, adminSecret = null) {
   if (!username) return false
 
   const cleanUsername = username.toLowerCase().trim()
   const isLifetime = plan === 'lifetime'
   const isPremium = plan === 'premium' || isLifetime
   const isInactive = plan === 'inactive'
+
+  const effectiveSecret = adminSecret || (typeof window !== 'undefined' ? sessionStorage.getItem('mi_vitae_admin_token') : null)
 
   let planExpiresAt
   if (isLifetime) {
@@ -734,14 +736,19 @@ export async function updateProfilePlanInSupabase(username, plan, adminSecret = 
 
   // 1. Primary path: Serverless Edge API (Uses backend service role to bypass RLS)
   try {
+    const headers = { 'Content-Type': 'application/json' }
+    if (effectiveSecret) {
+      headers['x-admin-secret'] = effectiveSecret
+    }
+
     const res = await fetch('/api/admin-manage-user', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         action: 'update_plan',
         username: cleanUsername,
         plan,
-        adminSecret
+        adminSecret: effectiveSecret
       })
     })
 
@@ -764,8 +771,7 @@ export async function updateProfilePlanInSupabase(username, plan, adminSecret = 
         new_plan: updates.plan,
         new_plan_name: updates.plan_name,
         new_plan_status: updates.plan_status,
-        new_expires_at: updates.plan_expires_at,
-        admin_token: adminSecret
+        new_expires_at: updates.plan_expires_at
       })
 
       if (!rpcError && rpcData) {
@@ -808,19 +814,25 @@ export async function updateProfilePlanInSupabase(username, plan, adminSecret = 
  * Delete a profile from Supabase
  * Uses serverless /api/admin-manage-user endpoint (Service Role Key) or RPC to bypass RLS.
  */
-export async function deleteProfileFromSupabase(username, adminSecret = 'TeAmoSambi!@123a') {
+export async function deleteProfileFromSupabase(username, adminSecret = null) {
   if (!username) return false
   const cleanUsername = username.toLowerCase().trim()
+  const effectiveSecret = adminSecret || (typeof window !== 'undefined' ? sessionStorage.getItem('mi_vitae_admin_token') : null)
 
   // 1. Primary path: Serverless Edge API
   try {
+    const headers = { 'Content-Type': 'application/json' }
+    if (effectiveSecret) {
+      headers['x-admin-secret'] = effectiveSecret
+    }
+
     const res = await fetch('/api/admin-manage-user', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         action: 'delete_user',
         username: cleanUsername,
-        adminSecret
+        adminSecret: effectiveSecret
       })
     })
 
@@ -839,8 +851,7 @@ export async function deleteProfileFromSupabase(username, adminSecret = 'TeAmoSa
   if (isSupabaseConfigured && supabase) {
     try {
       const { data: rpcData, error: rpcError } = await supabase.rpc('admin_delete_profile', {
-        target_username: cleanUsername,
-        admin_token: adminSecret
+        target_username: cleanUsername
       })
 
       if (!rpcError && rpcData) {
