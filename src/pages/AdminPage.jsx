@@ -748,9 +748,6 @@ Administrador autorizado: jericesb5@gmail.com
             </div>
             <div>
               <h2 className="text-2xl font-black text-white tracking-tight">Super Admin</h2>
-              <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                /admin/wearesamod
-              </span>
               <p className="text-xs text-slate-400 mt-2">
                 Panel de control privado y liquidación de afiliados
               </p>
