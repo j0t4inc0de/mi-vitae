@@ -1094,6 +1094,29 @@ it('verifies supabase/schema.sql provides SECURITY DEFINER admin RPC functions',
   assert.ok(schemaContent.includes('SECURITY DEFINER'), 'Admin RPC must have SECURITY DEFINER to bypass RLS');
 });
 
+it('verifies /api/admin-manage-user supports assign_creator_code and remove_creator_code actions', () => {
+  const adminFnContent = fs.readFileSync(path.resolve(ROOT, 'functions/api/admin-manage-user.js'), 'utf-8');
+  assert.ok(adminFnContent.includes("action === 'assign_creator_code'"), 'Must handle assign_creator_code action');
+  assert.ok(adminFnContent.includes("action === 'remove_creator_code'"), 'Must handle remove_creator_code action');
+  assert.ok(adminFnContent.includes("personal_info: updatedPersonalInfo"), 'Must persist creator_code in personal_info');
+});
+
+it('verifies AdminPage contains exactly 0 emojis and provides complete Creator CRUD', () => {
+  const adminPageContent = fs.readFileSync(path.resolve(ROOT, 'src/pages/AdminPage.jsx'), 'utf-8');
+  const emojiRegex = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}]|\p{Extended_Pictographic}/u;
+  const lines = adminPageContent.split('\n');
+  const foundEmojis = lines.filter((l) => emojiRegex.test(l));
+  assert.equal(foundEmojis.length, 0, `AdminPage must contain 0 emojis, but found: ${JSON.stringify(foundEmojis)}`);
+
+  // Verify Creator CRUD components & hooks exist
+  assert.ok(adminPageContent.includes('assignCreatorCodeInSupabase'), 'Must import assignCreatorCodeInSupabase');
+  assert.ok(adminPageContent.includes('removeCreatorCodeInSupabase'), 'Must import removeCreatorCodeInSupabase');
+  assert.ok(adminPageContent.includes('isCreatorModalOpen'), 'Must render isCreatorModalOpen modal state');
+  assert.ok(adminPageContent.includes('confirmRemoveCreator'), 'Must render confirmRemoveCreator modal state');
+  assert.ok(adminPageContent.includes('handleSaveCreatorAssignment'), 'Must have handleSaveCreatorAssignment handler');
+  assert.ok(adminPageContent.includes('handleConfirmRemoveCreator'), 'Must have handleConfirmRemoveCreator handler');
+});
+
 await vite.close();
 
 // -------------------------------------------------------------

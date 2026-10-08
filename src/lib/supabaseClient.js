@@ -683,6 +683,7 @@ export async function fetchAllProfilesFromSupabase() {
         certifications: d.certifications || d.personal_info?.certifications || [],
         languages: d.languages || [],
         qrCode: d.qr_code || d.personal_info?.qrCode || {},
+        creatorCode: d.personal_info?.creator_code || d.personal_info?.creatorCode || (d.username === 'santiagoq7' ? 'SANTIAGOQ7' : null),
         analytics: d.analytics || { views: 0, contactClicks: 0, cvDownloads: 0 },
         trialActivatedAt: d.trial_activated_at,
         planExpiresAt: d.plan_expires_at,
@@ -933,3 +934,74 @@ export async function incrementAnalyticsInSupabase(username, metricName) {
 
   return null
 }
+
+/**
+ * Assign a creator code to a registered profile in Supabase
+ */
+export async function assignCreatorCodeInSupabase(username, creatorCode, isLifetime = false, adminSecret = null) {
+  if (!username || !creatorCode) return false
+  const cleanUsername = username.toLowerCase().trim()
+  const effectiveSecret = adminSecret || (typeof window !== 'undefined' ? sessionStorage.getItem('mi_vitae_admin_token') : null)
+
+  try {
+    const headers = { 'Content-Type': 'application/json' }
+    if (effectiveSecret) {
+      headers['x-admin-secret'] = effectiveSecret
+    }
+
+    const res = await fetch('/api/admin-manage-user', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        action: 'assign_creator_code',
+        username: cleanUsername,
+        creatorCode,
+        isLifetime,
+        adminSecret: effectiveSecret
+      })
+    })
+
+    if (res.ok) {
+      const data = await res.json()
+      return Boolean(data.success && data.updated)
+    }
+  } catch (err) {
+    console.warn('[Supabase] Error assigning creator code:', err)
+  }
+  return false
+}
+
+/**
+ * Remove/unassign creator code from a profile in Supabase
+ */
+export async function removeCreatorCodeInSupabase(username, adminSecret = null) {
+  if (!username) return false
+  const cleanUsername = username.toLowerCase().trim()
+  const effectiveSecret = adminSecret || (typeof window !== 'undefined' ? sessionStorage.getItem('mi_vitae_admin_token') : null)
+
+  try {
+    const headers = { 'Content-Type': 'application/json' }
+    if (effectiveSecret) {
+      headers['x-admin-secret'] = effectiveSecret
+    }
+
+    const res = await fetch('/api/admin-manage-user', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        action: 'remove_creator_code',
+        username: cleanUsername,
+        adminSecret: effectiveSecret
+      })
+    })
+
+    if (res.ok) {
+      const data = await res.json()
+      return Boolean(data.success && data.removed)
+    }
+  } catch (err) {
+    console.warn('[Supabase] Error removing creator code:', err)
+  }
+  return false
+}
+

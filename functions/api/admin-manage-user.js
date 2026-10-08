@@ -294,9 +294,134 @@ export async function onRequestPost(context) {
       })
     }
 
+    // =========================================================================
+    // ACTION: ASSIGN CREATOR CODE (CRUD: Asociar código a un perfil registrado)
+    // =========================================================================
+    if (action === 'assign_creator_code') {
+      const { creatorCode, isLifetime } = body
+      const cleanCreatorCode = String(creatorCode || '')
+        .trim()
+        .toUpperCase()
+        .replace(/[^A-Z0-9_-]/g, '')
+        .slice(0, 30)
+
+      if (!cleanCreatorCode) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'El código de creador es requerido y debe contener caracteres válidos (A-Z, 0-9, _, -).'
+        }), { status: 400, headers: jsonHeaders })
+      }
+
+      // 1. Fetch current profile
+      const getProfileRes = await fetch(`${supabaseUrl}/rest/v1/profiles?username=eq.${encodeURIComponent(cleanUsername)}&select=id,personal_info,plan,plan_name,plan_status,plan_expires_at`, {
+        method: 'GET',
+        headers: {
+          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseServiceKey}`
+        }
+      })
+      const profilesFound = await getProfileRes.json().catch(() => [])
+      if (!Array.isArray(profilesFound) || profilesFound.length === 0) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: `No se encontró el usuario @${cleanUsername} en Supabase.`
+        }), { status: 404, headers: jsonHeaders })
+      }
+
+      const existingProfile = profilesFound[0]
+      const currentPersonalInfo = existingProfile.personal_info || {}
+      const updatedPersonalInfo = {
+        ...currentPersonalInfo,
+        creator_code: cleanCreatorCode
+      }
+
+      const profileUpdates = {
+        personal_info: updatedPersonalInfo,
+        updated_at: new Date().toISOString()
+      }
+
+      if (isLifetime) {
+        profileUpdates.plan = 'premium'
+        profileUpdates.plan_name = 'Plan Pro (De por vida)'
+        profileUpdates.plan_status = 'active'
+        profileUpdates.plan_expires_at = '2099-12-31T23:59:59.000Z'
+      }
+
+      const patchRes = await fetch(`${supabaseUrl}/rest/v1/profiles?username=eq.${encodeURIComponent(cleanUsername)}`, {
+        method: 'PATCH',
+        headers: serviceHeaders,
+        body: JSON.stringify(profileUpdates)
+      })
+
+      if (!patchRes.ok) {
+        const errorText = await patchRes.text()
+        return new Response(JSON.stringify({
+          success: false,
+          error: `Error al asignar código en Supabase: ${errorText}`
+        }), { status: 502, headers: jsonHeaders })
+      }
+
+      const updated = await patchRes.json()
+      return new Response(JSON.stringify({
+        success: true,
+        updated: true,
+        username: cleanUsername,
+        creatorCode: cleanCreatorCode,
+        isLifetime: Boolean(isLifetime),
+        profile: updated[0]
+      }), { status: 200, headers: jsonHeaders })
+    }
+
+    // =========================================================================
+    // ACTION: REMOVE CREATOR CODE (CRUD: Desvincular código de creador)
+    // =========================================================================
+    if (action === 'remove_creator_code') {
+      const getProfileRes = await fetch(`${supabaseUrl}/rest/v1/profiles?username=eq.${encodeURIComponent(cleanUsername)}&select=id,personal_info`, {
+        method: 'GET',
+        headers: {
+          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseServiceKey}`
+        }
+      })
+      const profilesFound = await getProfileRes.json().catch(() => [])
+      if (!Array.isArray(profilesFound) || profilesFound.length === 0) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: `No se encontró el usuario @${cleanUsername} en Supabase.`
+        }), { status: 404, headers: jsonHeaders })
+      }
+
+      const currentPersonalInfo = profilesFound[0].personal_info || {}
+      delete currentPersonalInfo.creator_code
+      delete currentPersonalInfo.creatorCode
+
+      const patchRes = await fetch(`${supabaseUrl}/rest/v1/profiles?username=eq.${encodeURIComponent(cleanUsername)}`, {
+        method: 'PATCH',
+        headers: serviceHeaders,
+        body: JSON.stringify({
+          personal_info: currentPersonalInfo,
+          updated_at: new Date().toISOString()
+        })
+      })
+
+      if (!patchRes.ok) {
+        const errorText = await patchRes.text()
+        return new Response(JSON.stringify({
+          success: false,
+          error: `Error al remover código en Supabase: ${errorText}`
+        }), { status: 502, headers: jsonHeaders })
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        removed: true,
+        username: cleanUsername
+      }), { status: 200, headers: jsonHeaders })
+    }
+
     return new Response(JSON.stringify({ 
       success: false, 
-      error: `Acción '${action}' no reconocida. Use 'verify_admin', 'update_plan' o 'delete_user'.` 
+      error: `Acción '${action}' no reconocida. Use 'verify_admin', 'update_plan', 'delete_user', 'assign_creator_code' o 'remove_creator_code'.` 
     }), {
       status: 400,
       headers: jsonHeaders

@@ -6,14 +6,17 @@ import {
   fetchTransactionsFromSupabase,
   fetchAllProfilesFromSupabase,
   updateProfilePlanInSupabase,
-  deleteProfileFromSupabase
+  deleteProfileFromSupabase,
+  assignCreatorCodeInSupabase,
+  removeCreatorCodeInSupabase
 } from '../lib/supabaseClient'
 import { 
   Shield, Users, Eye, MousePointerClick, DollarSign, 
   ExternalLink, TrendingUp, RefreshCw, CheckCircle2, 
   Search, UserCheck, Trash2, Edit3, X,
   Sparkles, FileDown, ChevronDown, UserPlus, Lock,
-  Award, Copy, Check, Calendar, ArrowRight, LogOut, Receipt
+  Award, Copy, Check, Calendar, ArrowRight, LogOut, Receipt,
+  Plus, Tag, Globe
 } from 'lucide-react'
 
 // Map theme IDs to user-friendly names and badge styling
@@ -238,6 +241,16 @@ export default function AdminPage() {
   const [selectedCreatorDetails, setSelectedCreatorDetails] = useState(null)
   const [copiedCreatorCode, setCopiedCreatorCode] = useState(null)
 
+  // Creator Assignment CRUD Modal State
+  const [isCreatorModalOpen, setIsCreatorModalOpen] = useState(false)
+  const [editingCreator, setEditingCreator] = useState(null)
+  const [creatorFormUsername, setCreatorFormUsername] = useState('')
+  const [creatorFormCode, setCreatorFormCode] = useState('')
+  const [creatorFormIsLifetime, setCreatorFormIsLifetime] = useState(true)
+  const [isSavingCreator, setIsSavingCreator] = useState(false)
+  const [creatorFormError, setCreatorFormError] = useState('')
+  const [confirmRemoveCreator, setConfirmRemoveCreator] = useState(null)
+
   // Fetch real data from Supabase Cloud
   const loadAdminData = async () => {
     setIsLoadingProfiles(true)
@@ -411,7 +424,7 @@ export default function AdminPage() {
     const adminToken = typeof window !== 'undefined' ? sessionStorage.getItem('mi_vitae_admin_token') : null
     const success = await updateProfilePlanInSupabase(username, newPlan, adminToken)
     if (success) {
-      showToast(`✅ Plan de @${username} actualizado a ${PLAN_INFO[newPlan]?.name || newPlan} en Supabase`)
+      showToast(`Plan de @${username} actualizado a ${PLAN_INFO[newPlan]?.name || newPlan} en Supabase`)
       // Refresh remote profiles directly from Supabase
       fetchAllProfilesFromSupabase().then((refreshed) => {
         if (refreshed && refreshed.length > 0) {
@@ -419,7 +432,7 @@ export default function AdminPage() {
         }
       }).catch(() => {})
     } else {
-      showToast(`⚠️ No se pudo guardar en Supabase (error de permisos o RLS).`)
+      showToast(`No se pudo guardar en Supabase (error de permisos o RLS).`)
     }
   }
 
@@ -434,7 +447,7 @@ export default function AdminPage() {
     const adminToken = typeof window !== 'undefined' ? sessionStorage.getItem('mi_vitae_admin_token') : null
     const success = await deleteProfileFromSupabase(username, adminToken)
     if (success) {
-      showToast(`✅ Portafolio de @${username} eliminado de Supabase.`)
+      showToast(`Portafolio de @${username} eliminado de Supabase.`)
       fetchAllProfilesFromSupabase().then((refreshed) => {
         if (refreshed && refreshed.length > 0) {
           setRemoteProfilesState(refreshed)
@@ -509,6 +522,7 @@ export default function AdminPage() {
   }
 
   // ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   // AFFILIATES & CREATORS ("APOYA A UN CREADOR") REAL BUSINESS LOGIC
   // Chilean Flow.cl sales: $600 CLP commission per paying user
   // International PayPal sales: $2.60 USD commission per paying user
@@ -516,22 +530,54 @@ export default function AdminPage() {
   const creatorsSummary = useMemo(() => {
     const map = {}
 
-    // Initialize registered official creator(s)
+    // 0. Initialize creators from registered profiles in database
+    profileList.forEach((p) => {
+      const code = String(
+        p.creatorCode || 
+        p.personalInfo?.creator_code || 
+        p.personalInfo?.creatorCode || 
+        (p.username === 'santiagoq7' ? 'SANTIAGOQ7' : '')
+      ).trim().toUpperCase()
+
+      if (code) {
+        map[code] = {
+          code,
+          creatorUsername: p.username,
+          creatorName: p.personalInfo?.name || p.username,
+          creatorTitle: p.personalInfo?.title || 'Creador Afiliado',
+          creatorAvatar: p.personalInfo?.avatar || '',
+          isOfficial: true,
+          isLifetime: Boolean(p.isLifetime || p.plan === 'lifetime' || (p.planExpiresAt && new Date(p.planExpiresAt).getFullYear() >= 2090)),
+          salesClp: 0,
+          salesUsd: 0,
+          totalRevenueClp: 0,
+          totalRevenueUsd: 0,
+          commissionClp: 0,
+          commissionUsd: 0,
+          transactions: []
+        }
+      }
+    })
+
+    // Fallback seed for official affiliates if not yet in profileList
     REGISTERED_AFFILIATES.forEach((aff) => {
-      map[aff.code] = {
-        code: aff.code,
-        creatorUsername: aff.creatorUsername,
-        creatorName: aff.creatorName,
-        creatorTitle: aff.creatorTitle,
-        isOfficial: true,
-        isLifetime: true,
-        salesClp: 0,
-        salesUsd: 0,
-        totalRevenueClp: 0,
-        totalRevenueUsd: 0,
-        commissionClp: 0,
-        commissionUsd: 0,
-        transactions: []
+      if (!map[aff.code]) {
+        map[aff.code] = {
+          code: aff.code,
+          creatorUsername: aff.creatorUsername,
+          creatorName: aff.creatorName,
+          creatorTitle: aff.creatorTitle,
+          creatorAvatar: '',
+          isOfficial: true,
+          isLifetime: true,
+          salesClp: 0,
+          salesUsd: 0,
+          totalRevenueClp: 0,
+          totalRevenueUsd: 0,
+          commissionClp: 0,
+          commissionUsd: 0,
+          transactions: []
+        }
       }
     })
 
@@ -642,24 +688,24 @@ export default function AdminPage() {
   const totalCreatorCommissionClp = creatorsSummary.reduce((acc, c) => acc + c.commissionClp, 0)
   const totalCreatorCommissionUsd = creatorsSummary.reduce((acc, c) => acc + c.commissionUsd, 0)
 
-  // Copy monthly settlement summary for transferring on the 30th
+  // Copy monthly settlement summary for transferring on the 30th (clean text, zero emojis)
   const handleCopyCreatorSettlement = (creator) => {
     const totalUsers = creator.salesClp + creator.salesUsd
     const text = `
 ==================================================
-LIQUIDACIÓN CREADOR / AFILIADO (CORTE DÍA 30)
+LIQUIDACION CREADOR / AFILIADO (CORTE DIA 30)
 Mi Vitae by We Are Samod
 ==================================================
-Código de Creador:          ${creator.code}
-Fecha de Emisión:            ${new Date().toLocaleDateString('es-CL')}
+Codigo de Creador:          ${creator.code}
+Fecha de Emision:            ${new Date().toLocaleDateString('es-CL')}
 
 RESUMEN DE VENTAS Y CONVERSIONES:
-• Ventas Chile (Flow.cl):         ${creator.salesClp} usuarios ($600 CLP comisión c/u)
-• Ventas Internacional (PayPal):  ${creator.salesUsd} usuarios ($2.60 USD comisión c/u)
-• Total Usuarios Pagados:         ${totalUsers} usuarios
+- Ventas Chile (Flow.cl):         ${creator.salesClp} usuarios ($600 CLP comision c/u)
+- Ventas Internacional (PayPal):  ${creator.salesUsd} usuarios ($2.60 USD comision c/u)
+- Total Usuarios Pagados:         ${totalUsers} usuarios
 
 TOTAL A TRANSFERIR ESTE MES:
-${creator.commissionClp > 0 ? `👉 Total en Pesos:  $${creator.commissionClp.toLocaleString('es-CL')} CLP\n` : ''}${creator.commissionUsd > 0 ? `👉 Total en Dólares: $${creator.commissionUsd.toFixed(2)} USD (PayPal)\n` : ''}
+${creator.commissionClp > 0 ? `- Total en Pesos:   $${creator.commissionClp.toLocaleString('es-CL')} CLP\n` : ''}${creator.commissionUsd > 0 ? `- Total en Dolares: $${creator.commissionUsd.toFixed(2)} USD (PayPal)\n` : ''}
 Administrador autorizado: jericesb5@gmail.com
 ==================================================
 `.trim()
@@ -667,7 +713,84 @@ Administrador autorizado: jericesb5@gmail.com
     navigator.clipboard.writeText(text)
     setCopiedCreatorCode(creator.code)
     setTimeout(() => setCopiedCreatorCode(null), 3000)
-    showToast(`¡Liquidación de ${creator.code} copiada al portapapeles!`)
+    showToast(`Liquidacion de ${creator.code} copiada al portapapeles.`)
+  }
+
+  // Handle Opening Creator Code CRUD Modal
+  const handleOpenAssignCreatorModal = (creator = null) => {
+    if (creator) {
+      setEditingCreator(creator)
+      setCreatorFormUsername(creator.creatorUsername || '')
+      setCreatorFormCode(creator.code || '')
+      setCreatorFormIsLifetime(Boolean(creator.isLifetime))
+    } else {
+      setEditingCreator(null)
+      setCreatorFormUsername('')
+      setCreatorFormCode('')
+      setCreatorFormIsLifetime(true)
+    }
+    setCreatorFormError('')
+    setIsCreatorModalOpen(true)
+  }
+
+  // Handle Saving Creator Code Assignment (Create or Edit)
+  const handleSaveCreatorAssignment = async (e) => {
+    e.preventDefault()
+    if (!creatorFormUsername) {
+      setCreatorFormError('Debes seleccionar un perfil registrado.')
+      return
+    }
+    const cleanCode = creatorFormCode.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 30)
+    if (!cleanCode) {
+      setCreatorFormError('Ingresa un código de creador válido (letras, números, guiones).')
+      return
+    }
+
+    setIsSavingCreator(true)
+    setCreatorFormError('')
+
+    const adminToken = typeof window !== 'undefined' ? sessionStorage.getItem('mi_vitae_admin_token') : null
+
+    try {
+      const ok = await assignCreatorCodeInSupabase(creatorFormUsername, cleanCode, creatorFormIsLifetime, adminToken)
+      if (ok) {
+        showToast(`Código ${cleanCode} asignado exitosamente a @${creatorFormUsername}.`)
+        setIsCreatorModalOpen(false)
+        const refreshed = await fetchAllProfilesFromSupabase()
+        if (refreshed && refreshed.length > 0) {
+          setRemoteProfilesState(refreshed)
+        }
+      } else {
+        setCreatorFormError('No se pudo guardar en Supabase. Verifica la conexión.')
+      }
+    } catch (err) {
+      setCreatorFormError(err.message || 'Error al asignar código de creador.')
+    } finally {
+      setIsSavingCreator(false)
+    }
+  }
+
+  // Handle Removing Creator Code Assignment
+  const handleConfirmRemoveCreator = async () => {
+    if (!confirmRemoveCreator) return
+    const username = confirmRemoveCreator.creatorUsername
+    const adminToken = typeof window !== 'undefined' ? sessionStorage.getItem('mi_vitae_admin_token') : null
+
+    try {
+      const ok = await removeCreatorCodeInSupabase(username, adminToken)
+      if (ok) {
+        showToast(`Código desvinculado de @${username}.`)
+        setConfirmRemoveCreator(null)
+        const refreshed = await fetchAllProfilesFromSupabase()
+        if (refreshed && refreshed.length > 0) {
+          setRemoteProfilesState(refreshed)
+        }
+      } else {
+        showToast('No se pudo desvincular el código en Supabase.')
+      }
+    } catch (err) {
+      showToast('Error al desvincular código de creador.')
+    }
   }
 
   // Export creators report to CSV
@@ -846,13 +969,7 @@ Administrador autorizado: jericesb5@gmail.com
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Super Admin Dashboard</h1>
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                    Live Control
-                  </span>
                 </div>
-                <p className="text-xs sm:text-sm text-slate-400 mt-1">
-                  Métricas globales, monitoreo de portafolios, tráfico orgánico y control de suscripciones en tiempo real.
-                </p>
               </div>
             </div>
           </div>
@@ -1089,7 +1206,7 @@ Administrador autorizado: jericesb5@gmail.com
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
-                    ✨ De por vida ({lifetimeProfiles})
+                    De por vida ({lifetimeProfiles})
                   </button>
                 )}
                 <button
@@ -1290,7 +1407,7 @@ Administrador autorizado: jericesb5@gmail.com
                                   : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800 hover:bg-rose-100'
                               }`}
                             >
-                              <option value="lifetime">✨ De por vida</option>
+                              <option value="lifetime">De por vida</option>
                               <option value="premium">Suscripción ($3.490)</option>
                               <option value="trial">1er Mes Gratis</option>
                               <option value="inactive">Inactivo</option>
@@ -1409,20 +1526,30 @@ Administrador autorizado: jericesb5@gmail.com
                   </p>
                   <div className="flex flex-wrap items-center gap-2.5 mt-2.5 text-xs">
                     <span className="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 flex items-center gap-1.5 font-bold text-slate-200">
-                      🇨🇱 Chile (Flow.cl): <strong className="text-emerald-400 font-mono">$600 CLP</strong> por usuario
+                      <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                      <span>Chile (Flow.cl):</span> <strong className="text-emerald-400 font-mono">$600 CLP</strong> por usuario
                     </span>
                     <span className="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 flex items-center gap-1.5 font-bold text-slate-200">
-                      🌐 Internacional (PayPal): <strong className="text-cyan-400 font-mono">$2.60 USD</strong> por usuario
+                      <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>Internacional (PayPal):</span> <strong className="text-cyan-400 font-mono">$2.60 USD</strong> por usuario
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="shrink-0 flex items-center gap-2 w-full md:w-auto">
+              <div className="shrink-0 flex flex-wrap items-center gap-2 w-full md:w-auto">
+                <button
+                  type="button"
+                  onClick={() => handleOpenAssignCreatorModal()}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Asignar Creador</span>
+                </button>
                 <button
                   type="button"
                   onClick={handleExportCreatorsCSV}
-                  className="w-full md:w-auto px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
                 >
                   <FileDown className="w-4 h-4 text-emerald-300" />
                   <span>Exportar Liquidación CSV</span>
@@ -1617,7 +1744,7 @@ Administrador autorizado: jericesb5@gmail.com
                             </td>
 
                             <td className="py-4 px-5 text-center">
-                              <div className="flex items-center justify-center gap-2">
+                              <div className="flex items-center justify-center gap-1.5 flex-wrap">
                                 <button
                                   type="button"
                                   onClick={() => handleCopyCreatorSettlement(creator)}
@@ -1645,6 +1772,28 @@ Administrador autorizado: jericesb5@gmail.com
                                 >
                                   Detalle ({creator.transactions.length})
                                 </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenAssignCreatorModal(creator)}
+                                  className="px-2.5 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 font-bold text-[11px] border border-indigo-200 dark:border-indigo-800 flex items-center gap-1 transition-colors cursor-pointer"
+                                  title={creator.creatorUsername ? "Editar código" : "Vincular a perfil registrado"}
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                  <span>{creator.creatorUsername ? 'Editar' : 'Vincular'}</span>
+                                </button>
+
+                                {creator.creatorUsername && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmRemoveCreator(creator)}
+                                    className="px-2 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 text-rose-700 dark:text-rose-300 font-bold text-[11px] border border-rose-200 dark:border-rose-800 flex items-center gap-1 transition-colors cursor-pointer"
+                                    title="Desvincular código de este usuario"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    <span>Desvincular</span>
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -1842,6 +1991,179 @@ Administrador autorizado: jericesb5@gmail.com
                 className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-colors shadow-sm shadow-rose-600/20"
               >
                 Sí, Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Assign or Edit Creator Code CRUD */}
+      {isCreatorModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 relative">
+            
+            <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-400">
+                  <Tag className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                    {editingCreator ? 'Editar Código de Creador' : 'Asignar Código de Creador'}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Vincula un código de afiliado a un perfil registrado en la base de datos
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCreatorModalOpen(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCreatorAssignment} className="space-y-4">
+              {/* Profile Selector */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                  Seleccionar Perfil Registrado *
+                </label>
+                <div className="relative">
+                  <select
+                    value={creatorFormUsername}
+                    onChange={(e) => setCreatorFormUsername(e.target.value)}
+                    disabled={Boolean(editingCreator && editingCreator.creatorUsername)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                    required
+                  >
+                    <option value="">-- Elige un usuario registrado ({profileList.length} disponibles) --</option>
+                    {profileList.map((p) => {
+                      const hasCode = p.creatorCode || p.personalInfo?.creator_code
+                      return (
+                        <option key={p.username} value={p.username}>
+                          @{p.username} — {p.personalInfo?.name || 'Sin nombre'} {hasCode ? `[Código actual: ${hasCode}]` : ''}
+                        </option>
+                      )
+                    })}
+                  </select>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  El código quedará guardado directamente en la cuenta del usuario en Supabase.
+                </p>
+              </div>
+
+              {/* Creator Code Input */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
+                  Código de Creador (Creado por ti) *
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={creatorFormCode}
+                    onChange={(e) => setCreatorFormCode(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 30))}
+                    placeholder="EJ: SANTIAGOQ7, DEV2025, YOUTUBE"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-mono font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 uppercase tracking-wider"
+                    required
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Se autoconvierte a mayúsculas. Por cada usuario que use este código al pagar: $600 CLP (Flow) o $2.60 USD (PayPal).
+                </p>
+              </div>
+
+              {/* Lifetime Plan Toggle */}
+              <div className="p-3.5 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="creator-lifetime-checkbox"
+                  checked={creatorFormIsLifetime}
+                  onChange={(e) => setCreatorFormIsLifetime(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 cursor-pointer"
+                />
+                <label htmlFor="creator-lifetime-checkbox" className="text-xs cursor-pointer">
+                  <span className="font-bold text-indigo-900 dark:text-indigo-200 block">
+                    Activar Plan De por vida (2099) para el creador
+                  </span>
+                  <span className="text-slate-500 dark:text-slate-400 text-[11px] block mt-0.5">
+                    Permite que el creador use Mi Vitae de forma ilimitada sin cobros ni fecha de vencimiento.
+                  </span>
+                </label>
+              </div>
+
+              {/* Error Message */}
+              {creatorFormError && (
+                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-medium">
+                  {creatorFormError}
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsCreatorModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingCreator}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-sm shadow-emerald-600/20 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  {isSavingCreator ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Guardando en Supabase...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>Guardar Asignación</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal: Remove Creator Code */}
+      {confirmRemoveCreator && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-3">
+              <Tag className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">
+              ¿Desvincular código de creador?
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+              Se desvinculará el código <strong className="font-mono text-indigo-600 dark:text-indigo-400 font-bold">{confirmRemoveCreator.code}</strong> del perfil <strong className="text-slate-700 dark:text-slate-200">@{confirmRemoveCreator.creatorUsername}</strong>.
+            </p>
+            <p className="text-[11px] text-slate-400 mb-5">
+              El historial de transacciones anteriores permanecerá intacto para liquidación.
+            </p>
+            <div className="flex items-center justify-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setConfirmRemoveCreator(null)}
+                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRemoveCreator}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-colors shadow-sm shadow-rose-600/20"
+              >
+                Sí, Desvincular
               </button>
             </div>
           </div>
