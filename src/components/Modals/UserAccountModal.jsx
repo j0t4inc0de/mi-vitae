@@ -82,6 +82,7 @@ export default function UserAccountModal({ isOpen, onClose }) {
   const now = new Date()
   const diffMs = expirationDate.getTime() - now.getTime()
   const daysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)))
+  const isPlanExpired = planStatus === 'expired' || diffMs <= 0 || daysRemaining === 0
   const formattedExpiration = expirationDate.toLocaleDateString('es-CL', {
     day: 'numeric',
     month: 'long',
@@ -273,14 +274,14 @@ export default function UserAccountModal({ isOpen, onClose }) {
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${
                     isCanceled
                       ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                      : daysRemaining > 0
+                      : !isPlanExpired && daysRemaining > 0
                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                       : 'bg-rose-100 text-rose-800 border border-rose-300'
                   }`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${
-                      isCanceled ? 'bg-amber-500' : daysRemaining > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
+                      isCanceled ? 'bg-amber-500' : !isPlanExpired && daysRemaining > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
                     }`} />
-                    <span>{isCanceled ? 'Cancelado' : isPremium ? 'Plan Pro' : '1er Mes Gratis'}</span>
+                    <span>{isCanceled ? 'Cancelado' : isPlanExpired ? 'Vencido' : isPremium ? 'Plan Pro' : '1er Mes Gratis'}</span>
                     <span className="font-mono font-normal">({daysRemaining}d)</span>
                   </span>
                 </div>
@@ -374,11 +375,11 @@ export default function UserAccountModal({ isOpen, onClose }) {
                     <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full ${
                       isCanceled
                         ? 'bg-amber-100 text-amber-800'
-                        : daysRemaining > 0
+                        : !isPlanExpired && daysRemaining > 0
                         ? 'bg-emerald-100 text-emerald-800'
                         : 'bg-rose-100 text-rose-800'
                     }`}>
-                      {isCanceled ? 'Cancelada' : daysRemaining > 0 ? 'Activo' : 'Vencido'}
+                      {isCanceled ? 'Cancelada' : !isPlanExpired && daysRemaining > 0 ? 'Activo' : 'Vencido'}
                     </span>
                   </div>
 
@@ -402,15 +403,34 @@ export default function UserAccountModal({ isOpen, onClose }) {
                   </div>
                 </div>
 
-                {/* Pay / Renew Action */}
-                <button
-                  type="button"
-                  onClick={() => openFlowModal(currentProfile.username)}
-                  className="w-full py-3 px-4 rounded-xl bg-palette-primary hover:bg-palette-accent text-white text-xs font-extrabold shadow-md shadow-palette-primary/20 transition-all flex items-center justify-center gap-2"
-                >
-                  <CreditCard className="w-4 h-4" />
-                  <span>Renovar ($3.490 CLP)</span>
-                </button>
+                {/* Pay / Renew Action: Only rendered when expired or <= 5 days remaining */}
+                {isPlanExpired || daysRemaining <= 5 ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose()
+                      openFlowModal({
+                        username: currentProfile.username,
+                        planName: 'Suscripción Mi Vitae ($3.490 CLP/mes)',
+                        amount: 3490
+                      })
+                    }}
+                    className="w-full py-3 px-4 rounded-xl bg-palette-primary hover:bg-palette-accent text-white text-xs font-extrabold shadow-md shadow-palette-primary/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    <span>{isPlanExpired ? 'Renovar Plan Vencido ($3.490 CLP)' : 'Renovar Membresía ($3.490 CLP)'}</span>
+                  </button>
+                ) : (
+                  <div className="p-3.5 rounded-xl bg-slate-100/90 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 text-center space-y-1">
+                    <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                      <Check className="w-4 h-4" />
+                      <span>Membresía al día</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                      Tu plan está completamente activo. Podrás renovar cuando falten 5 días o menos para el vencimiento.
+                    </p>
+                  </div>
+                )}
 
                 {/* Cancel / Reactivate Subscription */}
                 <div className="pt-2 border-t border-slate-200 dark:border-slate-800 text-center">

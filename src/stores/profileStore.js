@@ -594,7 +594,12 @@ export const useProfileStore = create(
       name: 'mi-vitae-profiles-storage',
       storage: createJSONStorage(() => localStorage),
       version: 1,
-      // Merge with INITIAL_MOCK_PROFILES if missing
+      // Only persist profiles and active user session - never ephemeral modal UI state
+      partialize: (state) => ({
+        profiles: state.profiles,
+        activeUsername: state.activeUsername
+      }),
+      // Merge with INITIAL_MOCK_PROFILES if missing and guarantee all modal flags start closed
       merge: (persistedState, currentState) => {
         return {
           ...currentState,
@@ -604,6 +609,12 @@ export const useProfileStore = create(
           isDashboardSaving: false,
           dashboardSaveTrigger: 0,
           dashboardResetTrigger: 0,
+          isFlowModalOpen: false,
+          flowModalData: {},
+          isAccountModalOpen: false,
+          isRegisterModalOpen: false,
+          registerModalPrefill: {},
+          isLegalModalOpen: false,
           profiles: {
             ...INITIAL_MOCK_PROFILES,
             ...(persistedState?.profiles || {})

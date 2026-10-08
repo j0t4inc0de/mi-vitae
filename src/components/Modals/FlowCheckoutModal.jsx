@@ -620,7 +620,7 @@ Soporte técnico: contacto@wearesamod.com
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md transition-all animate-fadeIn"
+      className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md transition-all animate-fadeIn"
       onClick={(e) => {
         if (e.target === e.currentTarget && paymentState !== 'processing') {
           handleModalClose()

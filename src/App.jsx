@@ -156,17 +156,17 @@ function AppContent() {
         initialUsername={registerModalPrefill?.username || ''}
       />
 
+      <UserAccountModal
+        isOpen={isAccountModalOpen}
+        onClose={closeAccountModal}
+      />
+
       <FlowCheckoutModal
         isOpen={isFlowModalOpen}
         onClose={closeFlowModal}
         username={flowModalData?.username}
         planName={flowModalData?.planName}
         amount={flowModalData?.amount || 3490}
-      />
-
-      <UserAccountModal
-        isOpen={isAccountModalOpen}
-        onClose={closeAccountModal}
       />
 
       <LegalModal

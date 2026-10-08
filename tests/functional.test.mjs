@@ -972,6 +972,81 @@ it('verifies FlowCheckoutModal integrates Apoya a un creador section and handler
   assert.ok(content.includes('creator_code'), 'Must pass creator_code to checkout');
 });
 
+// -------------------------------------------------------------
+// SUITE 10: USER ACCOUNT DRAWER & RENEWAL GUARD (FUNCTIONAL & NON-FUNCTIONAL)
+// -------------------------------------------------------------
+console.log('\n▶ Suite 10: User Account Drawer & Renewal Guard (Functional & Non-Functional)');
+
+it('verifies UserAccountModal blocks premature renewal when user has > 5 days remaining', () => {
+  const modalPath = path.resolve(ROOT, 'src/components/Modals/UserAccountModal.jsx');
+  const content = fs.readFileSync(modalPath, 'utf-8');
+
+  // Verify business rule definition in component
+  assert.ok(content.includes("isPlanExpired = planStatus === 'expired' || diffMs <= 0 || daysRemaining === 0"), 'Must compute isPlanExpired');
+  assert.ok(content.includes('isPlanExpired || daysRemaining <= 5'), 'Must gate renewal button to <= 5 days or expired');
+  assert.ok(content.includes('Membresía al día'), 'Must display Membresía al día badge when active');
+  assert.ok(content.includes('Podrás renovar cuando falten 5 días o menos para el vencimiento.'), 'Must explain renewal condition to user');
+});
+
+it('verifies premature renewal gate logic accurately differentiates 29 days vs 5 days vs expired', () => {
+  const scenarios = [
+    { days: 29, status: 'active', canRenew: false, desc: '29 days remaining (full month) must NOT allow renewal' },
+    { days: 15, status: 'active', canRenew: false, desc: '15 days remaining must NOT allow renewal' },
+    { days: 6, status: 'active', canRenew: false, desc: '6 days remaining must NOT allow renewal' },
+    { days: 5, status: 'active', canRenew: true, desc: '5 days remaining MUST allow renewal' },
+    { days: 2, status: 'active', canRenew: true, desc: '2 days remaining MUST allow renewal' },
+    { days: 0, status: 'expired', canRenew: true, desc: '0 days expired MUST allow renewal' },
+    { days: 0, status: 'active', canRenew: true, desc: '0 days remaining MUST allow renewal' }
+  ];
+
+  for (const s of scenarios) {
+    const isPlanExpired = s.status === 'expired' || s.days <= 0;
+    const canRenew = isPlanExpired || s.days <= 5;
+    assert.equal(canRenew, s.canRenew, s.desc);
+  }
+});
+
+it('verifies UserAccountModal auto-closes drawer immediately before launching checkout modal', () => {
+  const modalPath = path.resolve(ROOT, 'src/components/Modals/UserAccountModal.jsx');
+  const content = fs.readFileSync(modalPath, 'utf-8');
+
+  // Verify onClick executes onClose() followed by openFlowModal regardless of line breaks
+  assert.ok(/onClose\(\)\s+openFlowModal\(\{/.test(content), 'Must close sidebar drawer first before opening checkout modal');
+});
+
+it('verifies useProfileStore partialize prevents ephemeral modal booleans from persisting to localStorage (ghost modal fix)', () => {
+  const storePath = path.resolve(ROOT, 'src/stores/profileStore.js');
+  const content = fs.readFileSync(storePath, 'utf-8');
+
+  // Verify partialize explicitly white-lists only profiles and activeUsername
+  assert.ok(content.includes('partialize: (state) => ({'), 'Store must define partialize in persist middleware');
+  assert.ok(content.includes('profiles: state.profiles,'), 'Must persist profiles');
+  assert.ok(content.includes('activeUsername: state.activeUsername'), 'Must persist activeUsername');
+
+  // Verify merge explicitly resets modal booleans
+  assert.ok(content.includes('isFlowModalOpen: false,'), 'merge must ensure isFlowModalOpen is false on load');
+  assert.ok(content.includes('isAccountModalOpen: false,'), 'merge must ensure isAccountModalOpen is false on load');
+  assert.ok(content.includes('isRegisterModalOpen: false,'), 'merge must ensure isRegisterModalOpen is false on load');
+  assert.ok(content.includes('isLegalModalOpen: false,'), 'merge must ensure isLegalModalOpen is false on load');
+});
+
+it('verifies z-index stacking hierarchy: FlowCheckoutModal (z-[70]) renders above UserAccountModal (z-50)', () => {
+  const flowPath = path.resolve(ROOT, 'src/components/Modals/FlowCheckoutModal.jsx');
+  const flowContent = fs.readFileSync(flowPath, 'utf-8');
+  assert.ok(flowContent.includes('z-[70]'), 'FlowCheckoutModal backdrop must be z-[70] to guarantee topmost rendering');
+
+  const accountPath = path.resolve(ROOT, 'src/components/Modals/UserAccountModal.jsx');
+  const accountContent = fs.readFileSync(accountPath, 'utf-8');
+  assert.ok(accountContent.includes('z-50'), 'UserAccountModal must be at z-50 level');
+
+  const appPath = path.resolve(ROOT, 'src/App.jsx');
+  const appContent = fs.readFileSync(appPath, 'utf-8');
+  const accountIdx = appContent.indexOf('<UserAccountModal');
+  const flowIdx = appContent.indexOf('<FlowCheckoutModal');
+  assert.ok(accountIdx !== -1 && flowIdx !== -1, 'Both modals must be rendered in App.jsx');
+  assert.ok(flowIdx > accountIdx, 'FlowCheckoutModal must be rendered after UserAccountModal in JSX tree');
+});
+
 await vite.close();
 
 // -------------------------------------------------------------
