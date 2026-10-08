@@ -928,7 +928,6 @@ export default function DashboardPage() {
           {!planInfo.isExpired && !planInfo.isPremium && planInfo.daysRemaining <= 7 && (
             <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
               <div className="flex items-center gap-2.5">
-                <span className="text-xl shrink-0">⏳</span>
                 <div className="text-xs">
                   <span className="font-extrabold text-amber-900">Últimos {planInfo.daysRemaining} {planInfo.daysRemaining === 1 ? 'día' : 'días'} de prueba:</span> Asegura tu enlace antes de que se pause.
                 </div>
@@ -939,7 +938,7 @@ export default function DashboardPage() {
                 className="shrink-0 w-full sm:w-auto px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-sm shadow-amber-600/20 transition-transform active:scale-95 cursor-pointer flex items-center justify-center gap-1.5"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Activar Pro ($3.490 CLP)</span>
+                <span>Activar Premium ($3.490 CLP)</span>
               </button>
             </div>
           )}

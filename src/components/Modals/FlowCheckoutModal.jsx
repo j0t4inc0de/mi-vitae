@@ -857,7 +857,7 @@ Soporte técnico: contacto@wearesamod.com
                 </button>
 
                 <p className="text-[11px] text-center text-slate-400 dark:text-slate-500">
-                  🔒 Conexión segura oficial con Flow.cl. Acreditación automática.
+                  Conexión segura oficial con Flow.cl. Acreditación automática.
                 </p>
 
                 <div className="flex items-center justify-center pt-0.5 text-xs">
@@ -964,7 +964,7 @@ Soporte técnico: contacto@wearesamod.com
                 )}
 
                 <p className="text-[11px] text-center text-slate-400 dark:text-slate-500">
-                  🔒 Conexión segura oficial con PayPal Checkout v2. Acreditación automática.
+                  Conexión segura oficial con PayPal Checkout v2. Acreditación automática.
                 </p>
 
                 <div className="flex items-center justify-center pt-0.5 text-xs">
