@@ -12,7 +12,7 @@ export async function onRequestGet(context) {
   const supabaseUrl = env.VITE_SUPABASE_URL || env.SUPABASE_URL || 'https://ewptcglzykqvnvxxwwhm.supabase.co'
   const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_umvJDktvEJKBaLpUlSJ7gA_Dr0Zcz54'
   const appUrl = env.APP_URL || 'https://mivitae.wearesamod.com'
-  const paypalClientId = env.VITE_PAYPAL_CLIENT_ID || env.PAYPAL_CLIENT_ID || ''
+  const paypalClientId = env.VITE_PAYPAL_CLIENT_ID || env.PAYPAL_CLIENT_ID || 'BAA8nZL3M_Z7gn4WjL8BkiMslKIDYrevDfGRKz7TduJ8Aysm_tMTMaaxeN79NE3_4Xb_1AL_tNRPQmJy78'
   const paypalEnv = env.VITE_PAYPAL_ENV || env.PAYPAL_ENVIRONMENT || 'production'
 
   return new Response(JSON.stringify({

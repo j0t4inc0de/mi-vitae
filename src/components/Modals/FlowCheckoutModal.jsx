@@ -174,11 +174,13 @@ export default function FlowCheckoutModal({
   const [isPayPalSdkReady, setIsPayPalSdkReady] = useState(false)
   const paypalContainerRef = useRef(null)
 
-  // Client ID detection
+  // Client ID detection (with production live fallback)
+  const FALLBACK_PAYPAL_CLIENT_ID = 'BAA8nZL3M_Z7gn4WjL8BkiMslKIDYrevDfGRKz7TduJ8Aysm_tMTMaaxeN79NE3_4Xb_1AL_tNRPQmJy78'
+
   const paypalClientId = 
     (typeof window !== 'undefined' && window.__ENV__?.VITE_PAYPAL_CLIENT_ID) ||
     import.meta.env.VITE_PAYPAL_CLIENT_ID ||
-    ''
+    FALLBACK_PAYPAL_CLIENT_ID
 
   const hasValidPayPalClientId = Boolean(
     paypalClientId && 
