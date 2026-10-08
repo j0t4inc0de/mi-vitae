@@ -764,7 +764,7 @@ Administrador autorizado: jericesb5@gmail.com
               </label>
               <input
                 type="email"
-                placeholder="jericesb5@gmail.com"
+                placeholder="username"
                 value={adminEmailInput}
                 onChange={(e) => { setAdminEmailInput(e.target.value); setAuthError('') }}
                 className="w-full px-4 py-3 rounded-xl bg-slate-800/90 border border-slate-700 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
