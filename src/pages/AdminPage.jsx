@@ -494,7 +494,7 @@ export default function AdminPage() {
       const qrScans = (p.analytics?.qrScans ?? p.analytics?.cvDownloads ?? 0)
       const totalInteractions = clicks + qrScans
       const cr = views > 0 ? ((totalInteractions / views) * 100).toFixed(1) : '0.0'
-      const portUrl = `https://mi-vitae.wearesamod.com/${p.username}`
+      const portUrl = `https://mivitae.wearesamod.com/${p.username}`
 
       return [
         `"${p.username}"`,

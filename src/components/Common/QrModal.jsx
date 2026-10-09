@@ -16,9 +16,9 @@ export default function QrModal({ isOpen, onClose, profile, username: propUserna
 
   const username = propUsername || profile?.username || ''
 
-  // Build target URL pointing to production domain (mi-vitae.wearesamod.com)
+  // Build target URL pointing to official production domain (mivitae.wearesamod.com)
   const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-  const productionBase = 'https://mi-vitae.wearesamod.com'
+  const productionBase = 'https://mivitae.wearesamod.com'
   const targetUrl = customUrl || (isLocal || typeof window === 'undefined'
     ? `${productionBase}/${username}` 
     : `${window.location.origin}/${username}`)

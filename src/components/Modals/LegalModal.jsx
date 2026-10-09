@@ -120,7 +120,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'terms' }) {
                   2. Uso de la Plataforma y Portafolios Web
                 </h4>
                 <p>
-                  Mi Vitae otorga a los usuarios una licencia personal, no exclusiva e intransferible para crear, diseñar, editar y publicar su portafolio web profesional e interactivo bajo su subdominio asignado (<code>mi-vitae.wearesamod.com/[usuario]</code>). Queda estrictamente prohibido utilizar el servicio para alojar contenido ilegal, difamatorio, fraudulento, engañoso o que vulnere derechos de propiedad intelectual de terceros.
+                  Mi Vitae otorga a los usuarios una licencia personal, no exclusiva e intransferible para crear, diseñar, editar y publicar su portafolio web profesional e interactivo bajo su subdominio asignado (<code>mivitae.wearesamod.com/[usuario]</code>). Queda estrictamente prohibido utilizar el servicio para alojar contenido ilegal, difamatorio, fraudulento, engañoso o que vulnere derechos de propiedad intelectual de terceros.
                 </p>
               </div>
 

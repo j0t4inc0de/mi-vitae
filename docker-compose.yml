@@ -1,4 +1,4 @@
-﻿version: '3.8'
+version: '3.8'
 
 services:
   mi-vitae:
@@ -12,7 +12,7 @@ services:
       - "3000:80"
     environment:
       - NODE_ENV=production
-      - VIRTUAL_HOST=mi-vitae.wearesamod.com
+      - VIRTUAL_HOST=mivitae.wearesamod.com,mi-vitae.wearesamod.com
       - VIRTUAL_PORT=80
     networks:
       - samod-network

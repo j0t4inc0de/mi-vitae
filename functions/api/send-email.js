@@ -10,7 +10,7 @@
 
 function generateEmailHtml({ type, data }) {
   const brandGradient = 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #06B6D4 100%)'
-  const appUrl = 'https://mi-vitae.wearesamod.com'
+  const appUrl = 'https://mivitae.wearesamod.com'
 
   // TEMPLATE 1: WELCOME & 1ST MONTH FREE VOUCHER
   if (type === 'welcome_voucher') {

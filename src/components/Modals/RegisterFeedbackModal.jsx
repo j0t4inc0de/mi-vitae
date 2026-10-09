@@ -219,14 +219,14 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
           checked: true,
           available: remoteAvailable,
           message: remoteAvailable
-            ? `¡Disponible! Tu link será mi-vitae.wearesamod.com/${clean}`
+            ? `¡Disponible! Tu link será mivitae.wearesamod.com/${clean}`
             : `El usuario @${clean} ya está registrado en la nube. Prueba con otro nombre.`
         })
       } catch {
         setUsernameStatus({
           checked: true,
           available: true,
-          message: `¡Disponible! Tu link será mi-vitae.wearesamod.com/${clean}`
+          message: `¡Disponible! Tu link será mivitae.wearesamod.com/${clean}`
         })
       }
     }, 180)
@@ -640,7 +640,7 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                     : 'border-slate-300 dark:border-slate-700 focus-within:border-palette-primary focus-within:ring-2 focus-within:ring-palette-primary/20'
                 }`}>
                   <span className="text-slate-400 dark:text-slate-500 text-xs sm:text-sm font-semibold select-none shrink-0">
-                    mi-vitae.wearesamod.com/
+                    mivitae.wearesamod.com/
                   </span>
                   <input
                     type="text"
@@ -1043,7 +1043,7 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                 <div>
                   <span className="text-[10px] uppercase font-bold text-slate-400">Tu Enlace Público Oficial</span>
                   <div className="font-mono text-xs sm:text-sm font-bold text-palette-primary bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 mt-1 break-all">
-                    mi-vitae.wearesamod.com/{username}
+                    mivitae.wearesamod.com/{username}
                   </div>
                 </div>
 

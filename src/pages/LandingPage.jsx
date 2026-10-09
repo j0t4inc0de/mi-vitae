@@ -121,7 +121,7 @@ export default function LandingPage() {
     },
     {
       q: '¿Puedo usar mi propio enlace personalizado o conectar un dominio corporativo?',
-      a: '¡Totalmente! Al registrarte obtienes tu enlace único e intransferible mi-vitae.wearesamod.com/[tu-usuario]. Además, puedes conectar un dominio propio (.cl o .com) con certificado SSL gratuito.'
+      a: '¡Totalmente! Al registrarte obtienes tu enlace único e intransferible mivitae.wearesamod.com/[tu-usuario]. Además, puedes conectar un dominio propio (.cl o .com) con certificado SSL gratuito.'
     },
     {
       q: '¿Qué garantía tengo y cómo puedo cancelar si no deseo continuar?',
@@ -472,7 +472,7 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-white">Link Permanente Propio</p>
-                      <p className="text-xs text-slate-400">mi-vitae.wearesamod.com/[tu_usuario]</p>
+                      <p className="text-xs text-slate-400">mivitae.wearesamod.com/[tu_usuario]</p>
                     </div>
                   </div>
 
@@ -700,7 +700,7 @@ export default function LandingPage() {
                   }
                 >
                   <span className="text-slate-500 text-xs sm:text-sm font-semibold select-none shrink-0">
-                    mi-vitae.wearesamod.com/
+                    mivitae.wearesamod.com/
                   </span>
                   <input
                     type="text"
@@ -779,7 +779,7 @@ export default function LandingPage() {
                     <div className="flex items-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                       <span>
-                        ¡Enlace disponible! Tu URL será <code className="font-bold underline text-emerald-300">mi-vitae.wearesamod.com/{cleanInput}</code>
+                        ¡Enlace disponible! Tu URL será <code className="font-bold underline text-emerald-300">mivitae.wearesamod.com/{cleanInput}</code>
                       </span>
                     </div>
                     <button

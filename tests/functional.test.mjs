@@ -1070,7 +1070,7 @@ it('verifies /api/admin-manage-user rejects unauthorized requests without valid 
   const { onRequestPost } = await import(`file://${adminFnPath}`);
   
   // Test request with invalid secret
-  const fakeReq = new Request('https://mi-vitae.wearesamod.com/api/admin-manage-user', {
+  const fakeReq = new Request('https://mivitae.wearesamod.com/api/admin-manage-user', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'update_plan', username: 'testuser', plan: 'lifetime', adminSecret: 'wrongpass' })

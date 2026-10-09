@@ -364,7 +364,7 @@ export default function AuthPage() {
                       {usernameStatus.checking
                         ? 'Verificando disponibilidad...'
                         : usernameStatus.available
-                        ? `✓ mi-vitae.wearesamod.com/${cleanUsername} disponible`
+                        ? `✓ mivitae.wearesamod.com/${cleanUsername} disponible`
                         : `✕ Este nombre de usuario ya está ocupado.`}
                     </p>
                   )}
