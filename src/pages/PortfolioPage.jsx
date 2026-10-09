@@ -62,9 +62,16 @@ export default function PortfolioPage() {
     if (profile?.username) {
       recordView(profile.username)
 
-      // Registrar escaneo QR físico si el visitante proviene de ?ref=qr
-      if (typeof window !== 'undefined' && window.location?.search?.includes('ref=qr')) {
-        recordClick(profile.username, 'qr')
+      // Registrar escaneo QR físico si el visitante proviene de ?ref=qr o ?src=qr
+      if (typeof window !== 'undefined') {
+        const search = window.location.search || ''
+        if (search.includes('ref=qr') || search.includes('src=qr')) {
+          const scanKey = `mi_vitae_qr_recorded_${profile.username.toLowerCase()}`
+          if (!sessionStorage.getItem(scanKey)) {
+            sessionStorage.setItem(scanKey, '1')
+            recordClick(profile.username, 'qr')
+          }
+        }
       }
     }
   }, [profile?.username, recordView, recordClick])

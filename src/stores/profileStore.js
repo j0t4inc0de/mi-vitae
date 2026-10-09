@@ -281,22 +281,25 @@ export const useProfileStore = create(
         if (!username) return
         const normalized = username.toLowerCase().trim()
         const profile = get().profiles[normalized]
-        if (!profile) return
 
-        const currentViews = profile.analytics?.views || 0
-        set((state) => ({
-          profiles: {
-            ...state.profiles,
-            [normalized]: {
-              ...profile,
-              analytics: {
-                ...profile.analytics,
-                views: currentViews + 1
+        // Update local store if profile exists in client memory
+        if (profile) {
+          const currentViews = profile.analytics?.views || 0
+          set((state) => ({
+            profiles: {
+              ...state.profiles,
+              [normalized]: {
+                ...profile,
+                analytics: {
+                  ...profile.analytics,
+                  views: currentViews + 1
+                }
               }
             }
-          }
-        }))
+          }))
+        }
 
+        // Always sync with Supabase Cloud regardless of local client state
         if (isSupabaseConfigured) {
           incrementAnalyticsInSupabase(normalized, 'views')
         }
@@ -306,28 +309,33 @@ export const useProfileStore = create(
         if (!username) return
         const normalized = username.toLowerCase().trim()
         const profile = get().profiles[normalized]
-        if (!profile) return
 
-        const analytics = profile.analytics || { views: 0, contactClicks: 0, cvDownloads: 0 }
-        
-        let newAnalytics = { ...analytics }
-        const metricName = (type === 'cv' || type === 'download') ? 'cvDownloads' : 'contactClicks'
-        if (type === 'cv' || type === 'download') {
-          newAnalytics.cvDownloads = (analytics.cvDownloads || 0) + 1
-        } else {
-          newAnalytics.contactClicks = (analytics.contactClicks || 0) + 1
+        // Map 'cv', 'download', 'qr' to cvDownloads counter in database
+        const isDownloadOrQr = type === 'cv' || type === 'download' || type === 'qr'
+        const metricName = isDownloadOrQr ? 'cvDownloads' : 'contactClicks'
+
+        // Update local store if profile exists in client memory
+        if (profile) {
+          const analytics = profile.analytics || { views: 0, contactClicks: 0, cvDownloads: 0 }
+          const newAnalytics = {
+            ...analytics,
+            ...(isDownloadOrQr
+              ? { cvDownloads: (analytics.cvDownloads || 0) + 1 }
+              : { contactClicks: (analytics.contactClicks || 0) + 1 })
+          }
+
+          set((state) => ({
+            profiles: {
+              ...state.profiles,
+              [normalized]: {
+                ...profile,
+                analytics: newAnalytics
+              }
+            }
+          }))
         }
 
-        set((state) => ({
-          profiles: {
-            ...state.profiles,
-            [normalized]: {
-              ...profile,
-              analytics: newAnalytics
-            }
-          }
-        }))
-
+        // Always sync with Supabase Cloud regardless of local client state
         if (isSupabaseConfigured) {
           incrementAnalyticsInSupabase(normalized, metricName)
         }
@@ -335,6 +343,10 @@ export const useProfileStore = create(
 
       recordDownload: (username) => {
         get().recordClick(username, 'download')
+      },
+
+      recordQrScan: (username) => {
+        get().recordClick(username, 'qr')
       },
 
       // Create or import new profile with free trial & feedback

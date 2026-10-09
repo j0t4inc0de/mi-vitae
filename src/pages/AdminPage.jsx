@@ -16,7 +16,7 @@ import {
   Search, UserCheck, Trash2, Edit3, X,
   Sparkles, FileDown, ChevronDown, UserPlus, Lock,
   Award, Copy, Check, Calendar, ArrowRight, LogOut, Receipt,
-  Plus, Tag, Globe
+  Plus, Tag, Globe, QrCode
 } from 'lucide-react'
 
 // Map theme IDs to user-friendly names and badge styling
@@ -482,6 +482,7 @@ export default function AdminPage() {
       'Tema',
       'Vistas Totales',
       'Clics Contacto WhatsApp',
+      'Escaneos QR',
       'Tasa de Conversión (%)',
       'Fecha Creación',
       'URL Portafolio'
@@ -490,7 +491,9 @@ export default function AdminPage() {
     const rows = profileList.map((p) => {
       const views = p.analytics?.views || 0
       const clicks = p.analytics?.contactClicks || 0
-      const cr = views > 0 ? ((clicks / views) * 100).toFixed(1) : '0.0'
+      const qrScans = (p.analytics?.qrScans ?? p.analytics?.cvDownloads ?? 0)
+      const totalInteractions = clicks + qrScans
+      const cr = views > 0 ? ((totalInteractions / views) * 100).toFixed(1) : '0.0'
       const portUrl = `https://mi-vitae.wearesamod.com/${p.username}`
 
       return [
@@ -505,6 +508,7 @@ export default function AdminPage() {
         `"${THEME_INFO[p.theme]?.name || p.theme}"`,
         views,
         clicks,
+        qrScans,
         `"${cr}%"`,
         `"${p.createdAt || '2025-02-01'}"`,
         `"${portUrl}"`
@@ -1151,8 +1155,8 @@ Administrador autorizado: jericesb5@gmail.com
                 {totalClicks} clics
               </span>
               <span className="text-purple-600 dark:text-purple-400 flex items-center gap-1">
-                <FileDown className="w-3.5 h-3.5" />
-                {totalDownloads} CVs
+                <QrCode className="w-3.5 h-3.5" />
+                {totalDownloads} QR
               </span>
               <span className="text-emerald-600 dark:text-emerald-400 font-bold">
                 {globalConversionRate}% CR

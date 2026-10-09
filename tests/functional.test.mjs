@@ -241,6 +241,13 @@ it('tests analytics metrics recording (views, contactClicks, cvDownloads)', () =
   const initialDownloads = store.getProfileByUsername(testUser).analytics.cvDownloads || 0;
   store.recordDownload(testUser);
   assert.equal(store.getProfileByUsername(testUser).analytics.cvDownloads, initialDownloads + 1);
+
+  const initialQrScans = store.getProfileByUsername(testUser).analytics.cvDownloads || 0;
+  store.recordClick(testUser, 'qr');
+  assert.equal(store.getProfileByUsername(testUser).analytics.cvDownloads, initialQrScans + 1);
+
+  store.recordQrScan(testUser);
+  assert.equal(store.getProfileByUsername(testUser).analytics.cvDownloads, initialQrScans + 2);
 });
 
 it('tests free trial activation and feedback storage', () => {

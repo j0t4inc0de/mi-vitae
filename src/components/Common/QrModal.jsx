@@ -16,10 +16,10 @@ export default function QrModal({ isOpen, onClose, profile, username: propUserna
 
   const username = propUsername || profile?.username || ''
 
-  // Build target URL pointing to production domain (mivitae.wearesamod.com)
-  const productionBase = 'https://mivitae.wearesamod.com'
+  // Build target URL pointing to production domain (mi-vitae.wearesamod.com)
   const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-  const targetUrl = customUrl || (isLocal || typeof window === 'undefined' || window.location.origin.includes('mi-vitae')
+  const productionBase = 'https://mi-vitae.wearesamod.com'
+  const targetUrl = customUrl || (isLocal || typeof window === 'undefined'
     ? `${productionBase}/${username}` 
     : `${window.location.origin}/${username}`)
 
@@ -55,7 +55,7 @@ export default function QrModal({ isOpen, onClose, profile, username: propUserna
       clearTimeout(timer)
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [isOpen, targetUrl])
+  }, [isOpen, targetUrl, qrScanUrl])
 
   if (!isOpen) return null
 
