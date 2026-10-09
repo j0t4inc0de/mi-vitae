@@ -135,10 +135,10 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'terms' }) {
 
               <div>
                 <h4 className="text-base font-extrabold text-slate-900 dark:text-white mb-2">
-                  4. Planes, Periodo Gratuito y Suscripciones (Flow / Webpay)
+                  4. Planes, Periodo Gratuito y Suscripciones (Flow.cl / PayPal)
                 </h4>
                 <p>
-                  Ofrecemos una promoción de bienvenida consistente en el <strong>1er mes 100% bonificado ($0 CLP)</strong> tras completar nuestro breve formulario de feedback inicial. Posterior al período promocional, la suscripción mensual estándar tiene un valor de <strong>$3.490 CLP</strong>. Todos los pagos son procesados de forma segura a través de <strong>Flow.cl</strong> con tarjetas de débito y crédito bajo el estándar Webpay Plus de Transbank.
+                  Ofrecemos una promoción de bienvenida consistente en el <strong>1er mes 100% bonificado ($0 CLP)</strong> tras completar nuestro breve formulario de feedback inicial. Posterior al período promocional, la suscripción mensual estándar tiene un valor de <strong>$3.490 CLP</strong> para usuarios en Chile (procesado de forma segura a través de <strong>Flow.cl</strong> con Webpay Plus, tarjetas bancarias y CuentaRUT) o <strong>$3.99 USD</strong> para pagos internacionales (a través de <strong>PayPal</strong>).
                 </p>
                 <p className="mt-2">
                   No existen contratos de permanencia forzosa. Puedes cancelar tu suscripción en cualquier instante con un solo clic desde tu panel de usuario o comunicándote directamente a nuestro soporte.
@@ -147,7 +147,31 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'terms' }) {
 
               <div>
                 <h4 className="text-base font-extrabold text-slate-900 dark:text-white mb-2">
-                  5. Disponibilidad y Soporte Técnico
+                  5. Etapa Experimental, Marcha Blanca y Compromiso de Cumplimiento Tributario (SII Chile)
+                </h4>
+                <p>
+                  <strong>5.1. Naturaleza del Proyecto y Fase Piloto:</strong> Se deja constancia expresa de que <strong>Mi Vitae</strong> se encuentra actualmente en <strong>fase de desarrollo, pilotaje y marcha blanca técnica (Minimum Viable Product - MVP)</strong>. Durante esta etapa, el servicio tiene como único propósito validar la arquitectura computacional, la ergonomía de la interfaz, la estabilidad de los servidores en la nube y la experiencia de los primeros usuarios de prueba.
+                </p>
+                <p className="mt-2">
+                  <strong>5.2. Destino de los Aportes y Transacciones Iniciales:</strong> Las tarifas o cobros marginales procesados a través de las pasarelas oficiales autorizadas (Flow.cl para Chile y PayPal para el exterior) se destinan íntegramente a costear de forma directa la infraestructura operativa del sistema (servidores Edge, bases de datos PostgreSQL en la nube, almacenamiento de activos y certificados de seguridad). Dichas transacciones no constituyen una explotación comercial masiva consolidada ni persiguen ánimo alguno de elusión tributaria.
+                </p>
+                <p className="mt-2">
+                  <strong>5.3. Compromiso Expreso de Formalización ante el Servicio de Impuestos Internos (SII):</strong> En concordancia con los principios de transparencia comercial y la normativa tributaria chilena vigente (incluyendo la Ley de Cumplimiento Tributario), los administradores de Mi Vitae asumen el <strong>compromiso formal, público e irrevocable</strong> de que, tan pronto la plataforma culmine su etapa de validación y alcance un volumen sostenido y recurrente de usuarios activos con múltiples transacciones comerciales regulares, se procederá de manera obligatoria e inmediata a:
+                </p>
+                <ul className="list-disc pl-5 space-y-1 mt-1.5">
+                  <li>La constitución formal de una persona jurídica chilena (Sociedad por Acciones - SpA o figura societaria afín).</li>
+                  <li>La tramitación de Inicio de Actividades en Primera Categoría ante el Servicio de Impuestos Internos (SII) bajo los giros pertinentes de servicios informáticos y portales web.</li>
+                  <li>La integración de un sistema automatizado de emisión de <strong>Boletas Electrónicas de Ventas y Servicios</strong> timbradas por el SII, afectas al Impuesto al Valor Agregado (IVA - 19%), remitiendo automáticamente el comprobante oficial a cada suscriptor.</li>
+                  <li>La formalización y retención legal correspondiente (o exigencia de boletas de honorarios / facturas de terceros) para cualquier liquidación del programa de creadores o afiliados, conforme a las normas tributarias aplicables.</li>
+                </ul>
+                <p className="mt-2">
+                  <strong>5.4. Buena Fe y Disposición de Colaboración:</strong> La administración declara actuar bajo estricta buena fe mercantil, manteniendo trazabilidad digital inalterable de cada transacción en las pasarelas autorizadas y manifestando su total disposición a cooperar o atender oportunamente cualquier requerimiento de información o formalización anticipada que el Servicio de Impuestos Internos o la autoridad fiscalizadora estime pertinente.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="text-base font-extrabold text-slate-900 dark:text-white mb-2">
+                  6. Disponibilidad y Soporte Técnico
                 </h4>
                 <p>
                   We Are Samod trabaja continuamente para garantizar una alta disponibilidad de los portafolios. En caso de consultas técnicas, dudas operativas o sugerencias, nuestro equipo está a tu disposición en <a href="mailto:contacto@wearesamod.com" className="text-indigo-600 dark:text-indigo-400 font-semibold underline">contacto@wearesamod.com</a> o vía WhatsApp en <span className="font-semibold text-slate-800 dark:text-slate-200">+56 9 3757 3764</span>.
@@ -156,7 +180,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'terms' }) {
 
               <div>
                 <h4 className="text-base font-extrabold text-slate-900 dark:text-white mb-2">
-                  6. Legislación Aplicable y Jurisdicción
+                  7. Legislación Aplicable y Jurisdicción
                 </h4>
                 <p>
                   Estos Términos se rigen e interpretan bajo las leyes de la República de Chile. Cualquier discrepancia será sometida a los tribunales ordinarios de justicia de la comuna y ciudad de Santiago, Chile.
