@@ -54,7 +54,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'terms' }) {
                 Información Legal y Transparencia
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Mi Vitae · Desarrollado por We Are Samod (Santiago, Chile)
+                Mi Vitae · Desarrollado por el colectivo We Are Samod (Santiago, Chile)
               </p>
             </div>
           </div>
@@ -105,13 +105,12 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'terms' }) {
                   Última actualización: Enero 2026
                 </p>
                 <h4 className="text-base font-extrabold text-slate-900 dark:text-white mb-2">
-                  1. Aceptación y Alcance del Servicio
+                  1. Aceptación, Naturaleza del Colectivo y Alcance del Servicio
                 </h4>
                 <p>
                   Bienvenido a <strong>Mi Vitae</strong> (accesible en{' '}
                   <span className="font-mono text-indigo-600 dark:text-indigo-400">mivitae.wearesamod.com</span>),
-                  una plataforma web de portafolios profesionales digitales operada por <strong>We Are Samod Studio</strong>,
-                  con domicilio en Santiago de Chile. Al acceder, registrarte o utilizar nuestros servicios, declaras ser mayor de edad o contar con autorización legal y aceptas quedar vinculado por los presentes Términos del Servicio.
+                  una plataforma web de portafolios profesionales digitales desarrollada y gestionada por el equipo independiente de desarrollo de software bajo la denominación artística y de proyecto <strong>We Are Samod</strong>, conformado por dos desarrolladores de software independientes residentes en Santiago de Chile. La denominación "We Are Samod" constituye una marca de autoría técnica y colectiva adoptada para la creación de proyectos SaaS y no representa actualmente una persona jurídica ni sociedad mercantil formalmente constituida, rigiéndose el compromiso de formalización societaria y tributaria futura por lo estipulado en la Sección 5 de estos Términos. Al acceder, registrarte o utilizar nuestros servicios, declaras ser mayor de edad o contar con autorización legal y aceptas quedar vinculado por los presentes Términos del Servicio.
                 </p>
               </div>
 
@@ -135,13 +134,16 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'terms' }) {
 
               <div>
                 <h4 className="text-base font-extrabold text-slate-900 dark:text-white mb-2">
-                  4. Planes, Periodo Gratuito y Suscripciones (Flow.cl / PayPal)
+                  4. Planes, Periodo Gratuito, Suscripciones y Programa de Creadores
                 </h4>
                 <p>
-                  Ofrecemos una promoción de bienvenida consistente en el <strong>1er mes 100% bonificado ($0 CLP)</strong> tras completar nuestro breve formulario de feedback inicial. Posterior al período promocional, la suscripción mensual estándar tiene un valor de <strong>$3.490 CLP</strong> para usuarios en Chile (procesado de forma segura a través de <strong>Flow.cl</strong> con Webpay Plus, tarjetas bancarias y CuentaRUT) o <strong>$3.99 USD</strong> para pagos internacionales (a través de <strong>PayPal</strong>).
+                  <strong>4.1. Planes y Tarifas de Suscripción:</strong> Ofrecemos una promoción de bienvenida consistente en el <strong>1er mes 100% bonificado ($0 CLP)</strong> tras completar nuestro breve formulario de feedback inicial. Posterior al período promocional, la suscripción mensual estándar tiene un valor de <strong>$3.490 CLP</strong> para usuarios en Chile (procesado de forma segura a través de <strong>Flow.cl</strong> con Webpay Plus, tarjetas bancarias y CuentaRUT) o <strong>$3.99 USD</strong> para pagos internacionales (a través de <strong>PayPal</strong>).
                 </p>
                 <p className="mt-2">
-                  No existen contratos de permanencia forzosa. Puedes cancelar tu suscripción en cualquier instante con un solo clic desde tu panel de usuario o comunicándote directamente a nuestro soporte.
+                  <strong>4.2. Carácter de los Cobros en Fase Piloto:</strong> Tal como se detalla en la Sección 5, durante la actual etapa de validación y marcha blanca, estos importes tienen por fin exclusivo sufragar los costos directos de infraestructura técnica de servidores en la nube y evaluar la viabilidad del servicio. No existen contratos de permanencia forzosa y la suscripción puede ser cancelada en cualquier momento desde el panel de usuario o comunicándose a soporte.
+                </p>
+                <p className="mt-2">
+                  <strong>4.3. Programa de Creadores y Afiliados:</strong> Mi Vitae cuenta con un sistema de códigos de creador ("Apoya a un Creador"). Las asignaciones o beneficios generados por referidos en esta fase experimental son de carácter promocional y acumulativo. Cualquier liquidación efectiva de saldos a creadores o promotores estará estrictamente sujeta al cumplimiento de la normativa tributaria chilena, exigiéndose la emisión de la correspondiente Boleta de Honorarios Electrónica con la retención legal de impuestos que corresponda (o factura de venta en su caso) previo a cualquier transferencia.
                 </p>
               </div>
 
@@ -156,7 +158,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'terms' }) {
                   <strong>5.2. Destino de los Aportes y Transacciones Iniciales:</strong> Las tarifas o cobros marginales procesados a través de las pasarelas oficiales autorizadas (Flow.cl para Chile y PayPal para el exterior) se destinan íntegramente a costear de forma directa la infraestructura operativa del sistema (servidores Edge, bases de datos PostgreSQL en la nube, almacenamiento de activos y certificados de seguridad). Dichas transacciones no constituyen una explotación comercial masiva consolidada ni persiguen ánimo alguno de elusión tributaria.
                 </p>
                 <p className="mt-2">
-                  <strong>5.3. Compromiso Expreso de Formalización ante el Servicio de Impuestos Internos (SII):</strong> En concordancia con los principios de transparencia comercial y la normativa tributaria chilena vigente (incluyendo la Ley de Cumplimiento Tributario), los administradores de Mi Vitae asumen el <strong>compromiso formal, público e irrevocable</strong> de que, tan pronto la plataforma culmine su etapa de validación y alcance un volumen sostenido y recurrente de usuarios activos con múltiples transacciones comerciales regulares, se procederá de manera obligatoria e inmediata a:
+                  <strong>5.3. Compromiso Expreso de Formalización ante el Servicio de Impuestos Internos (SII):</strong> En concordancia con los principios de transparencia comercial y la normativa tributaria chilena vigente (incluyendo la Ley de Cumplimiento Tributario), los dos desarrolladores integrantes del colectivo We Are Samod asumen el <strong>compromiso formal, público e irrevocable</strong> de que, tan pronto la plataforma culmine su etapa de validación y alcance un volumen sostenido y recurrente de usuarios activos con múltiples transacciones comerciales regulares, se procederá de manera obligatoria e inmediata a:
                 </p>
                 <ul className="list-disc pl-5 space-y-1 mt-1.5">
                   <li>La constitución formal de una persona jurídica chilena (Sociedad por Acciones - SpA o figura societaria afín).</li>
@@ -171,10 +173,10 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'terms' }) {
 
               <div>
                 <h4 className="text-base font-extrabold text-slate-900 dark:text-white mb-2">
-                  6. Disponibilidad y Soporte Técnico
+                  6. Disponibilidad, Soporte Técnico y Limitación de Responsabilidad
                 </h4>
                 <p>
-                  We Are Samod trabaja continuamente para garantizar una alta disponibilidad de los portafolios. En caso de consultas técnicas, dudas operativas o sugerencias, nuestro equipo está a tu disposición en <a href="mailto:contacto@wearesamod.com" className="text-indigo-600 dark:text-indigo-400 font-semibold underline">contacto@wearesamod.com</a> o vía WhatsApp en <span className="font-semibold text-slate-800 dark:text-slate-200">+56 9 3757 3764</span>.
+                  El equipo de desarrollo de We Are Samod realiza sus mejores esfuerzos técnicos para garantizar la continuidad, rapidez y seguridad de los portafolios alojados. No obstante, al tratarse de un servicio en fase de pilotaje y marcha blanca (MVP), la plataforma se suministra "tal cual" (as is) y "según disponibilidad", pudiendo experimentar interrupciones programadas por mantenimiento o ajustes de infraestructura. En caso de consultas técnicas o incidencias, nuestro equipo está a tu disposición en <a href="mailto:contacto@wearesamod.com" className="text-indigo-600 dark:text-indigo-400 font-semibold underline">contacto@wearesamod.com</a> o vía WhatsApp en <span className="font-semibold text-slate-800 dark:text-slate-200">+56 9 3757 3764</span>.
                 </p>
               </div>
 
@@ -183,7 +185,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'terms' }) {
                   7. Legislación Aplicable y Jurisdicción
                 </h4>
                 <p>
-                  Estos Términos se rigen e interpretan bajo las leyes de la República de Chile. Cualquier discrepancia será sometida a los tribunales ordinarios de justicia de la comuna y ciudad de Santiago, Chile.
+                  Estos Términos se rigen e interpretan bajo las leyes de la República de Chile, con especial sujeción a la normativa de protección al consumidor (Ley N° 19.496), protección de datos (Ley N° 19.628) y las directrices tributarias emitidas por el Servicio de Impuestos Internos (SII). Cualquier discrepancia será sometida a los tribunales ordinarios de justicia de la comuna y ciudad de Santiago, Chile.
                 </p>
               </div>
             </div>
@@ -197,7 +199,7 @@ export default function LegalModal({ isOpen, onClose, initialTab = 'terms' }) {
                   1. Compromiso de Privacidad y Responsable del Tratamiento
                 </h4>
                 <p>
-                  En <strong>Mi Vitae</strong> y <strong>We Are Samod</strong> respetamos profundamente tu privacidad y la confidencialidad de tus antecedentes profesionales. Esta Política describe con total transparencia cómo recolectamos, protegemos y gestionamos tus datos personales.
+                  En <strong>Mi Vitae</strong> y el colectivo de desarrollo independiente <strong>We Are Samod</strong> respetamos profundamente tu privacidad y la confidencialidad de tus antecedentes profesionales. Esta Política describe con total transparencia cómo recolectamos, protegemos y gestionamos tus datos personales durante la operación y pilotaje de la plataforma.
                 </p>
               </div>
 
