@@ -11,6 +11,7 @@ import { onRequestGet as handleConfig } from './functions/api/config.js'
 import { onRequestGet as handleSitemap } from './functions/api/sitemap.js'
 import { onRequestPost as handleParseCv } from './functions/api/parse-cv.js'
 import { onRequestPost as handleAdminManageUser } from './functions/api/admin-manage-user.js'
+import { onRequestPost as handleRecordAnalytics } from './functions/api/record-analytics.js'
 
 export default {
   async fetch(request, env, ctx) {
@@ -18,6 +19,9 @@ export default {
     const pathname = url.pathname
 
     // Route API requests to serverless handlers
+    if (pathname === '/api/record-analytics') {
+      return handleRecordAnalytics({ request, env })
+    }
     if (pathname === '/api/admin-manage-user') {
       return handleAdminManageUser({ request, env })
     }

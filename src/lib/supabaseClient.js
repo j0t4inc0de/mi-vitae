@@ -883,19 +883,42 @@ export async function deleteProfileFromSupabase(username, adminSecret = null) {
 }
 
 /**
- * Atomic counter increment for analytics in Supabase with direct table fallback
+ * Atomic counter increment for analytics in Supabase with direct table and serverless fallback
  */
 export async function incrementAnalyticsInSupabase(username, metricName) {
-  await initSupabase()
-  if (!isSupabaseConfigured || !supabase || !username) return null
-
+  if (!username) return null
   const cleanUsername = username.toLowerCase().trim()
+  const normalizedMetric = (metricName === 'qr' || metricName === 'qrScans') ? 'cvDownloads' : metricName
 
-  // 1. Primary path: RPC function increment_analytics
+  // 1. Primary path: Serverless API endpoint /api/record-analytics (bypasses RLS safely in production)
+  try {
+    const apiRes = await fetch('/api/record-analytics', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: cleanUsername,
+        metric: normalizedMetric
+      })
+    })
+
+    if (apiRes.ok) {
+      const apiData = await apiRes.json()
+      if (apiData?.success && apiData?.analytics) {
+        return apiData.analytics
+      }
+    }
+  } catch {
+    // If offline or dev without serverless proxy, proceed to Supabase client
+  }
+
+  await initSupabase()
+  if (!isSupabaseConfigured || !supabase) return null
+
+  // 2. Secondary path: Database RPC function increment_analytics (executes with SECURITY DEFINER)
   try {
     const { data, error } = await supabase.rpc('increment_analytics', {
       target_username: cleanUsername,
-      metric_name: metricName
+      metric_name: normalizedMetric
     })
 
     if (!error && data) return data
@@ -903,7 +926,7 @@ export async function incrementAnalyticsInSupabase(username, metricName) {
     // Fallback to direct update if RPC is unavailable
   }
 
-  // 2. Direct fallback update on public.profiles table
+  // 3. Fallback path: Direct update on public.profiles table
   try {
     const { data: profile } = await supabase
       .from('profiles')
@@ -911,10 +934,14 @@ export async function incrementAnalyticsInSupabase(username, metricName) {
       .eq('username', cleanUsername)
       .single()
 
-    const currentAnalytics = profile?.analytics || { views: 0, contactClicks: 0, cvDownloads: 0 }
+    const currentAnalytics = profile?.analytics || { views: 0, contactClicks: 0, cvDownloads: 0, qrScans: 0 }
+    const isQrOrCv = normalizedMetric === 'cvDownloads' || metricName === 'qr' || metricName === 'qrScans'
+    const maxQr = Math.max(Number(currentAnalytics.cvDownloads || 0), Number(currentAnalytics.qrScans || 0)) + 1
+
     const updatedAnalytics = {
       ...currentAnalytics,
-      [metricName]: (currentAnalytics[metricName] || 0) + 1
+      [normalizedMetric]: (Number(currentAnalytics[normalizedMetric] || 0)) + 1,
+      ...(isQrOrCv ? { cvDownloads: maxQr, qrScans: maxQr } : {})
     }
 
     const { data, error } = await supabase

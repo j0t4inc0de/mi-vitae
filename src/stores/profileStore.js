@@ -310,17 +310,18 @@ export const useProfileStore = create(
         const normalized = username.toLowerCase().trim()
         const profile = get().profiles[normalized]
 
-        // Map 'cv', 'download', 'qr' to cvDownloads counter in database
+        // Map 'cv', 'download', 'qr' to cvDownloads and qrScans counter in database
         const isDownloadOrQr = type === 'cv' || type === 'download' || type === 'qr'
         const metricName = isDownloadOrQr ? 'cvDownloads' : 'contactClicks'
 
         // Update local store if profile exists in client memory
         if (profile) {
-          const analytics = profile.analytics || { views: 0, contactClicks: 0, cvDownloads: 0 }
+          const analytics = profile.analytics || { views: 0, contactClicks: 0, cvDownloads: 0, qrScans: 0 }
+          const maxQr = Math.max(Number(analytics.cvDownloads || 0), Number(analytics.qrScans || 0)) + 1
           const newAnalytics = {
             ...analytics,
             ...(isDownloadOrQr
-              ? { cvDownloads: (analytics.cvDownloads || 0) + 1 }
+              ? { cvDownloads: maxQr, qrScans: maxQr }
               : { contactClicks: (analytics.contactClicks || 0) + 1 })
           }
 

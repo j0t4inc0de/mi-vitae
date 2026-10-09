@@ -1124,6 +1124,73 @@ it('verifies AdminPage contains exactly 0 emojis and provides complete Creator C
   assert.ok(adminPageContent.includes('handleConfirmRemoveCreator'), 'Must have handleConfirmRemoveCreator handler');
 });
 
+// -------------------------------------------------------------
+// SUITE 12: REAL-TIME ANALYTICS & QR SCANS (RLS BYPASS & SYNC)
+// -------------------------------------------------------------
+console.log('\n▶ Suite 12: Real-time Analytics & QR Scans (RLS Bypass & Sync)');
+
+it('verifies /api/record-analytics serverless endpoint exists and validates input', async () => {
+  const recordAnalyticsModule = await import(pathToFileURL(path.resolve(ROOT, 'functions/api/record-analytics.js')).href);
+  assert.equal(typeof recordAnalyticsModule.onRequestPost, 'function');
+  assert.equal(typeof recordAnalyticsModule.onRequestOptions, 'function');
+
+  // Test missing username
+  const req1 = new Request('https://mivitae.wearesamod.com/api/record-analytics', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ metric: 'cvDownloads' })
+  });
+  const res1 = await recordAnalyticsModule.onRequestPost({ request: req1, env: {} });
+  assert.equal(res1.status, 400);
+
+  // Test invalid metric
+  const req2 = new Request('https://mivitae.wearesamod.com/api/record-analytics', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: 'juan--erices-f', metric: 'invalid_metric' })
+  });
+  const res2 = await recordAnalyticsModule.onRequestPost({ request: req2, env: {} });
+  assert.equal(res2.status, 400);
+});
+
+it('verifies worker.js registers /api/record-analytics route', () => {
+  const workerContent = fs.readFileSync(path.resolve(ROOT, 'worker.js'), 'utf-8');
+  assert.ok(workerContent.includes("pathname === '/api/record-analytics'"), 'worker.js must route /api/record-analytics');
+  assert.ok(workerContent.includes("handleRecordAnalytics"), 'worker.js must import handleRecordAnalytics');
+});
+
+it('verifies supabase/schema.sql provides SECURITY DEFINER increment_analytics with GRANT EXECUTE', () => {
+  const schemaContent = fs.readFileSync(path.resolve(ROOT, 'supabase/schema.sql'), 'utf-8');
+  assert.ok(schemaContent.includes('CREATE OR REPLACE FUNCTION public.increment_analytics'), 'Must define increment_analytics');
+  assert.ok(schemaContent.includes('SECURITY DEFINER'), 'increment_analytics must have SECURITY DEFINER');
+  assert.ok(schemaContent.includes('GRANT EXECUTE ON FUNCTION public.increment_analytics'), 'Must grant execute to anon, authenticated');
+  assert.ok(schemaContent.includes('qrScans'), 'Must sync qrScans and cvDownloads in schema.sql');
+});
+
+it('verifies incrementAnalyticsInSupabase prioritizes /api/record-analytics', () => {
+  const clientContent = fs.readFileSync(path.resolve(ROOT, 'src/lib/supabaseClient.js'), 'utf-8');
+  assert.ok(clientContent.includes("fetch('/api/record-analytics'"), 'Must call /api/record-analytics serverless endpoint');
+  assert.ok(clientContent.includes("rpc('increment_analytics'"), 'Must maintain RPC fallback');
+  assert.ok(clientContent.includes('qrScans'), 'Must sync qrScans in direct fallback');
+});
+
+it('verifies profileStore keeps qrScans and cvDownloads in sync on QR scan', () => {
+  const store = useProfileStore.getState();
+  const testUser = 'analytics_test_user';
+
+  store.addProfile({
+    username: testUser,
+    personalInfo: { name: 'Test Analytics' },
+    analytics: { views: 10, contactClicks: 2, cvDownloads: 0, qrScans: 0 }
+  });
+
+  store.recordClick(testUser, 'qr');
+  const profileAfterQr = store.getProfileByUsername(testUser);
+
+  assert.equal(profileAfterQr.analytics.cvDownloads, 1);
+  assert.equal(profileAfterQr.analytics.qrScans, 1);
+});
+
 await vite.close();
 
 // -------------------------------------------------------------

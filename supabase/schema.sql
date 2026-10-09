@@ -298,39 +298,67 @@ CREATE OR REPLACE FUNCTION public.increment_analytics(
 RETURNS JSONB AS $$
 DECLARE
   result JSONB;
+  clean_username TEXT := LOWER(TRIM(target_username));
+  clean_metric TEXT := LOWER(TRIM(metric_name));
+  new_qr INT;
 BEGIN
-  IF metric_name = 'views' THEN
+  -- Ensure analytics is never null
+  UPDATE public.profiles
+  SET analytics = '{"views":0,"contactClicks":0,"cvDownloads":0,"qrScans":0}'::jsonb
+  WHERE LOWER(username) = clean_username AND analytics IS NULL;
+
+  IF clean_metric = 'views' THEN
     UPDATE public.profiles
-    SET analytics = jsonb_set(
-      analytics, 
-      '{views}', 
-      to_jsonb(COALESCE((analytics->>'views')::int, 0) + 1)
-    )
-    WHERE LOWER(username) = LOWER(TRIM(target_username))
+    SET 
+      analytics = jsonb_set(
+        COALESCE(analytics, '{}'::jsonb), 
+        '{views}', 
+        to_jsonb(COALESCE((analytics->>'views')::int, 0) + 1)
+      ),
+      updated_at = NOW()
+    WHERE LOWER(username) = clean_username
     RETURNING analytics INTO result;
-  ELSIF metric_name = 'contactClicks' THEN
+
+  ELSIF clean_metric = 'contactclicks' OR metric_name = 'contactClicks' THEN
     UPDATE public.profiles
-    SET analytics = jsonb_set(
-      analytics, 
-      '{contactClicks}', 
-      to_jsonb(COALESCE((analytics->>'contactClicks')::int, 0) + 1)
-    )
-    WHERE LOWER(username) = LOWER(TRIM(target_username))
+    SET 
+      analytics = jsonb_set(
+        COALESCE(analytics, '{}'::jsonb), 
+        '{contactClicks}', 
+        to_jsonb(COALESCE((analytics->>'contactClicks')::int, 0) + 1)
+      ),
+      updated_at = NOW()
+    WHERE LOWER(username) = clean_username
     RETURNING analytics INTO result;
-  ELSIF metric_name = 'cvDownloads' THEN
+
+  ELSIF clean_metric = 'cvdownloads' OR clean_metric = 'qr' OR clean_metric = 'qrscans' OR metric_name = 'cvDownloads' THEN
+    -- Increment both cvDownloads and qrScans atomically for cross-compatibility
+    SELECT GREATEST(COALESCE((analytics->>'cvDownloads')::int, 0), COALESCE((analytics->>'qrScans')::int, 0)) + 1
+    INTO new_qr
+    FROM public.profiles
+    WHERE LOWER(username) = clean_username;
+
     UPDATE public.profiles
-    SET analytics = jsonb_set(
-      analytics, 
-      '{cvDownloads}', 
-      to_jsonb(COALESCE((analytics->>'cvDownloads')::int, 0) + 1)
-    )
-    WHERE LOWER(username) = LOWER(TRIM(target_username))
+    SET 
+      analytics = jsonb_set(
+        jsonb_set(
+          COALESCE(analytics, '{}'::jsonb), 
+          '{cvDownloads}', 
+          to_jsonb(COALESCE(new_qr, 1))
+        ),
+        '{qrScans}',
+        to_jsonb(COALESCE(new_qr, 1))
+      ),
+      updated_at = NOW()
+    WHERE LOWER(username) = clean_username
     RETURNING analytics INTO result;
   END IF;
 
   RETURN result;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.increment_analytics(TEXT, TEXT) TO anon, authenticated, service_role;
 
 -- ==============================================================================
 -- 11. RPC FUNCTIONS: SUPER ADMIN MANAGEMENT (Bypass RLS securely)
