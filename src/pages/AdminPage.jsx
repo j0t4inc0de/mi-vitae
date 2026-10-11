@@ -1465,6 +1465,11 @@ Administrador autorizado: jericesb5@gmail.com
                     const clicks = p.analytics?.contactClicks || 0
                     const conversionRate = views > 0 ? ((clicks / views) * 100).toFixed(1) : '0.0'
                     const themeObj = getThemeMeta(p.theme || 'minimalist')
+                    const hasCustomAvatar = Boolean(
+                      p.personalInfo?.avatar &&
+                      p.personalInfo.avatar !== 'blobatar' &&
+                      p.personalInfo.avatar.trim() !== ''
+                    )
 
                     return (
                       <tr 
@@ -1474,7 +1479,7 @@ Administrador autorizado: jericesb5@gmail.com
                         {/* Profile Info */}
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-3.5">
-                            {p.personalInfo?.avatar ? (
+                            {hasCustomAvatar ? (
                               <img
                                 src={p.personalInfo.avatar}
                                 alt={p.personalInfo?.name || p.username}
