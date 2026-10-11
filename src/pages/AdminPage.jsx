@@ -20,7 +20,7 @@ import {
 } from 'lucide-react'
 
 import { THEME_COMPONENTS } from '../components/Themes/ThemeRenderer'
-import UserAvatar from '../components/Common/UserAvatar'
+import { Blobatar } from '@blobatar/react'
 
 // Map theme IDs to user-friendly names and badge styling
 const THEME_INFO = {
@@ -1474,13 +1474,21 @@ Administrador autorizado: jericesb5@gmail.com
                         {/* Profile Info */}
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-3.5">
-                            <UserAvatar
-                              username={p.personalInfo?.avatar ? (p.personalInfo?.name || p.username) : 'Sambi'}
-                              avatarUrl={p.personalInfo?.avatar}
-                              size={44}
-                              className="w-11 h-11 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shadow-sm"
-                              alt={p.personalInfo?.name || p.username}
-                            />
+                            {p.personalInfo?.avatar ? (
+                              <img
+                                src={p.personalInfo.avatar}
+                                alt={p.personalInfo?.name || p.username}
+                                className="w-11 h-11 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shadow-sm"
+                              />
+                            ) : (
+                              <div className="w-11 h-11 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm shrink-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800">
+                                <Blobatar
+                                  name="Sambi"
+                                  size={44}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            )}
                             <div className="min-w-0">
                               <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 truncate">
                                 <span>{p.personalInfo?.name || p.username}</span>
