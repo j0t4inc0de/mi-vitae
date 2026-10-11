@@ -20,9 +20,7 @@ import {
 } from 'lucide-react'
 
 import { THEME_COMPONENTS } from '../components/Themes/ThemeRenderer'
-
-// Avatar por defecto estilo blob (Boring Avatars / Sambi) para usuarios sin foto de perfil
-const SAMBI_DEFAULT_AVATAR = 'https://source.boringavatars.com/beam/120/Sambi?colors=6366F1,4F46E5,7C3AED,06B6D4,10B981'
+import UserAvatar from '../components/Common/UserAvatar'
 
 // Map theme IDs to user-friendly names and badge styling
 const THEME_INFO = {
@@ -1476,10 +1474,12 @@ Administrador autorizado: jericesb5@gmail.com
                         {/* Profile Info */}
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-3.5">
-                            <img
-                              src={p.personalInfo?.avatar || SAMBI_DEFAULT_AVATAR}
-                              alt={p.personalInfo?.name || p.username}
+                            <UserAvatar
+                              username={p.personalInfo?.avatar ? (p.personalInfo?.name || p.username) : 'Sambi'}
+                              avatarUrl={p.personalInfo?.avatar}
+                              size={44}
                               className="w-11 h-11 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shadow-sm"
+                              alt={p.personalInfo?.name || p.username}
                             />
                             <div className="min-w-0">
                               <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 truncate">
