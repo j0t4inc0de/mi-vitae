@@ -5,6 +5,7 @@ import TechTheme from './TechTheme'
 import WarmTheme from './WarmTheme'
 import ExecutiveTheme from './ExecutiveTheme'
 import NeoBrutalistTheme from './NeoBrutalistTheme'
+import SwissTheme from './SwissTheme'
 
 // ponytail: Polymorphic theme map - O(1) lookup table eliminates 60+ lines of switch boilerplate
 const THEME_COMPONENTS = {
@@ -14,6 +15,7 @@ const THEME_COMPONENTS = {
   warm: WarmTheme,
   executive: ExecutiveTheme,
   neo_brutalist: NeoBrutalistTheme,
+  swiss: SwissTheme,
 }
 
 // ponytail: Filter empty records so web portfolio never displays ghost/blank cards

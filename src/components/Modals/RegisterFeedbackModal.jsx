@@ -75,7 +75,8 @@ const THEME_OPTIONS = [
   { id: 'creative', label: 'Creativo', color: 'bg-purple-500 text-white', role: 'Diseño & UX' },
   { id: 'tech', label: 'Técnico', color: 'bg-emerald-500 text-black', role: 'Tech & Code' },
   { id: 'warm', label: 'Cálido', color: 'bg-amber-500 text-white', role: 'Salud & Coaching' },
-  { id: 'executive', label: 'Ejecutivo', color: 'bg-blue-600 text-white', role: 'C-Level & Negocios' }
+  { id: 'executive', label: 'Ejecutivo', color: 'bg-blue-600 text-white', role: 'C-Level & Negocios' },
+  { id: 'swiss', label: 'Suizo', color: 'bg-rose-600 text-white', role: 'Diseño & Arquitectura' }
 ]
 
 /**
@@ -700,7 +701,7 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                   <Palette className="w-3.5 h-3.5" style={{ color: 'var(--primary, #4d5eb3)' }} />
                   <span>Selecciona tu Tema Visual de Partida</span>
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
                   {THEME_OPTIONS.map((th) => {
                     const isSelected = selectedTheme === th.id
                     return (

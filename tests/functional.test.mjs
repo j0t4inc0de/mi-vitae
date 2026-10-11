@@ -329,8 +329,8 @@ console.log('\n▶ Suite 4: Theme Renderer Polymorphic Mapping');
 const themeRendererContent = fs.readFileSync(path.join(ROOT, 'src/components/Themes/ThemeRenderer.jsx'), 'utf8');
 const { filterEmptyProfileItems } = await vite.ssrLoadModule('/src/components/Themes/ThemeRenderer.jsx');
 
-it('supports all 6 production themes without fallback loss', () => {
-  const themes = ['tech', 'creative', 'minimalist', 'warm', 'executive', 'neo_brutalist'];
+it('supports all 7 production themes without fallback loss', () => {
+  const themes = ['tech', 'creative', 'minimalist', 'warm', 'executive', 'neo_brutalist', 'swiss'];
   for (const t of themes) {
     assert.ok(themeRendererContent.includes(`${t}:`) || themeRendererContent.includes(`'${t}'`), `ThemeRenderer must support '${t}'`);
   }
@@ -342,10 +342,11 @@ const themeModules = {
   creative: await vite.ssrLoadModule('/src/components/Themes/CreativeTheme.jsx'),
   tech: await vite.ssrLoadModule('/src/components/Themes/TechTheme.jsx'),
   warm: await vite.ssrLoadModule('/src/components/Themes/WarmTheme.jsx'),
-  executive: await vite.ssrLoadModule('/src/components/Themes/ExecutiveTheme.jsx')
+  executive: await vite.ssrLoadModule('/src/components/Themes/ExecutiveTheme.jsx'),
+  swiss: await vite.ssrLoadModule('/src/components/Themes/SwissTheme.jsx')
 };
 
-it('verifies all 6 theme components load cleanly and export valid default components', () => {
+it('verifies all 7 theme components load cleanly and export valid default components', () => {
   for (const [slug, mod] of Object.entries(themeModules)) {
     assert.ok(typeof mod.default === 'function', `Theme '${slug}' must export a valid component function`);
   }
@@ -732,27 +733,29 @@ it('verifies tagsRaw and tagsArray allow typing commas without deleting characte
   assert.ok(dashboardContent.includes('tagsRaw: (p.tags || []).join(\', \')'), 'DashboardPage must clean tagsRaw on blur');
 });
 
-it('verifies DashboardPage THEME_OPTIONS contains 6 themes with neo_brutalist (Pop Tactile) at position 2', () => {
+it('verifies DashboardPage THEME_OPTIONS contains 7 themes with neo_brutalist (Pop Tactile) at position 2 and swiss at position 7', () => {
   const themeMatch = dashboardContent.match(/const THEME_OPTIONS = \[([\s\S]*?)\]\r?\n\r?\nconst DEMO_ARCHETYPES/);
   assert.ok(themeMatch, 'THEME_OPTIONS block must exist in DashboardPage.jsx');
   const themeIds = [...themeMatch[1].matchAll(/id:\s*'([a-z_]+)'/g)].map((m) => m[1]);
-  assert.equal(themeIds.length, 6, 'Must have exactly 6 themes in THEME_OPTIONS');
+  assert.equal(themeIds.length, 7, 'Must have exactly 7 themes in THEME_OPTIONS');
   assert.equal(themeIds[0], 'minimalist', 'First theme must be minimalist');
   assert.equal(themeIds[1], 'neo_brutalist', 'Second theme must be neo_brutalist (Pop Tactile)');
   assert.equal(themeIds[2], 'creative', 'Third theme must be creative');
   assert.equal(themeIds[3], 'tech', 'Fourth theme must be tech');
   assert.equal(themeIds[4], 'warm', 'Fifth theme must be warm');
   assert.equal(themeIds[5], 'executive', 'Sixth theme must be executive');
+  assert.equal(themeIds[6], 'swiss', 'Seventh theme must be swiss');
 });
 
-it('verifies RegisterFeedbackModal contains all 6 themes including Pop Tactile for symmetrical display', () => {
+it('verifies RegisterFeedbackModal contains all 7 themes including Pop Tactile and Swiss', () => {
   const registerModalContent = fs.readFileSync(path.resolve(__dirname, '../src/components/Modals/RegisterFeedbackModal.jsx'), 'utf-8');
   const modalThemeMatch = registerModalContent.match(/\/\/ Theme choices for Step 1\r?\nconst THEME_OPTIONS = \[([\s\S]*?)\]/);
   assert.ok(modalThemeMatch, 'THEME_OPTIONS must be defined in RegisterFeedbackModal.jsx');
   const modalThemeIds = [...modalThemeMatch[1].matchAll(/id:\s*'([a-z_]+)'/g)].map((m) => m[1]);
-  assert.equal(modalThemeIds.length, 6, 'RegisterFeedbackModal must contain exactly 6 themes');
+  assert.equal(modalThemeIds.length, 7, 'RegisterFeedbackModal must contain exactly 7 themes');
   assert.ok(modalThemeIds.includes('neo_brutalist'), 'RegisterFeedbackModal must include neo_brutalist (Pop Tactile)');
-  assert.ok(registerModalContent.includes('grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2'), 'RegisterFeedbackModal must use symmetrical par grid layout');
+  assert.ok(modalThemeIds.includes('swiss'), 'RegisterFeedbackModal must include swiss');
+  assert.ok(registerModalContent.includes('grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2'), 'RegisterFeedbackModal must use responsive grid layout');
 });
 
 // -------------------------------------------------------------

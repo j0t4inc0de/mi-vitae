@@ -198,7 +198,8 @@ export default function PortfolioPage() {
     executive: 'bg-[#0B132B]',
     warm: 'bg-[#FDF8F5]',
     minimalist: 'bg-[#FAFAF9]',
-    neo_brutalist: 'bg-[#FDFBF7]'
+    neo_brutalist: 'bg-[#FDFBF7]',
+    swiss: 'bg-[#FAFAFA] dark:bg-[#0C0A09]'
   }
 
   return (
