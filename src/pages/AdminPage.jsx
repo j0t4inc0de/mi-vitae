@@ -14,10 +14,13 @@ import {
   Shield, Users, Eye, MousePointerClick, DollarSign, 
   ExternalLink, TrendingUp, RefreshCw, CheckCircle2, 
   Search, UserCheck, Trash2, Edit3, X,
-  Sparkles, FileDown, ChevronDown, UserPlus, Lock,
+  Sparkles, FileDown, ChevronDown, ChevronLeft, ChevronRight, UserPlus, Lock,
   Award, Copy, Check, Calendar, ArrowRight, LogOut, Receipt,
-  Plus, Tag, Globe, QrCode
+  Plus, Tag, Globe, QrCode, Palette
 } from 'lucide-react'
+
+// Avatar por defecto estilo blob (Boring Avatars / Sambi) para usuarios sin foto de perfil
+const SAMBI_DEFAULT_AVATAR = 'https://source.boringavatars.com/beam/120/Sambi?colors=6366F1,4F46E5,7C3AED,06B6D4,10B981'
 
 // Map theme IDs to user-friendly names and badge styling
 const THEME_INFO = {
@@ -288,9 +291,16 @@ export default function AdminPage() {
   // Filter and search state
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all') // 'all', 'lifetime', 'premium', 'trial', 'inactive'
-  const [themeFilter, setThemeFilter] = useState('all') // 'all', 'minimalist', 'neo_brutalist', 'creative', 'tech', 'warm', 'executive'
-  const [sortField, setSortField] = useState('views') // 'views', 'name', 'createdAt'
-  const [sortOrder, setSortOrder] = useState('desc') // 'asc', 'desc'
+  const [themeFilter] = useState('all') // Simplified: always 'all' without visible dropdown selector
+  const [sortField, setSortField] = useState('createdAt') // Default: 'createdAt', 'views', 'clicks', 'name'
+  const [sortOrder, setSortOrder] = useState('desc') // Default: 'desc', 'asc'
+  const [currentPage, setCurrentPage] = useState(1)
+  const USERS_PER_PAGE = 10
+
+  // Reset pagination to first page when search or status filter changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, statusFilter])
 
   // UI state
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -334,6 +344,32 @@ export default function AdminPage() {
   const activePremiumProfiles = profileList.filter((p) => p.plan === 'premium').length
   const trialProfiles = profileList.filter((p) => p.plan === 'trial').length
   const inactiveProfiles = profileList.filter((p) => p.plan === 'inactive').length
+
+  // Conteo de usuarios registrados en los ultimos 7 dias
+  const newProfilesThisWeek = useMemo(() => {
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+    return profileList.filter((p) => {
+      const rawDate = p.createdAt || p.created_at || p.trialActivatedAt || 0
+      const dateVal = new Date(rawDate).getTime()
+      return !isNaN(dateVal) && dateVal >= sevenDaysAgo
+    }).length
+  }, [profileList])
+
+  // Desglose de popularidad por temas
+  const themeCounts = useMemo(() => {
+    const counts = {}
+    Object.keys(THEME_INFO).forEach((k) => { counts[k] = 0 })
+    profileList.forEach((p) => {
+      const t = p.theme || 'minimalist'
+      counts[t] = (counts[t] || 0) + 1
+    })
+    return counts
+  }, [profileList])
+
+  const topThemes = useMemo(() => {
+    return Object.entries(themeCounts)
+      .sort((a, b) => b[1] - a[1])
+  }, [themeCounts])
 
   const totalViews = profileList.reduce((acc, p) => acc + (p.analytics?.views || 0), 0)
   const totalClicks = profileList.reduce((acc, p) => acc + (p.analytics?.contactClicks || 0), 0)
@@ -388,8 +424,10 @@ export default function AdminPage() {
           valA = (a.personalInfo?.name || '').toLowerCase()
           valB = (b.personalInfo?.name || '').toLowerCase()
         } else if (sortField === 'createdAt') {
-          valA = a.createdAt || '2025-01-01'
-          valB = b.createdAt || '2025-01-01'
+          const timeA = new Date(a.createdAt || a.created_at || a.trialActivatedAt || 0).getTime()
+          const timeB = new Date(b.createdAt || b.created_at || b.trialActivatedAt || 0).getTime()
+          valA = isNaN(timeA) ? 0 : timeA
+          valB = isNaN(timeB) ? 0 : timeB
         } else {
           valA = a.analytics?.views || 0
           valB = b.analytics?.views || 0
@@ -402,6 +440,20 @@ export default function AdminPage() {
         }
       })
   }, [profileList, searchTerm, statusFilter, themeFilter, sortField, sortOrder])
+
+  // Pagination calculations
+  const totalPages = Math.max(1, Math.ceil(filteredProfiles.length / USERS_PER_PAGE))
+  const paginatedProfiles = useMemo(() => {
+    const startIndex = (currentPage - 1) * USERS_PER_PAGE
+    return filteredProfiles.slice(startIndex, startIndex + USERS_PER_PAGE)
+  }, [filteredProfiles, currentPage])
+
+  // Clamp current page if total pages changes
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [currentPage, totalPages])
 
   // Handle plan status change with persistence to Supabase
   const handlePlanChange = async (username, newPlan) => {
@@ -1068,7 +1120,7 @@ Administrador autorizado: jericesb5@gmail.com
         {activeAdminTab === 'users' && (
           <div>
             {/* KPI Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 mb-8">
           
           {/* Card 1: Portafolios Totales */}
           <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
@@ -1082,22 +1134,9 @@ Administrador autorizado: jericesb5@gmail.com
             <div className="text-3xl font-black text-slate-900 dark:text-white">
               {totalProfiles}
             </div>
-            <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/60 text-xs font-semibold text-slate-500 dark:text-slate-400">
-              {lifetimeProfiles > 0 && (
-                <span className="text-indigo-600 dark:text-indigo-400 flex items-center gap-0.5 font-bold">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                  {lifetimeProfiles} De por vida
-                </span>
-              )}
-              {lifetimeProfiles > 0 && <span>•</span>}
-              <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                {activePremiumProfiles} Suscripción
-              </span>
-              <span>•</span>
-              <span className="text-amber-600 dark:text-amber-400">
-                {trialProfiles} en Prueba
-              </span>
+            <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/60 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>+{newProfilesThisWeek} nuevos esta semana</span>
             </div>
           </div>
 
@@ -1160,6 +1199,63 @@ Administrador autorizado: jericesb5@gmail.com
               </span>
               <span className="text-emerald-600 dark:text-emerald-400 font-bold">
                 {globalConversionRate}% CR
+              </span>
+            </div>
+          </div>
+
+          {/* Card 5: Temas & Diseños Populares */}
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-shadow relative group">
+            {/* Background glow bounded to card corners */}
+            <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
+              <div className="absolute top-0 right-0 w-28 h-28 bg-fuchsia-500/5 rounded-full blur-2xl group-hover:bg-fuchsia-500/10 transition-colors" />
+            </div>
+            
+            {/* Tooltip flotante al pasar el mouse */}
+            <div className="absolute bottom-full right-0 sm:left-1/2 sm:-translate-x-1/2 mb-2 hidden group-hover:block z-30 w-56 p-3 bg-slate-900 text-white rounded-2xl shadow-xl border border-slate-700 text-xs pointer-events-none">
+              <div className="font-bold border-b border-slate-700 pb-1.5 mb-1.5 text-[11px] text-slate-300">
+                Conteo Exacto de Temas:
+              </div>
+              <div className="space-y-1">
+                {topThemes.map(([themeKey, count]) => {
+                  const name = THEME_INFO[themeKey]?.name || themeKey
+                  return (
+                    <div key={themeKey} className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-300">{name}:</span>
+                      <span className="font-bold text-white font-mono">{count} {count === 1 ? 'usuario' : 'usuarios'}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Temas Más Usados</span>
+              <div className="p-2.5 rounded-2xl bg-fuchsia-50 dark:bg-fuchsia-950/60 text-fuchsia-600 dark:text-fuchsia-400">
+                <Palette className="w-5 h-5" />
+              </div>
+            </div>
+
+            <div className="space-y-2 min-h-[44px] flex flex-col justify-center">
+              {topThemes.slice(0, 3).map(([themeKey, count], idx) => {
+                const themeObj = THEME_INFO[themeKey] || { name: themeKey, color: 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700' }
+                const pct = totalProfiles > 0 ? Math.round((count / totalProfiles) * 100) : 0
+                return (
+                  <div key={themeKey} className="flex items-center justify-between text-xs gap-2">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-bold border truncate ${themeObj.color}`}>
+                      {idx + 1}. {themeObj.name}
+                    </span>
+                    <span className="font-mono text-slate-500 dark:text-slate-400 text-[11px] shrink-0 font-semibold">
+                      {count} ({pct}%)
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/60 text-xs text-slate-500 dark:text-slate-400 font-medium">
+              <span>Top 3 más elegidos</span>
+              <span className="text-fuchsia-600 dark:text-fuchsia-400 font-bold">
+                Ver detalle
               </span>
             </div>
           </div>
@@ -1249,23 +1345,6 @@ Administrador autorizado: jericesb5@gmail.com
                 </button>
               </div>
 
-              {/* Theme Filter Dropdown */}
-              <div className="flex items-center gap-1.5">
-                <select
-                  value={themeFilter}
-                  onChange={(e) => setThemeFilter(e.target.value)}
-                  className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-                >
-                  <option value="all">Todos los Temas</option>
-                  <option value="minimalist">Minimalista</option>
-                  <option value="neo_brutalist">Pop Tactile</option>
-                  <option value="creative">Creativo</option>
-                  <option value="tech">Técnico</option>
-                  <option value="warm">Cálido</option>
-                  <option value="executive">Ejecutivo</option>
-                </select>
-              </div>
-
               {/* Sort selector */}
               <div className="flex items-center gap-1.5">
                 <select
@@ -1277,21 +1356,20 @@ Administrador autorizado: jericesb5@gmail.com
                   }}
                   className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                 >
+                  <option value="createdAt_desc">Más Recientes</option>
                   <option value="views_desc">Mayor Tráfico (Visitas ↓)</option>
                   <option value="views_asc">Menor Tráfico (Visitas ↑)</option>
                   <option value="clicks_desc">Más Clics de Contacto ↓</option>
                   <option value="name_asc">Nombre (A-Z)</option>
-                  <option value="createdAt_desc">Más Recientes</option>
                 </select>
               </div>
 
               {/* Clear filters button */}
-              {(searchTerm || statusFilter !== 'all' || themeFilter !== 'all') && (
+              {(searchTerm || statusFilter !== 'all') && (
                 <button
                   onClick={() => {
                     setSearchTerm('')
                     setStatusFilter('all')
-                    setThemeFilter('all')
                   }}
                   className="px-3 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-xl transition-colors"
                 >
@@ -1333,7 +1411,6 @@ Administrador autorizado: jericesb5@gmail.com
                 onClick={() => {
                   setSearchTerm('')
                   setStatusFilter('all')
-                  setThemeFilter('all')
                 }}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-500 transition-colors"
               >
@@ -1357,7 +1434,7 @@ Administrador autorizado: jericesb5@gmail.com
                 </thead>
 
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800/80 font-medium">
-                  {filteredProfiles.map((p) => {
+                  {paginatedProfiles.map((p) => {
                     const views = p.analytics?.views || 0
                     const clicks = p.analytics?.contactClicks || 0
                     const conversionRate = views > 0 ? ((clicks / views) * 100).toFixed(1) : '0.0'
@@ -1372,25 +1449,16 @@ Administrador autorizado: jericesb5@gmail.com
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-3.5">
                             <img
-                              src={p.personalInfo?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'}
-                              alt={p.personalInfo?.name}
+                              src={p.personalInfo?.avatar || SAMBI_DEFAULT_AVATAR}
+                              alt={p.personalInfo?.name || p.username}
                               className="w-11 h-11 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shadow-sm"
                             />
                             <div className="min-w-0">
                               <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 truncate">
                                 <span>{p.personalInfo?.name || p.username}</span>
-                                {p.isLifetime && (
-                                  <span className="px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 text-[10px] font-black border border-indigo-200 dark:border-indigo-800 flex items-center gap-1 shadow-xs" title="Plan Premium Vitalicio">
-                                    <Sparkles className="w-3 h-3 text-amber-500 fill-amber-500" />
-                                    <span>VIP De por vida</span>
-                                  </span>
-                                )}
                                 {p.personalInfo?.availableForWork && (
                                   <span className="w-2 h-2 rounded-full bg-emerald-500" title="Disponible para trabajar" />
                                 )}
-                              </div>
-                              <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-xs">
-                                {p.personalInfo?.title || 'Profesional'}
                               </div>
                               <div className="text-xs text-indigo-600 dark:text-indigo-400 font-mono font-bold mt-0.5">
                                 /{p.username}
@@ -1495,11 +1563,66 @@ Administrador autorizado: jericesb5@gmail.com
             </div>
           )}
 
-          {/* Table Footer Summary */}
-          <div className="p-4 sm:p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400 font-medium">
+          {/* Table Footer Summary & Pagination */}
+          <div className="p-4 sm:p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400 font-medium">
             <div>
-              Mostrando <strong className="text-slate-800 dark:text-slate-200">{filteredProfiles.length}</strong> de <strong className="text-slate-800 dark:text-slate-200">{totalProfiles}</strong> usuarios registrados.
+              Mostrando del <strong className="text-slate-800 dark:text-slate-200">{filteredProfiles.length === 0 ? 0 : (currentPage - 1) * USERS_PER_PAGE + 1}</strong> al <strong className="text-slate-800 dark:text-slate-200">{Math.min(currentPage * USERS_PER_PAGE, filteredProfiles.length)}</strong> de <strong className="text-slate-800 dark:text-slate-200">{filteredProfiles.length}</strong> portafolios.
             </div>
+
+            {/* Pagination Controls */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span>Anterior</span>
+              </button>
+
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
+                  if (
+                    totalPages > 6 &&
+                    pageNum !== 1 &&
+                    pageNum !== totalPages &&
+                    Math.abs(pageNum - currentPage) > 1
+                  ) {
+                    if (pageNum === 2 || pageNum === totalPages - 1) {
+                      return <span key={pageNum} className="px-1 text-slate-400 font-bold">...</span>
+                    }
+                    return null
+                  }
+
+                  return (
+                    <button
+                      key={pageNum}
+                      type="button"
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`w-8 h-8 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        currentPage === pageNum
+                          ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-105'
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  )
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                <span>Siguiente</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
             <div className="flex items-center gap-4">
               <span>MRR Activo: <strong className="text-emerald-600 dark:text-emerald-400 font-bold">${projectedMrr.toLocaleString('es-CL')} CLP</strong></span>
               <span>•</span>
