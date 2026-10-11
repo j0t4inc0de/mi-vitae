@@ -1140,21 +1140,21 @@ Administrador autorizado: jericesb5@gmail.com
             </div>
           </div>
 
-          {/* Card 2: Usuarios Activos / Suscripciones */}
+          {/* Card 2: Suscripciones Activas (Pago real) */}
           <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-28 h-28 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-colors pointer-events-none" />
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Usuarios Activos</span>
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Suscripciones Activas</span>
               <div className="p-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
                 <UserCheck className="w-5 h-5" />
               </div>
             </div>
             <div className="text-3xl font-black text-slate-900 dark:text-white">
-              {activePremiumProfiles + lifetimeProfiles}
+              {activePremiumProfiles}
             </div>
             <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/60 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
               <TrendingUp className="w-3.5 h-3.5" />
-              <span>{lifetimeProfiles} VIP De por vida + {activePremiumProfiles} suscriptores</span>
+              <span>{activePremiumProfiles} {activePremiumProfiles === 1 ? 'suscripción activa' : 'suscripciones activas'} • De pago mensual</span>
             </div>
           </div>
 
