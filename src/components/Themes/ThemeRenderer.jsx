@@ -8,7 +8,7 @@ import NeoBrutalistTheme from './NeoBrutalistTheme'
 import SwissTheme from './SwissTheme'
 
 // ponytail: Polymorphic theme map - O(1) lookup table eliminates 60+ lines of switch boilerplate
-const THEME_COMPONENTS = {
+export const THEME_COMPONENTS = {
   minimalist: MinimalistTheme,
   creative: CreativeTheme,
   tech: TechTheme,

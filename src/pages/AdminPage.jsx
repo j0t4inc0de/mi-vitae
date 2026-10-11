@@ -19,18 +19,33 @@ import {
   Plus, Tag, Globe, QrCode, Palette
 } from 'lucide-react'
 
+import { THEME_COMPONENTS } from '../components/Themes/ThemeRenderer'
+
 // Avatar por defecto estilo blob (Boring Avatars / Sambi) para usuarios sin foto de perfil
 const SAMBI_DEFAULT_AVATAR = 'https://source.boringavatars.com/beam/120/Sambi?colors=6366F1,4F46E5,7C3AED,06B6D4,10B981'
 
 // Map theme IDs to user-friendly names and badge styling
 const THEME_INFO = {
+  swiss: { name: 'Suizo (Swiss Grid)', color: 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800' },
   minimalist: { name: 'Minimalista', color: 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700' },
   neo_brutalist: { name: 'Pop Tactile', color: 'bg-amber-100 dark:bg-amber-950/50 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-700' },
   creative: { name: 'Creativo', color: 'bg-fuchsia-50 dark:bg-fuchsia-950/50 text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-200 dark:border-fuchsia-800' },
   tech: { name: 'Técnico', color: 'bg-cyan-50 dark:bg-cyan-950/50 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800' },
   warm: { name: 'Cálido', color: 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800' },
   executive: { name: 'Ejecutivo', color: 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800' },
-  swiss: { name: 'Suizo', color: 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800' },
+}
+
+// Resolucion dinamica y escalable de metadatos de cualquier tema registrado o nuevo
+const getThemeMeta = (themeKey) => {
+  if (THEME_INFO[themeKey]) return THEME_INFO[themeKey]
+  const cleanName = (themeKey || 'minimalist')
+    .split('_')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+  return {
+    name: cleanName,
+    color: 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+  }
 }
 
 const PLAN_INFO = {
@@ -305,6 +320,7 @@ export default function AdminPage() {
 
   // UI state
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isThemeBreakdownOpen, setIsThemeBreakdownOpen] = useState(false)
   const [toastMessage, setToastMessage] = useState(null)
   const [confirmDeleteUser, setConfirmDeleteUser] = useState(null)
 
@@ -356,10 +372,17 @@ export default function AdminPage() {
     }).length
   }, [profileList])
 
-  // Desglose de popularidad por temas
+  // Desglose de popularidad por temas (100% dinamico y escalable)
   const themeCounts = useMemo(() => {
     const counts = {}
-    Object.keys(THEME_INFO).forEach((k) => { counts[k] = 0 })
+    // 1. Inicializar todos los temas registrados en ThemeRenderer y THEME_INFO con 0
+    const allKnownThemes = new Set([
+      ...Object.keys(THEME_COMPONENTS || {}),
+      ...Object.keys(THEME_INFO)
+    ])
+    allKnownThemes.forEach((k) => { counts[k] = 0 })
+
+    // 2. Acumular conteos reales de la lista de perfiles
     profileList.forEach((p) => {
       const t = p.theme || 'minimalist'
       counts[t] = (counts[t] || 0) + 1
@@ -1212,16 +1235,16 @@ Administrador autorizado: jericesb5@gmail.com
             </div>
             
             {/* Tooltip flotante al pasar el mouse */}
-            <div className="absolute bottom-full right-0 sm:left-1/2 sm:-translate-x-1/2 mb-2 hidden group-hover:block z-30 w-56 p-3 bg-slate-900 text-white rounded-2xl shadow-xl border border-slate-700 text-xs pointer-events-none">
+            <div className="absolute bottom-full right-0 sm:left-1/2 sm:-translate-x-1/2 mb-2 hidden group-hover:block z-30 w-60 p-3 bg-slate-900 text-white rounded-2xl shadow-xl border border-slate-700 text-xs pointer-events-none">
               <div className="font-bold border-b border-slate-700 pb-1.5 mb-1.5 text-[11px] text-slate-300">
-                Conteo Exacto de Temas:
+                Conteo Exacto de Temas ({topThemes.length}):
               </div>
               <div className="space-y-1">
                 {topThemes.map(([themeKey, count]) => {
-                  const name = THEME_INFO[themeKey]?.name || themeKey
+                  const meta = getThemeMeta(themeKey)
                   return (
                     <div key={themeKey} className="flex items-center justify-between text-[11px]">
-                      <span className="text-slate-300">{name}:</span>
+                      <span className="text-slate-300 truncate max-w-[120px]">{meta.name}:</span>
                       <span className="font-bold text-white font-mono">{count} {count === 1 ? 'usuario' : 'usuarios'}</span>
                     </div>
                   )
@@ -1238,7 +1261,7 @@ Administrador autorizado: jericesb5@gmail.com
 
             <div className="space-y-2 min-h-[44px] flex flex-col justify-center">
               {topThemes.slice(0, 3).map(([themeKey, count], idx) => {
-                const themeObj = THEME_INFO[themeKey] || { name: themeKey, color: 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700' }
+                const themeObj = getThemeMeta(themeKey)
                 const pct = totalProfiles > 0 ? Math.round((count / totalProfiles) * 100) : 0
                 return (
                   <div key={themeKey} className="flex items-center justify-between text-xs gap-2">
@@ -1253,12 +1276,16 @@ Administrador autorizado: jericesb5@gmail.com
               })}
             </div>
 
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/60 text-xs text-slate-500 dark:text-slate-400 font-medium">
-              <span>Top 3 más elegidos</span>
-              <span className="text-fuchsia-600 dark:text-fuchsia-400 font-bold">
+            <button
+              type="button"
+              onClick={() => setIsThemeBreakdownOpen(true)}
+              className="flex items-center justify-between w-full mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/60 text-xs text-slate-500 dark:text-slate-400 font-medium hover:text-fuchsia-600 dark:hover:text-fuchsia-400 transition-colors cursor-pointer text-left"
+            >
+              <span>{topThemes.length} temas en total</span>
+              <span className="text-fuchsia-600 dark:text-fuchsia-400 font-bold hover:underline">
                 Ver detalle
               </span>
-            </div>
+            </button>
           </div>
 
         </div>
@@ -1439,7 +1466,7 @@ Administrador autorizado: jericesb5@gmail.com
                     const views = p.analytics?.views || 0
                     const clicks = p.analytics?.contactClicks || 0
                     const conversionRate = views > 0 ? ((clicks / views) * 100).toFixed(1) : '0.0'
-                    const themeObj = THEME_INFO[p.theme] || { name: p.theme, color: 'bg-slate-100 text-slate-700 border-slate-200' }
+                    const themeObj = getThemeMeta(p.theme || 'minimalist')
 
                     return (
                       <tr 
@@ -2296,6 +2323,86 @@ Administrador autorizado: jericesb5@gmail.com
                 className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-colors shadow-sm shadow-rose-600/20"
               >
                 Sí, Desvincular
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Desglose Completo de Temas & Diseños */}
+      {isThemeBreakdownOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => setIsThemeBreakdownOpen(false)}
+        >
+          <div 
+            className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-fuchsia-50 dark:bg-fuchsia-950/60 text-fuchsia-600 dark:text-fuchsia-400">
+                  <Palette className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
+                    Distribución de Temas & Diseños
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {totalProfiles} portafolios distribuidos en {topThemes.length} temas
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsThemeBreakdownOpen(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                aria-label="Cerrar modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2.5 max-h-[60vh] overflow-y-auto pr-1">
+              {topThemes.map(([themeKey, count], idx) => {
+                const meta = getThemeMeta(themeKey)
+                const pct = totalProfiles > 0 ? Math.round((count / totalProfiles) * 100) : 0
+                return (
+                  <div 
+                    key={themeKey} 
+                    className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="font-mono text-xs font-bold text-slate-400 w-4">
+                        {idx + 1}.
+                      </span>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-bold border truncate ${meta.color}`}>
+                        {meta.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="w-20 sm:w-24 bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden hidden sm:block">
+                        <div 
+                          className="bg-fuchsia-500 h-full rounded-full transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      <span className="font-mono font-bold text-xs text-slate-900 dark:text-white text-right min-w-[50px]">
+                        {count} ({pct}%)
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setIsThemeBreakdownOpen(false)}
+                className="w-full py-2.5 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+              >
+                Cerrar
               </button>
             </div>
           </div>
