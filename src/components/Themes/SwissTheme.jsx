@@ -69,10 +69,12 @@ export default function SwissTheme({ profile, onRecordClick }) {
             <div className="flex items-center gap-2 text-stone-500 dark:text-stone-400">
               <span className="w-2 h-2 bg-[#E11D48] inline-block shrink-0" />
               <span className="font-bold text-stone-900 dark:text-stone-200">PORTAFOLIO</span>
-              <span className="text-stone-300 dark:text-stone-700">/</span>
-              <span>SISTEMA 2026</span>
-              <span className="text-stone-300 dark:text-stone-700">/</span>
-              <span className="text-[#E11D48] font-bold">SWISS GRID</span>
+              {profile.username && (
+                <>
+                  <span className="text-stone-300 dark:text-stone-700">/</span>
+                  <span className="text-stone-600 dark:text-stone-300">@{profile.username}</span>
+                </>
+              )}
             </div>
 
             <div className="flex items-center gap-3">

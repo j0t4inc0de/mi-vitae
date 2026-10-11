@@ -733,18 +733,18 @@ it('verifies tagsRaw and tagsArray allow typing commas without deleting characte
   assert.ok(dashboardContent.includes('tagsRaw: (p.tags || []).join(\', \')'), 'DashboardPage must clean tagsRaw on blur');
 });
 
-it('verifies DashboardPage THEME_OPTIONS contains 7 themes with neo_brutalist (Pop Tactile) at position 2 and swiss at position 7', () => {
+it('verifies DashboardPage THEME_OPTIONS contains 7 themes with swiss at position 1 and neo_brutalist at position 3', () => {
   const themeMatch = dashboardContent.match(/const THEME_OPTIONS = \[([\s\S]*?)\]\r?\n\r?\nconst DEMO_ARCHETYPES/);
   assert.ok(themeMatch, 'THEME_OPTIONS block must exist in DashboardPage.jsx');
   const themeIds = [...themeMatch[1].matchAll(/id:\s*'([a-z_]+)'/g)].map((m) => m[1]);
   assert.equal(themeIds.length, 7, 'Must have exactly 7 themes in THEME_OPTIONS');
-  assert.equal(themeIds[0], 'minimalist', 'First theme must be minimalist');
-  assert.equal(themeIds[1], 'neo_brutalist', 'Second theme must be neo_brutalist (Pop Tactile)');
-  assert.equal(themeIds[2], 'creative', 'Third theme must be creative');
-  assert.equal(themeIds[3], 'tech', 'Fourth theme must be tech');
-  assert.equal(themeIds[4], 'warm', 'Fifth theme must be warm');
-  assert.equal(themeIds[5], 'executive', 'Sixth theme must be executive');
-  assert.equal(themeIds[6], 'swiss', 'Seventh theme must be swiss');
+  assert.equal(themeIds[0], 'swiss', 'First theme must be swiss (newest theme first rule)');
+  assert.equal(themeIds[1], 'minimalist', 'Second theme must be minimalist');
+  assert.equal(themeIds[2], 'neo_brutalist', 'Third theme must be neo_brutalist (Pop Tactile)');
+  assert.equal(themeIds[3], 'creative', 'Fourth theme must be creative');
+  assert.equal(themeIds[4], 'tech', 'Fifth theme must be tech');
+  assert.equal(themeIds[5], 'warm', 'Sixth theme must be warm');
+  assert.equal(themeIds[6], 'executive', 'Seventh theme must be executive');
 });
 
 it('verifies RegisterFeedbackModal contains all 7 themes including Pop Tactile and Swiss', () => {

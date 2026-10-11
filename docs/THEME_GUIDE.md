@@ -201,26 +201,43 @@ const THEME_COMPONENTS = {
 ```
 
 ### Paso 3: Agregar la Opción al Selector del Studio en `DashboardPage.jsx`
-En `src/pages/DashboardPage.jsx`, agrega la definición a `THEME_OPTIONS`:
+> [!IMPORTANT]
+> **REGLA DE ORO DE POSICIONAMIENTO (FIRST-TO-SHOW):**
+> Cada nuevo tema que se incorpore a la plataforma **debe ubicarse SIEMPRE AL PRINCIPIO (posición 0 / primer elemento) del array `THEME_OPTIONS`** en `src/pages/DashboardPage.jsx` y en `RegisterFeedbackModal.jsx`. Esto garantiza que los usuarios del Studio descubran de inmediato la última novedad visual sin tener que desplazarse al final del carrusel de temas.
+
+En `src/pages/DashboardPage.jsx`, agrega la definición al inicio de `THEME_OPTIONS`:
 ```javascript
-{
-  id: 'nuevo',
-  name: 'Nuevo Estilo',
-  desc: 'Descripción elegante de la estética visual',
-  category: 'Cualquier área profesional',
-  accentColor: '#3B82F6',
-  bgColor: '#0F172A',
-  tag: 'Moderno'
-}
+const THEME_OPTIONS = [
+  {
+    id: 'nuevo',
+    name: 'Nuevo Estilo',
+    desc: 'Descripción elegante de la estética visual',
+    category: 'Cualquier área profesional',
+    accentColor: '#E11D48',
+    bgColor: '#FAFAFA',
+    tag: 'Novedad'
+  },
+  // ... demás temas existentes
+]
 ```
 
-### Paso 4: Ejecutar Verificación
+### Paso 4: Registrar en el Ecosistema del Proyecto
+Para mantener 100% la integridad del sistema:
+1. **Admin Panel (`src/pages/AdminPage.jsx`):** Registrar el slug en `THEME_INFO` con sus clases de color para las analíticas y badges (mantener siempre **0 emojis** en este archivo).
+2. **Onboarding Modal (`src/components/Modals/RegisterFeedbackModal.jsx`):** Agregar el tema a `THEME_OPTIONS` al inicio y mantener el grid responsivo simétrico.
+3. **Fondo de Portafolio (`src/pages/PortfolioPage.jsx`):** Definir el color de fondo en `THEME_BG[nuevo]`.
+4. **Viral Footer (`src/components/Common/ViralFooter.jsx`):** Agregar el acento visual si aplica.
+5. **Tests Funcionales (`tests/functional.test.mjs`):**
+   - En **Suite 4**: agregar el slug al array de verificación de carga.
+   - En **Suite 7**: actualizar el conteo total y la aserción de orden (el nuevo tema debe ser validado en la posición 0).
+
+### Paso 5: Ejecutar Verificación
 Corre en la terminal:
 ```bash
 npm run build
 npm test
 ```
-Si el resultado es `0 errors`, ¡el tema está 100% operativo en producción!
+Si el resultado es `0 errors`, ¡el nuevo tema está 100% operativo en producción!
 
 ---
 

@@ -70,13 +70,13 @@ const REFERRAL_SOURCES = [
 
 // Theme choices for Step 1
 const THEME_OPTIONS = [
+  { id: 'swiss', label: 'Suizo', color: 'bg-rose-600 text-white', role: 'Diseño & Arquitectura' },
   { id: 'minimalist', label: 'Minimalista', color: 'bg-stone-700 text-white', role: 'Legal & Finanzas' },
   { id: 'neo_brutalist', label: 'Pop Tactile', color: 'bg-amber-400 text-black', role: 'Makers & Creativos' },
   { id: 'creative', label: 'Creativo', color: 'bg-purple-500 text-white', role: 'Diseño & UX' },
   { id: 'tech', label: 'Técnico', color: 'bg-emerald-500 text-black', role: 'Tech & Code' },
   { id: 'warm', label: 'Cálido', color: 'bg-amber-500 text-white', role: 'Salud & Coaching' },
-  { id: 'executive', label: 'Ejecutivo', color: 'bg-blue-600 text-white', role: 'C-Level & Negocios' },
-  { id: 'swiss', label: 'Suizo', color: 'bg-rose-600 text-white', role: 'Diseño & Arquitectura' }
+  { id: 'executive', label: 'Ejecutivo', color: 'bg-blue-600 text-white', role: 'C-Level & Negocios' }
 ]
 
 /**

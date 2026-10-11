@@ -58,6 +58,15 @@ import {
 // Available Themes Definition
 const THEME_OPTIONS = [
   {
+    id: 'swiss',
+    name: 'Suizo (Swiss Grid)',
+    desc: 'Estilo tipográfico internacional con acentos carmesí y cuadrícula geométrica',
+    category: 'Arquitectura, Diseño, Ingeniería & Estrategia',
+    accentColor: '#E11D48',
+    bgColor: '#FAFAFA',
+    tag: 'Precisión'
+  },
+  {
     id: 'minimalist',
     name: 'Minimalista',
     desc: 'Editorial sobrio blanco y negro tipo New York Times',
@@ -110,15 +119,6 @@ const THEME_OPTIONS = [
     accentColor: '#1E3A8A',
     bgColor: '#F8FAFC',
     tag: 'Corporativo'
-  },
-  {
-    id: 'swiss',
-    name: 'Suizo (Swiss Grid)',
-    desc: 'Estilo tipográfico internacional con acentos carmesí y cuadrícula geométrica',
-    category: 'Arquitectura, Diseño, Ingeniería & Estrategia',
-    accentColor: '#E11D48',
-    bgColor: '#FAFAFA',
-    tag: 'Precisión'
   }
 ]
 
