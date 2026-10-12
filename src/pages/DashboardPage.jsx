@@ -27,6 +27,7 @@ import {
   CheckCircle2,
   Smartphone,
   Monitor,
+  Camera,
   Upload,
   Trash2,
   Plus,
@@ -1119,79 +1120,110 @@ export default function DashboardPage() {
           {activeTab === 'personal' && (
             <div className="space-y-6 animate-fadeIn">
               
-              {/* Avatar Dropzone with Auto-Compression */}
-              <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-200 space-y-3">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                  Foto de Perfil
-                </label>
+              {/* ponytail: Compact profile photo section (~70-80px) with full dropzone & auto-compression */}
+              <div
+                onDragOver={(e) => { e.preventDefault(); setAvatarDragOver(true) }}
+                onDragLeave={() => setAvatarDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  setAvatarDragOver(false)
+                  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    handleAvatarFileUpload(e.dataTransfer.files[0])
+                  }
+                }}
+                className={`p-3.5 sm:p-4 rounded-2xl border transition-all ${
+                  avatarDragOver
+                    ? 'border-palette-primary bg-palette-primary/10 border-dashed ring-2 ring-palette-primary/20'
+                    : 'border-slate-200 bg-slate-50/80 hover:border-slate-300'
+                }`}
+              >
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      handleAvatarFileUpload(e.target.files[0])
+                    }
+                  }}
+                />
 
-                <div className="flex flex-col sm:flex-row items-center gap-4">
-                  
-                  {/* Current Avatar Preview */}
-                  <div className="relative group shrink-0">
+                <div className="flex items-center gap-3.5 sm:gap-4">
+                  {/* Interactive Avatar with Camera Badge & Hover Overlay */}
+                  <div
+                    onClick={() => !isCompressingAvatar && avatarInputRef.current?.click()}
+                    className="relative group shrink-0 cursor-pointer focus:outline-none"
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Cambiar foto de perfil"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        avatarInputRef.current?.click()
+                      }
+                    }}
+                  >
                     <UserAvatar
                       username={profileData.username}
                       avatarUrl={profileData.personalInfo?.avatar}
-                      size={80}
-                      className="w-20 h-20 rounded-2xl border-2 border-palette-primary/30 shadow-sm"
+                      size={64}
+                      className="w-16 h-16 rounded-2xl border-2 border-palette-primary/30 shadow-sm object-cover transition-transform group-hover:scale-[1.02]"
                     />
+
+                    {/* Camera overlay on hover */}
+                    <div className="absolute inset-0 bg-slate-900/35 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <Camera className="w-5 h-5 text-white drop-shadow" />
+                    </div>
+
+                    {/* Corner Camera Badge */}
+                    <div className="absolute -bottom-1 -right-1 p-1 bg-white rounded-full shadow-sm border border-slate-200 group-hover:bg-palette-primary text-slate-600 group-hover:text-white transition-colors">
+                      <Camera className="w-3 h-3" />
+                    </div>
+
+                    {/* Loading/Compressing Spinner */}
                     {isCompressingAvatar && (
-                      <div className="absolute inset-0 bg-white/80 rounded-2xl flex items-center justify-center">
+                      <div className="absolute inset-0 bg-white/85 rounded-2xl flex items-center justify-center z-10">
                         <RefreshCw className="w-5 h-5 text-palette-primary animate-spin" />
                       </div>
                     )}
                   </div>
 
-                  {/* Dropzone Container */}
-                  <div
-                    onDragOver={(e) => { e.preventDefault(); setAvatarDragOver(true) }}
-                    onDragLeave={() => setAvatarDragOver(false)}
-                    onDrop={(e) => {
-                      e.preventDefault()
-                      setAvatarDragOver(false)
-                      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                        handleAvatarFileUpload(e.dataTransfer.files[0])
-                      }
-                    }}
-                    onClick={() => avatarInputRef.current?.click()}
-                    className={`flex-1 w-full p-4 rounded-xl border-2 border-dashed transition-all text-center cursor-pointer flex flex-col items-center justify-center gap-1 ${
-                      avatarDragOver
-                        ? 'border-palette-primary bg-palette-primary/10'
-                        : 'border-slate-300 hover:border-palette-primary/60 bg-white hover:bg-slate-50'
-                    }`}
-                  >
-                    <input
-                      ref={avatarInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          handleAvatarFileUpload(e.target.files[0])
-                        }
-                      }}
-                    />
-                    <Upload className="w-5 h-5 text-palette-primary" />
-                    <div className="text-xs font-bold text-slate-800">
-                      Arrastra tu foto o haz clic para subir
+                  {/* Information & Action Buttons */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2">
+                      <h3 className="text-xs sm:text-sm font-bold text-slate-800 tracking-tight">Foto de Perfil</h3>
+                      <span className="text-[11px] text-slate-400 hidden xs:inline sm:inline">·</span>
+                      <span className="text-[11px] text-slate-500 hidden xs:inline sm:inline">Toca para cambiar</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 xs:hidden sm:hidden truncate">Toca para cambiar</p>
+
+                    <div className="flex items-center gap-2 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => avatarInputRef.current?.click()}
+                        disabled={isCompressingAvatar}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200 shadow-sm transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                      >
+                        <Upload className="w-3.5 h-3.5 text-palette-primary" />
+                        <span>Subir Foto</span>
+                      </button>
+
+                      {profileData.personalInfo?.avatar && profileData.personalInfo.avatar !== 'blobatar' && (
+                        <button
+                          type="button"
+                          onClick={() => updatePersonalInfo('avatar', '')}
+                          disabled={isCompressingAvatar}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+                          title="Quitar foto personalizada"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Quitar</span>
+                        </button>
+                      )}
                     </div>
                   </div>
-
                 </div>
-
-                {/* Custom Photo Clear & Account Link */}
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
-                  {profileData.personalInfo?.avatar && profileData.personalInfo.avatar !== 'blobatar' && (
-                    <button
-                      type="button"
-                      onClick={() => updatePersonalInfo('avatar', '')}
-                      className="text-xs text-rose-500 hover:text-rose-700 font-medium"
-                    >
-                      Quitar foto
-                    </button>
-                  )}
-                </div>
-
               </div>
 
               {/* Available for Work Toggle */}
@@ -2552,24 +2584,24 @@ export default function DashboardPage() {
 
       </main>
 
-      {/* Sticky Bottom Bar for Mobile */}
-      <aside aria-label="Acciones rápidas móviles" className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-3 shadow-xl flex items-center justify-between gap-3">
+      {/* ponytail: Sticky Bottom Bar for Mobile with exactly equal 3-column grid */}
+      <aside aria-label="Acciones rápidas móviles" className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-3 sm:px-4 py-2.5 sm:py-3 shadow-xl grid grid-cols-3 gap-2 sm:gap-3">
         <button
           type="button"
           onClick={() => setIsQrOpen(true)}
-          className="flex-1 min-h-[44px] px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+          className="w-full min-w-0 min-h-[44px] px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
         >
-          <QrCode className="w-4 h-4 text-palette-primary" />
-          <span>Código QR</span>
+          <QrCode className="w-4 h-4 text-palette-primary shrink-0" />
+          <span className="truncate">Código QR</span>
         </button>
 
         <button
           type="button"
           onClick={handleCopyLink}
-          className="flex-1 min-h-[44px] px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+          className="w-full min-w-0 min-h-[44px] px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
         >
-          {copiedLink ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-          <span>{copiedLink ? 'Copiado' : 'Copiar Link'}</span>
+          {copiedLink ? <Check className="w-4 h-4 text-emerald-600 shrink-0" /> : <Copy className="w-4 h-4 shrink-0" />}
+          <span className="truncate">{copiedLink ? 'Copiado' : 'Copiar Link'}</span>
         </button>
 
         <button
@@ -2578,10 +2610,10 @@ export default function DashboardPage() {
             await handleSave()
             window.open(getLiveProfileUrl(), '_blank', 'noopener,noreferrer')
           }}
-          className="flex-1 min-h-[44px] px-3 py-2 rounded-xl bg-palette-gradient hover:opacity-95 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm shadow-palette-glow transition-transform active:scale-[0.98] cursor-pointer"
+          className="w-full min-w-0 min-h-[44px] px-3 py-2 rounded-xl bg-palette-gradient hover:opacity-95 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm shadow-palette-glow transition-transform active:scale-[0.98] cursor-pointer"
         >
-          <Eye className="w-4 h-4" />
-          <span>En Vivo ↗</span>
+          <Eye className="w-4 h-4 shrink-0" />
+          <span className="truncate">En Vivo ↗</span>
         </button>
       </aside>
 
