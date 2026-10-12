@@ -629,6 +629,12 @@ it('verifies mobile touch target heights (>= 44px) and mobile bottom bar padding
   assert.ok(dashboardContent.includes('pb-24 md:pb-10') || dashboardContent.includes('pb-24'), 'Main wrapper must have bottom padding to prevent mobile bar overlap');
 });
 
+it('verifies mobile real-time KPI pill bar renders metrics for visits, contact, QR and conversion', () => {
+  assert.ok(dashboardContent.includes('Mobile Real-Time KPI Pill Bar'), 'Dashboard must include Mobile Real-Time KPI Pill Bar');
+  assert.ok(dashboardContent.includes('realConversionRate'), 'Pill bar must calculate real conversion rate');
+  assert.ok(dashboardContent.includes('Visitas') && dashboardContent.includes('Conv.'), 'Pill bar must display Visitas and Conv. labels');
+});
+
 it('verifies memory leak prevention on unmount with timer cleanups', () => {
   assert.ok(dashboardContent.includes('savedAlertTimerRef'), 'Must track savedAlert timer reference');
   assert.ok(dashboardContent.includes('copiedLinkTimerRef'), 'Must track copiedLink timer reference');

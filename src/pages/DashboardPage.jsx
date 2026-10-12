@@ -979,6 +979,76 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {/* Mobile Real-Time KPI Pill Bar (Option 3) */}
+            {(() => {
+              const realViews = profileData.analytics?.views ?? 0
+              const realContactClicks = profileData.analytics?.contactClicks ?? 0
+              const realQrScans = (profileData.analytics?.qrScans ?? profileData.analytics?.cvDownloads ?? 0)
+              const totalInteractions = realContactClicks + realQrScans
+              const realConversionRate = realViews > 0 
+                ? ((totalInteractions / realViews) * 100).toFixed(1) 
+                : '0.0'
+
+              const fbType = profileData.floatingButton?.type || 'whatsapp'
+              const channelLabel = {
+                whatsapp: 'WhatsApp',
+                linkedin: 'LinkedIn',
+                email: 'Email',
+                phone: 'Teléfono'
+              }[fbType] || 'Contacto'
+
+              return (
+                <div 
+                  aria-label="Resumen de métricas en tiempo real"
+                  className="lg:hidden mb-3.5 p-2 rounded-2xl bg-white border border-slate-200/90 shadow-sm grid grid-cols-4 gap-1.5 text-[11px]"
+                >
+                  <div 
+                    title="Total de visitas a tu portafolio"
+                    className="flex items-center justify-center gap-1.5 py-1 px-1 rounded-xl bg-slate-50 border border-slate-100 text-center"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-palette-primary shrink-0" />
+                    <div className="flex flex-col items-start leading-none min-w-0">
+                      <span className="font-black text-slate-900 text-xs truncate">{realViews.toLocaleString('es-CL')}</span>
+                      <span className="text-[9px] text-slate-400 font-medium mt-0.5">Visitas</span>
+                    </div>
+                  </div>
+
+                  <div 
+                    title={`Clics en tu botón de contacto (${channelLabel})`}
+                    className="flex items-center justify-center gap-1.5 py-1 px-1 rounded-xl bg-slate-50 border border-slate-100 text-center"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <div className="flex flex-col items-start leading-none min-w-0">
+                      <span className="font-black text-slate-900 text-xs truncate">{realContactClicks.toLocaleString('es-CL')}</span>
+                      <span className="text-[9px] text-slate-400 font-medium mt-0.5 truncate">{channelLabel}</span>
+                    </div>
+                  </div>
+
+                  <div 
+                    title="Escaneos de tu código QR"
+                    className="flex items-center justify-center gap-1.5 py-1 px-1 rounded-xl bg-slate-50 border border-slate-100 text-center"
+                  >
+                    <QrCode className="w-3.5 h-3.5 text-palette-primary shrink-0" />
+                    <div className="flex flex-col items-start leading-none min-w-0">
+                      <span className="font-black text-slate-900 text-xs truncate">{realQrScans.toLocaleString('es-CL')}</span>
+                      <span className="text-[9px] text-slate-400 font-medium mt-0.5">QR</span>
+                    </div>
+                  </div>
+
+                  <div 
+                    title="Tasa de conversión de visitas a contactos"
+                    className="flex items-center justify-center gap-1.5 py-1 px-1 rounded-xl bg-palette-primary/5 border border-palette-primary/15 text-center"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-palette-primary shrink-0" />
+                    <div className="flex flex-col items-start leading-none min-w-0">
+                      <span className="font-black text-palette-primary text-xs truncate">{realConversionRate}%</span>
+                      <span className="text-[9px] text-slate-400 font-medium mt-0.5">Conv.</span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
+
             {/* Scrollable Horizontal Tabs with Snap and Hidden Scrollbars */}
             <div className="relative flex items-center group/tabs">
               {/* Left Scroll Arrow (Desktop/PC) */}
