@@ -885,10 +885,82 @@ export default function DashboardPage() {
         {/* ========================================================================= */}
         {/* LEFT COLUMN: MODULAR ACCORDION / TABBED EDITOR (Span 7) */}
         {/* ========================================================================= */}
-        <section 
-          aria-label="Editor Modular" 
-          className="lg:col-span-7 xl:col-span-7 bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-6 shadow-sm flex flex-col gap-6"
-        >
+        <div className="lg:col-span-7 xl:col-span-7 flex flex-col gap-4">
+
+          {/* Mobile Real-Time KPI Pill Bar (Option 3) */}
+          {(() => {
+            const realViews = profileData.analytics?.views ?? 0
+            const realContactClicks = profileData.analytics?.contactClicks ?? 0
+            const realQrScans = (profileData.analytics?.qrScans ?? profileData.analytics?.cvDownloads ?? 0)
+            const totalInteractions = realContactClicks + realQrScans
+            const realConversionRate = realViews > 0 
+              ? ((totalInteractions / realViews) * 100).toFixed(1) 
+              : '0.0'
+
+            const fbType = profileData.floatingButton?.type || 'whatsapp'
+            const channelLabel = {
+              whatsapp: 'WhatsApp',
+              linkedin: 'LinkedIn',
+              email: 'Email',
+              phone: 'Teléfono'
+            }[fbType] || 'Contacto'
+
+            return (
+              <div 
+                aria-label="Resumen de métricas en tiempo real"
+                className="lg:hidden bg-white border border-slate-200/90 rounded-2xl p-2.5 shadow-sm grid grid-cols-4 gap-1.5 text-[11px]"
+              >
+                <div 
+                  title="Total de visitas a tu portafolio"
+                  className="flex items-center justify-center gap-1.5 py-1 px-1 rounded-xl bg-slate-50 border border-slate-100 text-center"
+                >
+                  <Eye className="w-3.5 h-3.5 text-palette-primary shrink-0" />
+                  <div className="flex flex-col items-start leading-none min-w-0">
+                    <span className="font-black text-slate-900 text-xs truncate">{realViews.toLocaleString('es-CL')}</span>
+                    <span className="text-[9px] text-slate-400 font-medium mt-0.5">Visitas</span>
+                  </div>
+                </div>
+
+                <div 
+                  title={`Clics en tu botón de contacto (${channelLabel})`}
+                  className="flex items-center justify-center gap-1.5 py-1 px-1 rounded-xl bg-slate-50 border border-slate-100 text-center"
+                >
+                  <MessageCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <div className="flex flex-col items-start leading-none min-w-0">
+                    <span className="font-black text-slate-900 text-xs truncate">{realContactClicks.toLocaleString('es-CL')}</span>
+                    <span className="text-[9px] text-slate-400 font-medium mt-0.5 truncate">{channelLabel}</span>
+                  </div>
+                </div>
+
+                <div 
+                  title="Escaneos de tu código QR"
+                  className="flex items-center justify-center gap-1.5 py-1 px-1 rounded-xl bg-slate-50 border border-slate-100 text-center"
+                >
+                  <QrCode className="w-3.5 h-3.5 text-palette-primary shrink-0" />
+                  <div className="flex flex-col items-start leading-none min-w-0">
+                    <span className="font-black text-slate-900 text-xs truncate">{realQrScans.toLocaleString('es-CL')}</span>
+                    <span className="text-[9px] text-slate-400 font-medium mt-0.5">QR</span>
+                  </div>
+                </div>
+
+                <div 
+                  title="Tasa de conversión de visitas a contactos"
+                  className="flex items-center justify-center gap-1.5 py-1 px-1 rounded-xl bg-palette-primary/5 border border-palette-primary/15 text-center"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-palette-primary shrink-0" />
+                  <div className="flex flex-col items-start leading-none min-w-0">
+                    <span className="font-black text-palette-primary text-xs truncate">{realConversionRate}%</span>
+                    <span className="text-[9px] text-slate-400 font-medium mt-0.5">Conv.</span>
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
+
+          <section 
+            aria-label="Editor Modular" 
+            className="bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-6 shadow-sm flex flex-col gap-6"
+          >
 
           {/* Payment Success Notification Banner */}
           {paymentSuccessNotice && (
@@ -979,76 +1051,6 @@ export default function DashboardPage() {
                 </button>
               </div>
             </div>
-
-            {/* Mobile Real-Time KPI Pill Bar (Option 3) */}
-            {(() => {
-              const realViews = profileData.analytics?.views ?? 0
-              const realContactClicks = profileData.analytics?.contactClicks ?? 0
-              const realQrScans = (profileData.analytics?.qrScans ?? profileData.analytics?.cvDownloads ?? 0)
-              const totalInteractions = realContactClicks + realQrScans
-              const realConversionRate = realViews > 0 
-                ? ((totalInteractions / realViews) * 100).toFixed(1) 
-                : '0.0'
-
-              const fbType = profileData.floatingButton?.type || 'whatsapp'
-              const channelLabel = {
-                whatsapp: 'WhatsApp',
-                linkedin: 'LinkedIn',
-                email: 'Email',
-                phone: 'Teléfono'
-              }[fbType] || 'Contacto'
-
-              return (
-                <div 
-                  aria-label="Resumen de métricas en tiempo real"
-                  className="lg:hidden mb-3.5 p-2 rounded-2xl bg-white grid grid-cols-4 gap-1.5 text-[11px]"
-                >
-                  <div 
-                    title="Total de visitas a tu portafolio"
-                    className="flex items-center justify-center gap-1.5 py-1 px-1 rounded-xl bg-slate-50 border border-slate-100 text-center"
-                  >
-                    <Eye className="w-3.5 h-3.5 text-palette-primary shrink-0" />
-                    <div className="flex flex-col items-start leading-none min-w-0">
-                      <span className="font-black text-slate-900 text-xs truncate">{realViews.toLocaleString('es-CL')}</span>
-                      <span className="text-[9px] text-slate-400 font-medium mt-0.5">Visitas</span>
-                    </div>
-                  </div>
-
-                  <div 
-                    title={`Clics en tu botón de contacto (${channelLabel})`}
-                    className="flex items-center justify-center gap-1.5 py-1 px-1 rounded-xl bg-slate-50 border border-slate-100 text-center"
-                  >
-                    <MessageCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <div className="flex flex-col items-start leading-none min-w-0">
-                      <span className="font-black text-slate-900 text-xs truncate">{realContactClicks.toLocaleString('es-CL')}</span>
-                      <span className="text-[9px] text-slate-400 font-medium mt-0.5 truncate">{channelLabel}</span>
-                    </div>
-                  </div>
-
-                  <div 
-                    title="Escaneos de tu código QR"
-                    className="flex items-center justify-center gap-1.5 py-1 px-1 rounded-xl bg-slate-50 border border-slate-100 text-center"
-                  >
-                    <QrCode className="w-3.5 h-3.5 text-palette-primary shrink-0" />
-                    <div className="flex flex-col items-start leading-none min-w-0">
-                      <span className="font-black text-slate-900 text-xs truncate">{realQrScans.toLocaleString('es-CL')}</span>
-                      <span className="text-[9px] text-slate-400 font-medium mt-0.5">QR</span>
-                    </div>
-                  </div>
-
-                  <div 
-                    title="Tasa de conversión de visitas a contactos"
-                    className="flex items-center justify-center gap-1.5 py-1 px-1 rounded-xl bg-palette-primary/5 border border-palette-primary/15 text-center"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-palette-primary shrink-0" />
-                    <div className="flex flex-col items-start leading-none min-w-0">
-                      <span className="font-black text-palette-primary text-xs truncate">{realConversionRate}%</span>
-                      <span className="text-[9px] text-slate-400 font-medium mt-0.5">Conv.</span>
-                    </div>
-                  </div>
-                </div>
-              )
-            })()}
 
             {/* Scrollable Horizontal Tabs with Snap and Hidden Scrollbars */}
             <div className="relative flex items-center group/tabs">
@@ -1227,19 +1229,20 @@ export default function DashboardPage() {
               </div>
 
               {/* Available for Work Toggle */}
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50/80 border border-slate-200">
-                <div className="space-y-0.5 pr-4">
+              <div className="flex items-center justify-between p-3 sm:p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200">
+                <div className="space-y-0.5 pr-3 min-w-0">
                   <div className="text-xs font-bold text-slate-800 flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
-                    <span>Badge "Disponibilidad Inmediata"</span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+                    <span>Mostrar disponibilidad</span>
                   </div>
-                  <p className="text-[11px] text-slate-500">
-                    Muestra el indicador de disponibilidad inmediata en la cabecera de tu portafolio.
+                  <p className="text-[11px] text-slate-500 leading-tight">
+                    Avisa que puedes comenzar de inmediato.
                   </p>
                 </div>
                 <button
                   type="button"
                   role="switch"
+                  aria-label="Alternar mostrar disponibilidad"
                   aria-checked={profileData.personalInfo?.availableForWork ?? true}
                   onClick={() => updatePersonalInfo('availableForWork', !(profileData.personalInfo?.availableForWork ?? true))}
                   className={`w-12 h-7 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 ease-in-out shrink-0 ${
@@ -2247,6 +2250,7 @@ export default function DashboardPage() {
           )}
 
         </section>
+        </div>
 
         {/* ========================================================================= */}
         {/* RIGHT COLUMN: LIVE ANALYTICS & PORTFOLIO CONTROL CENTER (Span 5) */}
