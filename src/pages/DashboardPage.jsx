@@ -1001,7 +1001,7 @@ export default function DashboardPage() {
               return (
                 <div 
                   aria-label="Resumen de métricas en tiempo real"
-                  className="lg:hidden mb-3.5 p-2 rounded-2xl bg-white border border-slate-200/90 shadow-sm grid grid-cols-4 gap-1.5 text-[11px]"
+                  className="lg:hidden mb-3.5 p-2 rounded-2xl bg-white grid grid-cols-4 gap-1.5 text-[11px]"
                 >
                   <div 
                     title="Total de visitas a tu portafolio"
