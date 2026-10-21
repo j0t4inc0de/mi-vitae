@@ -1553,7 +1553,9 @@ Administrador autorizado: jericesb5@gmail.com
                               >
                                 <option value="lifetime">De por vida</option>
                                 <option value="premium">Suscripción ($3.490)</option>
-                                <option value="trial">1er Mes Gratis</option>
+                                <option value="trial">
+                                  {(p.creatorCode || p.personalInfo?.creator_code || (p.planName && p.planName.includes('1er Mes'))) ? '1er Mes Gratis (30d)' : 'Prueba Gratis (14d)'}
+                                </option>
                                 <option value="inactive">Inactivo</option>
                               </select>
                               <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-60" />
@@ -1699,7 +1701,9 @@ Administrador autorizado: jericesb5@gmail.com
                                   >
                                     <option value="lifetime">De por vida</option>
                                     <option value="premium">Suscripción ($3.490)</option>
-                                    <option value="trial">1er Mes Gratis</option>
+                                    <option value="trial">
+                                      {(p.creatorCode || p.personalInfo?.creator_code || (p.planName && p.planName.includes('1er Mes'))) ? '1er Mes Gratis (30d)' : 'Prueba Gratis (14d)'}
+                                    </option>
                                     <option value="inactive">Inactivo</option>
                                   </select>
                                   <ChevronDown className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-60" />

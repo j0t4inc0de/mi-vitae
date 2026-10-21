@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { getStoredCreatorCode, TRIAL_DAYS_DEFAULT, TRIAL_DAYS_WITH_CODE } from './creatorCode.js'
 
 const FALLBACK_SUPABASE_URL = 'https://ewptcglzykqvnvxxwwhm.supabase.co'
 const FALLBACK_SUPABASE_ANON_KEY = 'sb_publishable_umvJDktvEJKBaLpUlSJ7gA_Dr0Zcz54'
@@ -111,6 +112,11 @@ export async function signUpWithSupabase({ email, password, username, fullName }
     // 2. The trigger `on_auth_user_created` creates the profile automatically in postgres.
     // We also do an upsert as safety guarantee in case triggers are disabled:
     if (userId) {
+      const activeCreatorCode = getStoredCreatorCode() || null
+      const trialDays = activeCreatorCode ? TRIAL_DAYS_WITH_CODE : TRIAL_DAYS_DEFAULT
+      const now = new Date()
+      const planExpiresAt = new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000).toISOString()
+
       await supabase
         .from('profiles')
         .upsert({
@@ -122,13 +128,16 @@ export async function signUpWithSupabase({ email, password, username, fullName }
             avatar: 'blobatar',
             title: 'Profesional en Mi Vitae',
             bio: 'Bienvenido a mi portafolio profesional en línea.',
-            availableForWork: true
+            availableForWork: true,
+            ...(activeCreatorCode ? { creator_code: activeCreatorCode } : {})
           },
           theme: 'tech',
           plan: 'free_trial',
-          plan_name: '1er Mes Gratis ($0 CLP)',
+          plan_name: activeCreatorCode ? '1er Mes Gratis ($0 CLP - Código Creador)' : '14 Días de Prueba Gratis ($0 CLP)',
           plan_status: 'active',
-          updated_at: new Date().toISOString()
+          trial_activated_at: now.toISOString(),
+          plan_expires_at: planExpiresAt,
+          updated_at: now.toISOString()
         }, { onConflict: 'username' })
     }
 
@@ -462,15 +471,19 @@ export async function saveProfileToSupabase(profile) {
       feedbackSurveyCompleted: Boolean(profile.feedbackSurveyCompleted ?? profile.feedback_survey_completed ?? false)
     }
 
+    const hasCode = Boolean(profile.creator_code || profile.personalInfo?.creator_code || getStoredCreatorCode())
+    const defaultTrialDays = hasCode ? TRIAL_DAYS_WITH_CODE : TRIAL_DAYS_DEFAULT
+    const defaultPlanName = hasCode ? '1er Mes Gratis ($0 CLP - Código Creador)' : '14 Días de Prueba Gratis ($0 CLP)'
+
     const dbPayload = {
       ...(authUserId ? { id: authUserId } : {}),
       username: profile.username.toLowerCase().trim(),
       theme: profile.theme || 'tech',
       plan: profile.plan || 'free_trial',
-      plan_name: profile.planName || '1er Mes Gratis ($0 CLP)',
+      plan_name: profile.planName || defaultPlanName,
       plan_status: profile.planStatus || 'active',
       trial_activated_at: profile.trialActivatedAt || profile.trial_activated_at || new Date().toISOString(),
-      plan_expires_at: profile.planExpiresAt || profile.plan_expires_at || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      plan_expires_at: profile.planExpiresAt || profile.plan_expires_at || new Date(Date.now() + defaultTrialDays * 24 * 60 * 60 * 1000).toISOString(),
       personal_info: personalInfoWithMeta,
       floating_button: profile.floatingButton || {},
       experience: (profile.experience || []).filter((e) => e?.role?.trim() || e?.company?.trim()),
@@ -681,9 +694,10 @@ export async function fetchAllProfilesFromSupabase() {
       const isLifetime = Boolean(d.plan_expires_at && new Date(d.plan_expires_at).getFullYear() >= 2090)
       const plan = isLifetime ? 'lifetime' : (d.plan === 'premium' ? 'premium' : d.plan === 'free_trial' ? 'trial' : (d.plan || 'trial'))
       const planStatus = d.plan_status || 'active'
+      const hasCode = Boolean(d.personal_info?.creator_code || d.personal_info?.creatorCode)
       const planName = isLifetime 
         ? 'Plan Pro (De por vida)' 
-        : (d.plan_name || (plan === 'premium' ? 'Suscripción Activa ($3.490 CLP/mes)' : '1er Mes Gratis ($0 CLP)'))
+        : (d.plan_name || (plan === 'premium' ? 'Suscripción Activa ($3.490 CLP/mes)' : (hasCode ? '1er Mes Gratis ($0 CLP - Código Creador)' : '14 Días de Prueba Gratis ($0 CLP)')))
 
       return {
         id: d.id,
