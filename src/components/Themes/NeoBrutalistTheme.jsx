@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { 
   MapPin, Mail, Linkedin, Github, 
   ArrowUpRight, QrCode, Sparkles, Folder, 
-  Briefcase, GraduationCap, Asterisk, Globe
+  Briefcase, GraduationCap, Asterisk, Globe, Wrench
 } from 'lucide-react'
 import FloatingContactButton from '../Common/FloatingContactButton'
 import QrModal from '../Common/QrModal'
@@ -382,7 +382,10 @@ export default function NeoBrutalistTheme({ profile, onRecordClick }) {
         {/* Empty State Prompt */}
         {skills.length === 0 && projects.length === 0 && experience.length === 0 && education.length === 0 && (
           <section className={`${brutalCard} p-8 text-center bg-[#FFD166]`}>
-            <h2 className="text-xl font-black uppercase mb-2">🛠 Portafolio en Construcción</h2>
+            <h2 className="text-xl font-black uppercase mb-2 flex items-center justify-center gap-2">
+              <Wrench className="w-5 h-5 stroke-[2.5]" />
+              <span>Portafolio en Construcción</span>
+            </h2>
             <p className="text-xs sm:text-sm font-bold max-w-md mx-auto">
               Este perfil aún no cuenta con módulos añadidos. ¡Abre el editor para inyectarle contenido a este lienzo neo-brutalista!
             </p>

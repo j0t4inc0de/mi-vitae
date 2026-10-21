@@ -5,13 +5,17 @@ import { sendPaymentReceiptEmail } from '../../lib/emailService'
 import { 
   getStoredCreatorCode, 
   setStoredCreatorCode, 
-  sanitizeCreatorCode 
+  sanitizeCreatorCode,
+  PRICE_REGULAR_CLP,
+  PRICE_DISCOUNT_CLP,
+  PRICE_REGULAR_USD,
+  PRICE_DISCOUNT_USD
 } from '../../lib/creatorCode'
 import { 
   X, ShieldCheck, CheckCircle2, AlertCircle, 
   Download, ArrowRight, RefreshCw, Lock, Sparkles,
   Check, Copy, CreditCard, Smartphone, Landmark, Building2,
-  Globe, DollarSign, ExternalLink, HelpCircle, Mail
+  Globe, DollarSign, ExternalLink, HelpCircle, Mail, Tag
 } from 'lucide-react'
 
 // Chilean Payment Methods supported by Flow.cl
@@ -169,6 +173,11 @@ export default function FlowCheckoutModal({
   const [creatorCodeFeedback, setCreatorCodeFeedback] = useState('')
   const [isEditingEmail, setIsEditingEmail] = useState(false)
 
+  // Dynamic pricing based on creator code
+  const hasDiscount = Boolean(creatorCode)
+  const currentAmount = hasDiscount ? PRICE_DISCOUNT_CLP : PRICE_REGULAR_CLP
+  const currentAmountUsd = hasDiscount ? PRICE_DISCOUNT_USD : PRICE_REGULAR_USD
+
   // PayPal SDK states
   const [isPayPalLoading, setIsPayPalLoading] = useState(false)
   const [isPayPalSdkReady, setIsPayPalSdkReady] = useState(false)
@@ -197,13 +206,14 @@ export default function FlowCheckoutModal({
 
   useEffect(() => {
     if (isOpen) {
-      setCreatorCode(getStoredCreatorCode())
+      const activeCode = getStoredCreatorCode() || currentProfile?.creator_code || currentProfile?.personalInfo?.creator_code || ''
+      setCreatorCode(activeCode)
       setIsEditingCreatorCode(false)
       setInputCreatorCode('')
       setCreatorCodeFeedback('')
       setIsEditingEmail(false)
     }
-  }, [isOpen])
+  }, [isOpen, currentProfile])
 
   // Escape key handler
   useEffect(() => {
@@ -241,14 +251,16 @@ export default function FlowCheckoutModal({
               createOrder: (data, actions) => {
                 return actions.order.create({
                   purchase_units: [{
-                    description: 'Suscripción Mi Vitae Pro ($3.99 USD/mes)',
+                    description: hasDiscount
+                      ? `Suscripción Mi Vitae Pro ($${currentAmountUsd.toFixed(2)} USD/mes - Código Creador)`
+                      : 'Suscripción Mi Vitae Pro ($3.99 USD/mes)',
                     custom_id: JSON.stringify({
                       username: targetUsername,
                       creator_code: creatorCode || null
                     }),
                     amount: {
                       currency_code: 'USD',
-                      value: '3.99'
+                      value: currentAmountUsd.toFixed(2)
                     }
                   }]
                 })
@@ -283,7 +295,7 @@ export default function FlowCheckoutModal({
     }
 
     return () => { isCancelled = true }
-  }, [isOpen, paymentState, activeGateway, hasValidPayPalClientId, targetUsername, creatorCode])
+  }, [isOpen, paymentState, activeGateway, hasValidPayPalClientId, targetUsername, creatorCode, currentAmountUsd, hasDiscount])
 
   if (!isOpen) return null
 
@@ -338,10 +350,12 @@ export default function FlowCheckoutModal({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount,
+          amount: currentAmount,
           email: payerEmail,
           username: targetUsername,
-          subject: planName,
+          subject: hasDiscount 
+            ? 'Suscripción Mi Vitae Pro ($2.990 CLP/mes - Código Creador)' 
+            : planName,
           creator_code: creatorCode || undefined
         })
       })
@@ -355,7 +369,7 @@ export default function FlowCheckoutModal({
           flowOrder: result.flowOrder,
           orderNumber: result.commerceOrder,
           username: targetUsername,
-          amount,
+          amount: currentAmount,
           currency: 'CLP',
           status: 'PENDIENTE',
           paymentMethod: selectedMethod?.name || 'Flow.cl Webpay',
@@ -390,12 +404,15 @@ export default function FlowCheckoutModal({
   const handleCompletePayPalPayment = async (orderId, orderDetails = {}) => {
     const now = new Date()
     const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+    const paidUsd = currentAmountUsd
 
     try {
       // 1. Update local state in Zustand store
       updateProfile(targetUsername, {
         plan: 'premium',
-        planName: 'Suscripción Mi Vitae ($3.99 USD/mes)',
+        planName: hasDiscount 
+          ? 'Suscripción Mi Vitae ($2.99 USD/mes - Creador)' 
+          : 'Suscripción Mi Vitae ($3.99 USD/mes)',
         planStatus: 'active',
         planExpiresAt: expiresAt.toISOString()
       })
@@ -405,7 +422,7 @@ export default function FlowCheckoutModal({
         transactionId: orderId,
         orderNumber: orderId,
         username: targetUsername,
-        amount: 3.99,
+        amount: paidUsd,
         currency: 'USD',
         status: 'APROBADO',
         paymentMethod: 'PayPal',
@@ -424,9 +441,11 @@ export default function FlowCheckoutModal({
         email: payerEmail,
         name: currentProfile?.personalInfo?.name || targetUsername,
         orderNumber: orderId,
-        amount: '$3.99 USD',
+        amount: `$${paidUsd.toFixed(2)} USD`,
         paymentMethod: 'PayPal',
-        planName: 'Suscripción Mi Vitae ($3.99 USD/mes)'
+        planName: hasDiscount
+          ? 'Suscripción Mi Vitae ($2.99 USD/mes - Creador)'
+          : 'Suscripción Mi Vitae ($3.99 USD/mes)'
       }).catch(() => {})
 
       // 4. Build voucher ticket
@@ -436,7 +455,7 @@ export default function FlowCheckoutModal({
         authorizationCode: `PP-${Date.now().toString(36).toUpperCase()}`,
         dateFormatted: now.toLocaleString('es-CL'),
         paymentMethod: 'PayPal (Tarjetas / Cuenta PayPal)',
-        amount: 3.99,
+        amount: paidUsd,
         currency: 'USD',
         commerceName: 'Mi Vitae (PayPal Checkout)',
         payerEmail,
@@ -455,7 +474,7 @@ export default function FlowCheckoutModal({
   // Local development simulation fallback for PayPal
   const handleSimulatePayPalPayment = async () => {
     setPaymentState('processing')
-    setProcessingMessage('Simulando procesamiento seguro con PayPal ($3.99 USD)...')
+    setProcessingMessage(`Simulando procesamiento seguro con PayPal ($${currentAmountUsd.toFixed(2)} USD)...`)
     const simOrderId = `PP-SIM-${Date.now()}`
     await handleCompletePayPalPayment(simOrderId, { simulated: true })
   }
@@ -527,7 +546,7 @@ Soporte técnico: contacto@wearesamod.com
             <span className="font-mono font-black text-emerald-900 dark:text-emerald-200 bg-white dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-emerald-300 dark:border-emerald-700 text-xs tracking-wider">
               {creatorCode}
             </span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-bold text-xs">✓</span>
+            <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -685,16 +704,30 @@ Soporte técnico: contacto@wearesamod.com
           <div className="mt-4 pt-3 border-t border-white/15 flex items-center justify-between">
             <div>
               <span className="text-[11px] text-slate-200">Total Mensual</span>
-              <div className="text-2xl font-black text-white tracking-tight">
+              <div className="text-2xl font-black text-white tracking-tight flex items-baseline gap-2">
                 {activeGateway === 'flow' ? (
                   <>
-                    ${amount.toLocaleString('es-CL')}{' '}
-                    <span className="text-xs font-bold" style={{ color: '#dbff00' }}>CLP</span>
+                    {hasDiscount && (
+                      <span className="text-sm font-normal line-through text-white/60">
+                        ${PRICE_REGULAR_CLP.toLocaleString('es-CL')}
+                      </span>
+                    )}
+                    <span>
+                      ${currentAmount.toLocaleString('es-CL')}{' '}
+                      <span className="text-xs font-bold" style={{ color: '#dbff00' }}>CLP</span>
+                    </span>
                   </>
                 ) : (
                   <>
-                    $3.99{' '}
-                    <span className="text-xs font-bold text-cyan-300">USD</span>
+                    {hasDiscount && (
+                      <span className="text-sm font-normal line-through text-white/60">
+                        ${PRICE_REGULAR_USD.toFixed(2)}
+                      </span>
+                    )}
+                    <span>
+                      ${currentAmountUsd.toFixed(2)}{' '}
+                      <span className="text-xs font-bold text-cyan-300">USD</span>
+                    </span>
                   </>
                 )}
               </div>
@@ -739,8 +772,13 @@ Soporte técnico: contacto@wearesamod.com
                   </div>
                   <div className="min-w-0">
                     <div className="text-xs sm:text-sm font-bold truncate">Chile</div>
-                    <div className="text-[11px] font-bold text-[#00A3E0] leading-none mt-0.5">
-                      $3.490 CLP/mes
+                    <div className="text-[11px] font-bold text-[#00A3E0] leading-none mt-0.5 flex items-center gap-1">
+                      {hasDiscount && (
+                        <span className="line-through text-slate-400 font-normal">
+                          ${PRICE_REGULAR_CLP.toLocaleString('es-CL')}
+                        </span>
+                      )}
+                      <span>${currentAmount.toLocaleString('es-CL')} CLP/mes</span>
                     </div>
                   </div>
                 </button>
@@ -763,8 +801,13 @@ Soporte técnico: contacto@wearesamod.com
                   </div>
                   <div className="min-w-0">
                     <div className="text-xs sm:text-sm font-bold truncate">Internacional</div>
-                    <div className="text-[11px] font-bold text-[#0079C1] dark:text-cyan-400 leading-none mt-0.5">
-                      $3.99 USD/mes
+                    <div className="text-[11px] font-bold text-[#0079C1] dark:text-cyan-400 leading-none mt-0.5 flex items-center gap-1">
+                      {hasDiscount && (
+                        <span className="line-through text-slate-400 font-normal">
+                          ${PRICE_REGULAR_USD.toFixed(2)}
+                        </span>
+                      )}
+                      <span>${currentAmountUsd.toFixed(2)} USD/mes</span>
                     </div>
                   </div>
                 </button>
@@ -828,6 +871,20 @@ Soporte técnico: contacto@wearesamod.com
 
               {/* Support a Creator Section */}
               {renderCreatorCodeSection()}
+
+              {/* Creator Discount Pill & Pricing Breakdown */}
+              {hasDiscount && (
+                <div className="p-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 flex items-center justify-between text-xs animate-fadeIn">
+                  <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-semibold truncate">
+                    <Tag className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="truncate">Descuento exclusivo de creador aplicado (-$500 CLP / -$1.00 USD)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 font-bold shrink-0 ml-2">
+                    <span className="line-through text-slate-400 font-normal">$3.490 CLP</span>
+                    <span className="text-emerald-700 dark:text-emerald-300 font-black">$2.990 CLP</span>
+                  </div>
+                </div>
+              )}
 
               {/* Botón de Pago Principal */}
               <div className="pt-1.5 space-y-2">
@@ -911,6 +968,20 @@ Soporte técnico: contacto@wearesamod.com
 
               {/* Support a Creator Section */}
               {renderCreatorCodeSection()}
+
+              {/* Creator Discount Pill & Pricing Breakdown */}
+              {hasDiscount && (
+                <div className="p-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 flex items-center justify-between text-xs animate-fadeIn">
+                  <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 font-semibold truncate">
+                    <Tag className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="truncate">Descuento exclusivo de creador aplicado (-$500 CLP / -$1.00 USD)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 font-bold shrink-0 ml-2">
+                    <span className="line-through text-slate-400 font-normal">$3.99 USD</span>
+                    <span className="text-emerald-700 dark:text-emerald-300 font-black">$2.99 USD</span>
+                  </div>
+                </div>
+              )}
 
               {/* Official PayPal Buttons Container or Fallback */}
               <div className="pt-1.5 space-y-2">

@@ -34,7 +34,6 @@ export async function onRequestPost(context) {
     const {
       email = 'usuario@ejemplo.com',
       username = 'usuario',
-      subject = 'Suscripción Mi Vitae Pro ($3.490 CLP/mes)',
       creator_code = '',
       creatorCode = ''
     } = body
@@ -43,8 +42,12 @@ export async function onRequestPost(context) {
     const rawCreator = String(creator_code || creatorCode || '').trim().toUpperCase()
     const cleanCreatorCode = rawCreator.replace(/[^A-Z0-9_-]/g, '').slice(0, 30)
 
-    // ponytail: Security - enforce canonical subscription price server-side, ignoring client tampering
-    const amount = 3490
+    // ponytail: Security - enforce canonical subscription price and creator discount server-side
+    const hasCreatorDiscount = Boolean(cleanCreatorCode)
+    const amount = hasCreatorDiscount ? 2990 : 3490
+    const subject = hasCreatorDiscount 
+      ? 'Suscripción Mi Vitae Pro ($2.990 CLP/mes - Código Creador)' 
+      : 'Suscripción Mi Vitae Pro ($3.490 CLP/mes)'
 
     const flowApiKey = env.FLOW_API_KEY
     const flowSecretKey = env.FLOW_SECRET_KEY

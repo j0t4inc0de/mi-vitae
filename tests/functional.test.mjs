@@ -3,6 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createServer } from 'vite';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+
+// Mock useSyncExternalStore for Zustand SSR rendering in test environment
+React.useSyncExternalStore = (sub, getSnap) => getSnap();
 
 // ponytail: Native zero-dependency test runner using Node assert + Vite SSR module loader
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -992,6 +997,88 @@ it('verifies FlowCheckoutModal integrates Apoya a un creador section and handler
   assert.ok(content.includes('hidden sm:flex items-center justify-between p-3 rounded-2xl bg-slate-50'), 'Media bars must be hidden on mobile');
 });
 
+it('verifies getTrialDays returns 14 without code and 30 with valid creator code', () => {
+  assert.equal(creatorModule.getTrialDays(''), 14);
+  assert.equal(creatorModule.getTrialDays(null), 14);
+  assert.equal(creatorModule.getTrialDays(undefined), 14);
+  assert.equal(creatorModule.getTrialDays('   '), 14);
+  assert.equal(creatorModule.getTrialDays('INFLUENCER10'), 30);
+  assert.equal(creatorModule.getTrialDays('creador_pro'), 30);
+});
+
+it('verifies getSubscriptionPricing returns regular prices without code and discounted prices with code', () => {
+  // CLP without code
+  const clpRegular = creatorModule.getSubscriptionPricing('CLP', '');
+  assert.equal(clpRegular.regularPrice, 3490);
+  assert.equal(clpRegular.finalPrice, 3490);
+  assert.equal(clpRegular.hasDiscount, false);
+  assert.equal(clpRegular.discountAmount, 0);
+  assert.equal(clpRegular.currency, 'CLP');
+
+  // CLP with code
+  const clpDiscount = creatorModule.getSubscriptionPricing('CLP', 'CREADOR2026');
+  assert.equal(clpDiscount.regularPrice, 3490);
+  assert.equal(clpDiscount.finalPrice, 2990);
+  assert.equal(clpDiscount.hasDiscount, true);
+  assert.equal(clpDiscount.discountAmount, 500);
+  assert.equal(clpDiscount.currency, 'CLP');
+
+  // USD without code
+  const usdRegular = creatorModule.getSubscriptionPricing('USD', '');
+  assert.equal(usdRegular.regularPrice, 3.99);
+  assert.equal(usdRegular.finalPrice, 3.99);
+  assert.equal(usdRegular.hasDiscount, false);
+  assert.equal(usdRegular.discountAmount, 0);
+  assert.equal(usdRegular.currency, 'USD');
+
+  // USD with code
+  const usdDiscount = creatorModule.getSubscriptionPricing('USD', 'INFLUENCER');
+  assert.equal(usdDiscount.regularPrice, 3.99);
+  assert.equal(usdDiscount.finalPrice, 2.99);
+  assert.equal(usdDiscount.hasDiscount, true);
+  assert.equal(usdDiscount.discountAmount, 1.00);
+  assert.equal(usdDiscount.currency, 'USD');
+});
+
+it('verifies create-flow-order in simulation mode applies $2.990 with creator_code and $3.490 without', async () => {
+  const flowOrderModule = await import(pathToFileURL(path.resolve(ROOT, 'functions/api/create-flow-order.js')).href);
+
+  // With creator code
+  const reqWithCode = new Request('https://mivitae.wearesamod.com/api/create-flow-order', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: 'test@ejemplo.cl',
+      username: 'carlos_dev',
+      creator_code: 'STREAMER_CHILE'
+    })
+  });
+  const resWithCode = await flowOrderModule.onRequestPost({ request: reqWithCode, env: {} });
+  assert.equal(resWithCode.status, 200);
+  const dataWithCode = await resWithCode.json();
+  assert.equal(dataWithCode.isSimulation, true);
+  assert.equal(dataWithCode.amount, 2990);
+  assert.equal(dataWithCode.creator_code, 'STREAMER_CHILE');
+  assert.ok(dataWithCode.subject.includes('$2.990 CLP/mes'));
+
+  // Without creator code
+  const reqNoCode = new Request('https://mivitae.wearesamod.com/api/create-flow-order', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: 'organic@ejemplo.cl',
+      username: 'organic_user'
+    })
+  });
+  const resNoCode = await flowOrderModule.onRequestPost({ request: reqNoCode, env: {} });
+  assert.equal(resNoCode.status, 200);
+  const dataNoCode = await resNoCode.json();
+  assert.equal(dataNoCode.isSimulation, true);
+  assert.equal(dataNoCode.amount, 3490);
+  assert.equal(dataNoCode.creator_code, null);
+  assert.ok(dataNoCode.subject.includes('$3.490 CLP/mes'));
+});
+
 // -------------------------------------------------------------
 // SUITE 10: USER ACCOUNT DRAWER & RENEWAL GUARD (FUNCTIONAL & NON-FUNCTIONAL)
 // -------------------------------------------------------------
@@ -1198,6 +1285,186 @@ it('verifies profileStore keeps qrScans and cvDownloads in sync on QR scan', () 
 
   assert.equal(profileAfterQr.analytics.cvDownloads, 1);
   assert.equal(profileAfterQr.analytics.qrScans, 1);
+});
+
+// -------------------------------------------------------------
+// SUITE 13: QA INTEGRAL - USERACCOUNTMODAL & CREATOR CODE ENGINE
+// -------------------------------------------------------------
+console.log('\n▶ Suite 13: QA Integral - UserAccountModal, Creator Codes & Reliability');
+
+const { default: UserAccountModal } = await vite.ssrLoadModule('/src/components/Modals/UserAccountModal.jsx');
+
+it('verifies UserAccountModal renders cleanly for organic user without ReferenceError (14 days trial)', () => {
+  const store = useProfileStore.getState();
+  const testUser = 'qa_organic_test';
+
+  store.addProfile({
+    username: testUser,
+    personalInfo: {
+      name: 'Organic User QA',
+      email: 'organic@qa.cl'
+    }
+  });
+  store.setActiveUsername(testUser);
+
+  // Render component with renderToStaticMarkup to execute entire component body and JSX tree
+  const html = renderToStaticMarkup(React.createElement(UserAccountModal, {
+    isOpen: true,
+    onClose: () => {},
+    initialSection: 'membership'
+  }));
+
+  assert.ok(html.length > 0, 'UserAccountModal must render HTML content');
+  assert.ok(html.includes('Prueba Gratis'), 'Badge must display "Prueba Gratis" for organic user');
+  assert.ok(!html.includes('1er Mes Gratis'), 'Organic user must NOT see "1er Mes Gratis" badge');
+  assert.ok(html.includes('(14d)'), 'Days remaining badge must calculate 14 days for organic user');
+  assert.ok(html.includes('14 Días de Prueba ($0 CLP)'), 'Plan title in card must specify 14 Días de Prueba');
+  assert.ok(html.includes('$3.490 CLP / mes'), 'Regular monthly tariff must be $3.490 CLP');
+});
+
+it('verifies UserAccountModal renders cleanly for creator code user without ReferenceError (30 days trial)', () => {
+  const store = useProfileStore.getState();
+  const testUser = 'qa_creator_test';
+
+  store.addProfile({
+    username: testUser,
+    creator_code: 'INFLUENCERPRO',
+    personalInfo: {
+      name: 'Creator User QA',
+      email: 'creator@qa.cl'
+    }
+  });
+  store.setActiveUsername(testUser);
+
+  const html = renderToStaticMarkup(React.createElement(UserAccountModal, {
+    isOpen: true,
+    onClose: () => {},
+    initialSection: 'membership'
+  }));
+
+  assert.ok(html.length > 0, 'UserAccountModal must render HTML content');
+  assert.ok(html.includes('1er Mes Gratis'), 'Badge must display "1er Mes Gratis" for creator code user');
+  assert.ok(!html.includes('Prueba Gratis'), 'Creator user must NOT see "Prueba Gratis" badge');
+  assert.ok(html.includes('(30d)'), 'Days remaining badge must calculate 30 days for creator user');
+  assert.ok(html.includes('1er Mes Gratis ($0 CLP)'), 'Plan title in card must specify 1er Mes Gratis');
+  assert.ok(html.includes('$2.990 CLP / mes (Descuento Creador)'), 'Discounted monthly tariff must be displayed');
+});
+
+it('verifies UserAccountModal scope check: zero bare profile accesses in component source (preventing ReferenceError regression)', () => {
+  const modalPath = path.resolve(ROOT, 'src/components/Modals/UserAccountModal.jsx');
+  const code = fs.readFileSync(modalPath, 'utf-8');
+
+  // Strip comments and string literals
+  const stripped = code
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/.*$/gm, '')
+    .replace(/'[^']*'/g, "''")
+    .replace(/"[^"]*"/g, '""')
+    .replace(/`[^`]*`/g, '``');
+
+  // Search for bare profile identifier (not currentProfile, not profiles, not profileStore)
+  const bareProfileRegex = /\bprofile\b(?!\s*[:=]\s*|\w)/;
+  assert.equal(bareProfileRegex.test(stripped), false, 'UserAccountModal must contain ZERO bare profile references in executable code');
+});
+
+it('verifies UserAccountModal renewal button pricing: $2.990 for creator vs $3.490 for organic when plan is expired', () => {
+  const store = useProfileStore.getState();
+
+  // Expired organic user
+  const expiredOrganic = 'qa_expired_organic';
+  store.addProfile({
+    username: expiredOrganic,
+    planExpiresAt: new Date(Date.now() - 1000 * 60).toISOString(),
+    personalInfo: { name: 'Expired Organic' }
+  });
+  store.setActiveUsername(expiredOrganic);
+
+  const htmlExpiredOrganic = renderToStaticMarkup(React.createElement(UserAccountModal, {
+    isOpen: true,
+    onClose: () => {},
+    initialSection: 'membership'
+  }));
+
+  assert.ok(htmlExpiredOrganic.includes('Renovar Plan Vencido ($3.490 CLP)'), 'Expired organic renewal button must specify $3.490 CLP');
+
+  // Expired creator user
+  const expiredCreator = 'qa_expired_creator';
+  store.addProfile({
+    username: expiredCreator,
+    creator_code: 'CREATORVIP',
+    planExpiresAt: new Date(Date.now() - 1000 * 60).toISOString(),
+    personalInfo: { name: 'Expired Creator' }
+  });
+  store.setActiveUsername(expiredCreator);
+
+  const htmlExpiredCreator = renderToStaticMarkup(React.createElement(UserAccountModal, {
+    isOpen: true,
+    onClose: () => {},
+    initialSection: 'membership'
+  }));
+
+  assert.ok(htmlExpiredCreator.includes('Renovar Plan Vencido ($2.990 CLP)'), 'Expired creator renewal button must specify discounted $2.990 CLP');
+});
+
+it('verifies registration flows enforce 14 days organic vs 30 days creator code in profileStore', () => {
+  const store = useProfileStore.getState();
+
+  // 1. Organic registration
+  const userOrg = 'reg_org_flow';
+  store.addProfile({
+    username: userOrg,
+    personalInfo: { name: 'Reg Org', email: 'regorg@test.com' }
+  });
+  const profileOrg = store.getProfileByUsername(userOrg);
+  assert.equal(profileOrg.creator_code, null);
+  assert.equal(profileOrg.planName, '14 Días de Prueba Gratis ($0 CLP)');
+  const diffDaysOrg = Math.round((new Date(profileOrg.planExpiresAt) - new Date(profileOrg.trialActivatedAt)) / (1000 * 60 * 60 * 24));
+  assert.equal(diffDaysOrg, 14, 'Organic profile trial must be exactly 14 days');
+
+  // 2. Creator registration
+  const userCreator = 'reg_creator_flow';
+  store.addProfile({
+    username: userCreator,
+    creator_code: 'TIKTOK30',
+    personalInfo: { name: 'Reg Creator', email: 'regcreator@test.com' }
+  });
+  const profileCreator = store.getProfileByUsername(userCreator);
+  assert.equal(profileCreator.creator_code, 'TIKTOK30');
+  assert.equal(profileCreator.planName, '1er Mes Gratis ($0 CLP - Código Creador)');
+  const diffDaysCreator = Math.round((new Date(profileCreator.planExpiresAt) - new Date(profileCreator.trialActivatedAt)) / (1000 * 60 * 60 * 24));
+  assert.equal(diffDaysCreator, 30, 'Creator profile trial must be exactly 30 days');
+});
+
+it('verifies strict ZERO EMOJIS policy across all application source files in src/', () => {
+  const emojiRegex = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F1E6}-\u{1F1FF}]|\p{Extended_Pictographic}/u;
+  const violations = [];
+
+  function scanDirectory(dir) {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name !== 'node_modules' && entry.name !== '.git' && entry.name !== 'dist') {
+          scanDirectory(fullPath);
+        }
+      } else if (entry.name.endsWith('.jsx') || entry.name.endsWith('.js')) {
+        const fileContent = fs.readFileSync(fullPath, 'utf-8');
+        const lines = fileContent.split('\n');
+        lines.forEach((line, index) => {
+          // Allow copyright symbol (C) 2026 in footer
+          if (line.includes('©2026') || line.includes('© 2026')) return;
+          // Ignore comment lines that only describe unicode/emoji regexes
+          if (line.includes('emojiRegex') || line.includes('Extended_Pictographic')) return;
+          if (emojiRegex.test(line)) {
+            violations.push(`${path.relative(ROOT, fullPath)}:${index + 1} -> ${line.trim()}`);
+          }
+        });
+      }
+    }
+  }
+
+  scanDirectory(path.resolve(ROOT, 'src'));
+  assert.equal(violations.length, 0, `Found emojis in src directory:\n${violations.join('\n')}`);
 });
 
 await vite.close();

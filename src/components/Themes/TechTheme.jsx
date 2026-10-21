@@ -3,7 +3,7 @@ import {
   Terminal, GitBranch, Cpu, 
   Github, Linkedin, MapPin, Mail, 
   Globe, Activity, ShieldCheck, 
-  FolderGit2, QrCode, ChevronRight
+  FolderGit2, QrCode, ChevronRight, ExternalLink
 } from 'lucide-react'
 import FloatingContactButton from '../Common/FloatingContactButton'
 import QrModal from '../Common/QrModal'
@@ -290,9 +290,9 @@ export default function TechTheme({ profile, onRecordClick }) {
                         href={proj.liveUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[#10B981] hover:underline"
+                        className="inline-flex items-center gap-1.5 text-[#10B981] hover:underline"
                       >
-                        <span>[ VER PROYECTO ↗ ]</span>
+                        <span className="flex items-center gap-1">[ VER PROYECTO <ExternalLink className="w-3.5 h-3.5" /> ]</span>
                       </a>
                     )}
                     {proj.repoUrl && (

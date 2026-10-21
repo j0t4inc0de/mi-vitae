@@ -13,6 +13,7 @@ import {
   updateUsernameInSupabase
 } from '../lib/supabaseClient'
 import { sendWelcomeEmail } from '../lib/emailService'
+import { getStoredCreatorCode, TRIAL_DAYS_DEFAULT, TRIAL_DAYS_WITH_CODE } from '../lib/creatorCode'
 
 export const useProfileStore = create(
   persist(
@@ -172,8 +173,9 @@ export const useProfileStore = create(
         const reserved = ['dashboard', 'admin', 'login', 'register', 'api', 'app', 'settings', 'help', 'pricing', 'snake']
         if (reserved.includes(normalized)) return false
 
-        const profiles = get().profiles
-        if (profiles[normalized]) return false
+        // Built-in demo profiles and current active username cannot be claimed
+        if (INITIAL_MOCK_PROFILES[normalized]) return false
+        if (get().activeUsername && get().activeUsername.toLowerCase().trim() === normalized) return false
 
         if (isSupabaseConfigured) {
           try {
@@ -184,10 +186,27 @@ export const useProfileStore = create(
               }))
               return false
             }
+
+            // ponytail: If available in Supabase Cloud, purge any stale ghost profile cached in localStorage
+            const currentProfiles = get().profiles
+            const currentTaken = get().remoteTakenUsernames || []
+            if (currentProfiles[normalized] || currentTaken.includes(normalized)) {
+              const cleanedProfiles = { ...currentProfiles }
+              delete cleanedProfiles[normalized]
+              set({
+                profiles: cleanedProfiles,
+                remoteTakenUsernames: currentTaken.filter((u) => u !== normalized)
+              })
+            }
+            return true
           } catch {
             // graceful fallback
           }
         }
+
+        const profiles = get().profiles
+        if (profiles[normalized]) return false
+
         return true
       },
 
@@ -355,15 +374,23 @@ export const useProfileStore = create(
         if (!newProfile || !newProfile.username) return false
         const normalized = newProfile.username.toLowerCase().trim()
 
+        const activeCode = newProfile.creator_code || newProfile.personalInfo?.creator_code || getStoredCreatorCode() || null
+        const trialDays = activeCode ? TRIAL_DAYS_WITH_CODE : TRIAL_DAYS_DEFAULT
+        const now = new Date()
+        const planExpiresAt = newProfile.planExpiresAt || new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000).toISOString()
+
         const profileWithDefaults = {
           plan: 'free_trial',
-          planName: '1er Mes Gratis ($0 CLP)',
+          planName: activeCode ? '1er Mes Gratis ($0 CLP - Código Creador)' : '14 Días de Prueba Gratis ($0 CLP)',
           planStatus: 'active',
-          trialActivatedAt: new Date().toISOString(),
+          trialActivatedAt: now.toISOString(),
+          planExpiresAt,
+          creator_code: activeCode,
           ...newProfile,
           username: normalized,
           personalInfo: {
             ...newProfile.personalInfo,
+            creator_code: activeCode,
             avatar: newProfile.personalInfo?.avatar || 'blobatar'
           }
         }
@@ -382,14 +409,25 @@ export const useProfileStore = create(
         return true
       },
 
+      // Create or import profile with feedback survey
+      createOrImportProfileWithFeedback: (profileData, feedbackData = {}) => {
+        const ok = get().addProfile(profileData)
+        if (ok && profileData?.username) {
+          get().activateFreeTrial(profileData.username, feedbackData)
+        }
+        return ok
+      },
+
       // Activate Free Trial with Feedback responses
       activateFreeTrial: (username, feedbackData = {}) => {
         const normalized = (username || get().activeUsername).toLowerCase().trim()
         const profile = get().profiles[normalized]
         if (!profile) return false
 
+        const activeCode = profile.creator_code || profile.personalInfo?.creator_code || feedbackData?.creator_code || getStoredCreatorCode() || null
+        const trialDays = activeCode ? TRIAL_DAYS_WITH_CODE : TRIAL_DAYS_DEFAULT
         const now = new Date()
-        const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000) // 30 days free trial
+        const expiresAt = new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000)
 
         set((state) => ({
           profiles: {
@@ -397,14 +435,20 @@ export const useProfileStore = create(
             [normalized]: {
               ...profile,
               plan: 'free_trial',
-              planName: '1er Mes Gratis ($0 CLP)',
+              planName: activeCode ? '1er Mes Gratis ($0 CLP - Código Creador)' : '14 Días de Prueba Gratis ($0 CLP)',
               planStatus: 'active',
               feedbackSurveyCompleted: true,
               trialActivatedAt: now.toISOString(),
               planExpiresAt: expiresAt.toISOString(),
+              creator_code: activeCode,
+              personalInfo: {
+                ...(profile.personalInfo || {}),
+                creator_code: activeCode
+              },
               feedback: {
                 ...(profile.feedback || {}),
                 ...feedbackData,
+                creator_code: activeCode,
                 submittedAt: now.toISOString()
               }
             }
@@ -415,7 +459,7 @@ export const useProfileStore = create(
         if (isSupabaseConfigured) {
           const updated = get().profiles[normalized]
           if (updated) saveProfileToSupabase(updated)
-          saveFeedbackToSupabase({ username: normalized, ...feedbackData })
+          saveFeedbackToSupabase({ username: normalized, ...feedbackData, creator_code: activeCode })
         }
 
         // Send Welcome & Free trial activation transactional email

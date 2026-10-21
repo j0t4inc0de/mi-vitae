@@ -247,14 +247,34 @@ export async function updateUsernameInSupabase(oldUsername, newUsername) {
   const cleanNew = newUsername.toLowerCase().trim()
 
   try {
-    // 1. Update profiles table
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({ username: cleanNew, updated_at: new Date().toISOString() })
-      .eq('username', cleanOld)
+    let userId = null
+    try {
+      const { data: authData } = await supabase.auth.getUser()
+      userId = authData?.user?.id || null
+    } catch {}
 
-    if (profileError) {
-      console.warn('[Supabase] Error updating profile username:', profileError.message)
+    // 1. Update profiles table (by authenticated user id first to satisfy RLS, or by old username)
+    let updatedRows = null
+    if (userId) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ username: cleanNew, updated_at: new Date().toISOString() })
+        .eq('id', userId)
+        .select('username')
+      if (!error && data && data.length > 0) {
+        updatedRows = data
+      }
+    }
+
+    if (!updatedRows) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ username: cleanNew, updated_at: new Date().toISOString() })
+        .eq('username', cleanOld)
+
+      if (profileError) {
+        console.warn('[Supabase] Error updating profile username:', profileError.message)
+      }
     }
 
     // 2. Update user metadata in auth.users
@@ -797,7 +817,7 @@ export async function updateProfilePlanInSupabase(username, plan, adminSecret = 
 
       // If RLS blocked the update, data is empty: []
       if (!data || data.length === 0) {
-        console.warn(`[Supabase] ⚠️ RLS blocked update for @${cleanUsername} (0 rows modified). Server endpoint or RPC required.`)
+        console.warn(`[Supabase] [WARN] RLS blocked update for @${cleanUsername} (0 rows modified). Server endpoint or RPC required.`)
         return false
       }
 

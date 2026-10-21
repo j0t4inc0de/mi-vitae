@@ -54,20 +54,12 @@ export default function LandingPage() {
 
     setIsChecking(true)
     const handler = setTimeout(async () => {
-      // 1. Check local store memory / reserved routes
-      const localOk = isUsernameAvailable(clean)
-      if (!localOk) {
-        setIsAvailable(false)
-        setIsChecking(false)
-        return
-      }
-
-      // 2. Query Supabase Cloud public.profiles to prevent production collisions
+      // Query Supabase Cloud & reserved routes (auto-purging stale localStorage ghosts if deleted in DB)
       try {
         const available = await checkUsernameAvailability(clean)
         setIsAvailable(available)
       } catch {
-        setIsAvailable(localOk)
+        setIsAvailable(isUsernameAvailable(clean))
       } finally {
         setIsChecking(false)
       }
@@ -112,8 +104,8 @@ export default function LandingPage() {
       a: 'Ninguno. La plataforma es 100% intuitiva y sin código. Puedes completar tus datos, agregar proyectos y cambiar de diseño en 5 minutos directamente desde tu celular o computador.'
     },
     {
-      q: '¿Cómo funciona la promoción del 1er mes gratis con el formulario de feedback?',
-      a: 'Al crear tu cuenta, respondes un breve formulario de 3 preguntas sobre tu experiencia. Al completarlo, tu primer mes queda 100% bonificado ($0 CLP) sin cobros automáticos sorpresivos.'
+      q: '¿Cómo funciona la prueba gratuita de 14 días con la encuesta?',
+      a: 'Al crear tu cuenta y responder un breve formulario de 3 preguntas, activas tus 14 días de prueba 100% gratuita ($0 CLP) sin contratos ni cobros sorpresivos. Si además cuentas con el código de un creador o influencer, obtienes 30 días gratis y descuento permanente en tus renovaciones mensuales.'
     },
     {
       q: '¿Por qué un portafolio web es mucho más efectivo que un currículum tradicional en PDF?',
@@ -454,7 +446,7 @@ export default function LandingPage() {
                     <span className="text-sm font-semibold text-slate-400">CLP / mes</span>
                   </div>
                   <p className="mt-1 text-xs text-slate-400">
-                    Comienza hoy con <strong>1er mes 100% gratis </strong> al completar una encuesta de Mi Vitae.
+                    Comienza hoy con <strong>14 días de prueba gratis ($0 CLP)</strong> al completar la encuesta (o <strong>30 días</strong> con código de creador).
                   </p>
                 </div>
 
@@ -554,7 +546,7 @@ export default function LandingPage() {
                     <div className="relative rounded-xl bg-slate-950/60 px-4 py-3.5 transition-colors group-hover/btn:bg-transparent">
                       <span className="relative flex items-center justify-center gap-2 font-bold text-sm sm:text-base text-white">
                         <Sparkles className="w-4 h-4 text-white" />
-                        <span>Comenzar Mi mes Gratis</span>
+                        <span>Comenzar Prueba Gratis</span>
                         <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/btn:translate-x-1" />
                       </span>
                     </div>
@@ -648,7 +640,7 @@ export default function LandingPage() {
               Reserva tu enlace exclusivo <span className="text-palette-gradient">antes de que alguien más lo tome</span>
             </h2>
             <p className="text-slate-300 text-xs sm:text-sm">
-              Verifica disponibilidad en tiempo real y comienza con tu primer mes gratis ($0 CLP).
+              Verifica disponibilidad en tiempo real y comienza con tu prueba gratis ($0 CLP).
             </p>
           </div>
 

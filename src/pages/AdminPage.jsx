@@ -16,7 +16,7 @@ import {
   Search, UserCheck, Trash2, Edit3, X,
   Sparkles, FileDown, ChevronDown, ChevronLeft, ChevronRight, UserPlus, Lock,
   Award, Copy, Check, Calendar, ArrowRight, LogOut, Receipt,
-  Plus, Tag, Globe, QrCode, Palette
+  Plus, Tag, Globe, QrCode, Palette, BarChart3, MessageSquare, Star, ArrowUpRight
 } from 'lucide-react'
 
 import { THEME_COMPONENTS } from '../components/Themes/ThemeRenderer'
@@ -250,7 +250,7 @@ export default function AdminPage() {
     navigate('/')
   }
 
-  // Navigation tab: 'users' (Portafolios & Usuarios) | 'creators' (Afiliados & Creadores)
+  // Navigation tab: 'users' | 'analytics' | 'feedbacks' | 'creators'
   const [activeAdminTab, setActiveAdminTab] = useState('users')
 
   // Live Database State from Supabase
@@ -353,6 +353,28 @@ export default function AdminPage() {
     })
   }, [remoteProfiles, profiles])
 
+  // Extraer feedbacks reales de los usuarios
+  const feedbackProfiles = useMemo(() => {
+    return profileList.filter((p) => {
+      const fb = p.feedback || p.personalInfo?.feedback || (p.feedbackSurveyCompleted ? {} : null)
+      return Boolean(fb || p.feedbackSurveyCompleted)
+    }).map((p) => {
+      const fb = p.feedback || p.personalInfo?.feedback || {}
+      return {
+        username: p.username,
+        name: p.personalInfo?.name || p.username,
+        avatar: p.personalInfo?.avatar || '',
+        title: p.personalInfo?.title || 'Profesional',
+        rating: Number(fb.rating || 5),
+        obstacle: fb.cvObstacle || fb.obstacle || 'Dificultad para resumir y adaptar a móvil',
+        area: fb.professionalArea || p.personalInfo?.title || 'Tecnología & Servicios',
+        source: fb.referralSource || 'Orgánico / Redes',
+        notes: fb.notes || fb.comments || 'Excelente plataforma para crear un portafolio web en minutos.',
+        date: p.createdAt || p.created_at || '2025-02-15'
+      }
+    })
+  }, [profileList])
+
   // Aggregate Key KPIs
   const totalProfiles = profileList.length
   const lifetimeProfiles = profileList.filter((p) => p.plan === 'lifetime').length
@@ -373,14 +395,12 @@ export default function AdminPage() {
   // Desglose de popularidad por temas (100% dinamico y escalable)
   const themeCounts = useMemo(() => {
     const counts = {}
-    // 1. Inicializar todos los temas registrados en ThemeRenderer y THEME_INFO con 0
     const allKnownThemes = new Set([
       ...Object.keys(THEME_COMPONENTS || {}),
       ...Object.keys(THEME_INFO)
     ])
     allKnownThemes.forEach((k) => { counts[k] = 0 })
 
-    // 2. Acumular conteos reales de la lista de perfiles
     profileList.forEach((p) => {
       const t = p.theme || 'minimalist'
       counts[t] = (counts[t] || 0) + 1
@@ -503,7 +523,6 @@ export default function AdminPage() {
     const success = await updateProfilePlanInSupabase(username, newPlan, adminToken)
     if (success) {
       showToast(`Plan de @${username} actualizado a ${PLAN_INFO[newPlan]?.name || newPlan} en Supabase`)
-      // Refresh remote profiles directly from Supabase
       fetchAllProfilesFromSupabase().then((refreshed) => {
         if (refreshed && refreshed.length > 0) {
           setRemoteProfilesState(refreshed)
@@ -516,12 +535,10 @@ export default function AdminPage() {
 
   // Handle user deletion with persistence to Supabase
   const handleDelete = async (username) => {
-    // 1. Remove from local state
     setRemoteProfilesState((prev) => prev.filter((p) => p.username.toLowerCase() !== username.toLowerCase()))
     deleteProfile(username)
     setConfirmDeleteUser(null)
 
-    // 2. Delete from Supabase via serverless endpoint bypassing RLS
     const adminToken = typeof window !== 'undefined' ? sessionStorage.getItem('mi_vitae_admin_token') : null
     const success = await deleteProfileFromSupabase(username, adminToken)
     if (success) {
@@ -603,16 +620,10 @@ export default function AdminPage() {
     showToast('Reporte CSV de usuarios exportado exitosamente.')
   }
 
-  // ---------------------------------------------------------------------------
-  // ---------------------------------------------------------------------------
-  // AFFILIATES & CREATORS ("APOYA A UN CREADOR") REAL BUSINESS LOGIC
-  // Chilean Flow.cl sales: $600 CLP commission per paying user
-  // International PayPal sales: $0.70 USD commission per paying user
-  // ---------------------------------------------------------------------------
+  // AFFILIATES & CREATORS REAL BUSINESS LOGIC
   const creatorsSummary = useMemo(() => {
     const map = {}
 
-    // 0. Initialize creators from registered profiles in database
     profileList.forEach((p) => {
       const code = String(
         p.creatorCode || 
@@ -641,7 +652,6 @@ export default function AdminPage() {
       }
     })
 
-    // Fallback seed for official affiliates if not yet in profileList
     REGISTERED_AFFILIATES.forEach((aff) => {
       if (!map[aff.code]) {
         map[aff.code] = {
@@ -663,7 +673,6 @@ export default function AdminPage() {
       }
     })
 
-    // 1. Process real transactions from Supabase transactions table
     transactions.forEach((tx) => {
       const code = String(tx.creator_code || tx.metadata?.creator_code || '').trim().toUpperCase()
       if (!code || tx.status !== 'APROBADO') return
@@ -704,7 +713,6 @@ export default function AdminPage() {
       })
     })
 
-    // 2. Process transactions from profiles history
     profileList.forEach((p) => {
       const history = p.transactionsHistory || (p.lastTransaction ? [p.lastTransaction] : [])
       history.forEach((tx) => {
@@ -755,7 +763,6 @@ export default function AdminPage() {
     return Object.values(map)
   }, [transactions, profileList])
 
-  // Filtered creators list by search term
   const filteredCreators = useMemo(() => {
     if (!creatorSearch.trim()) return creatorsSummary
     const q = creatorSearch.trim().toUpperCase()
@@ -946,7 +953,7 @@ Administrador autorizado: jericesb5@gmail.com
   if (!isAdminAuthorized) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-slate-950 text-white">
-        <div className="max-w-md w-full p-8 rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl space-y-6 animate-fadeIn">
+        <div className="max-w-md w-full p-5 sm:p-8 rounded-2xl sm:rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl space-y-6 animate-fadeIn">
           <div className="text-center space-y-2.5">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 text-white mx-auto flex items-center justify-center shadow-lg shadow-indigo-600/30">
               <Shield className="w-7 h-7" />
@@ -969,7 +976,7 @@ Administrador autorizado: jericesb5@gmail.com
                 placeholder="username"
                 value={adminEmailInput}
                 onChange={(e) => { setAdminEmailInput(e.target.value); setAuthError('') }}
-                className="w-full px-4 py-3 rounded-xl bg-slate-800/90 border border-slate-700 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                className="w-full px-4 py-3 rounded-xl bg-slate-800/90 border border-slate-700 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all min-h-[44px]"
                 autoComplete="email"
                 required
               />
@@ -984,7 +991,7 @@ Administrador autorizado: jericesb5@gmail.com
                 placeholder="••••••••••••••••"
                 value={adminPasswordInput}
                 onChange={(e) => { setAdminPasswordInput(e.target.value); setAuthError('') }}
-                className="w-full px-4 py-3 rounded-xl bg-slate-800/90 border border-slate-700 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                className="w-full px-4 py-3 rounded-xl bg-slate-800/90 border border-slate-700 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all min-h-[44px]"
                 autoComplete="current-password"
                 required
               />
@@ -999,7 +1006,7 @@ Administrador autorizado: jericesb5@gmail.com
             <button
               type="submit"
               disabled={isVerifyingLogin}
-              className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 active:scale-[0.99] text-white font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-indigo-600/30 cursor-pointer flex items-center justify-center gap-2"
+              className="w-full min-h-[46px] py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 active:scale-[0.99] text-white font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-indigo-600/30 cursor-pointer flex items-center justify-center gap-2"
             >
               {isVerifyingLogin ? (
                 <>
@@ -1017,7 +1024,7 @@ Administrador autorizado: jericesb5@gmail.com
 
           <div className="pt-2 border-t border-slate-800 text-center">
             <Link to="/" className="text-xs text-slate-400 hover:text-white transition-colors">
-              ← Volver al inicio
+              Volver al inicio
             </Link>
           </div>
         </div>
@@ -1030,38 +1037,48 @@ Administrador autorizado: jericesb5@gmail.com
       
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-slate-900 text-white dark:bg-indigo-600 rounded-2xl shadow-xl border border-slate-700 animate-in fade-in slide-in-from-bottom-4 duration-200">
-          <Sparkles className="w-4 h-4 text-emerald-400" />
-          <span className="text-sm font-semibold">{toastMessage}</span>
-          <button onClick={() => setToastMessage(null)} className="ml-2 text-slate-400 hover:text-white">
+        <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50 flex items-center gap-3 px-4 py-3 bg-slate-900 text-white dark:bg-indigo-600 rounded-2xl shadow-xl border border-slate-700 animate-in fade-in slide-in-from-bottom-4 duration-200 max-w-[90vw] sm:max-w-md">
+          <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="text-xs sm:text-sm font-semibold truncate">{toastMessage}</span>
+          <button onClick={() => setToastMessage(null)} className="ml-auto text-slate-400 hover:text-white shrink-0 p-1">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
 
       {/* Super Admin Hero Header */}
-      <div className="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white py-10 px-4 sm:px-6 lg:px-8 border-b border-slate-800 shadow-md">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white py-5 sm:py-8 px-4 sm:px-6 lg:px-8 border-b border-slate-800 shadow-md">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6">
           
-          <div>
+          {/* Brand & Connection Badge */}
+          <div className="flex items-center justify-between lg:justify-start gap-3">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white shadow-lg shadow-indigo-500/20">
-                <Shield className="w-6 h-6" />
+              <div className="p-2.5 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white shadow-lg shadow-indigo-500/20 shrink-0">
+                <Shield className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Super Admin Dashboard</h1>
-                </div>
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight">Super Admin</h1>
+                <p className="text-[11px] sm:text-xs text-slate-400">Control maestro y liquidación</p>
               </div>
+            </div>
+
+            {/* Live Database status indicator */}
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-800/90 text-slate-200 border border-slate-700/80 shrink-0">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="hidden xs:inline">{remoteProfiles.length > 0 ? 'Supabase Cloud' : 'Modo Local'}</span>
+              <span className="xs:hidden">{remoteProfiles.length > 0 ? 'Cloud' : 'Local'}</span>
             </div>
           </div>
 
           {/* Action Toolbar */}
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-2.5 w-full lg:w-auto">
             <button
               onClick={loadAdminData}
               disabled={isLoadingProfiles || isLoadingTransactions}
-              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-bold flex items-center gap-1.5 border border-slate-700 hover:border-slate-600 transition-colors cursor-pointer"
+              className="min-h-[42px] px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 border border-slate-700 hover:border-slate-600 active:scale-[0.98] transition-all cursor-pointer"
               title="Recargar usuarios y transacciones en tiempo real desde Supabase"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoadingProfiles ? 'animate-spin text-indigo-400' : 'text-emerald-400'}`} />
@@ -1070,23 +1087,32 @@ Administrador autorizado: jericesb5@gmail.com
 
             <button
               onClick={() => setIsModalOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-md shadow-indigo-600/20 transition-all hover:scale-105 active:scale-95"
+              className="min-h-[42px] px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20 active:scale-[0.98] transition-all cursor-pointer"
             >
-              <UserPlus className="w-4 h-4" />
+              <UserPlus className="w-3.5 h-3.5" />
               <span>+ Perfil Demo</span>
             </button>
 
             <button
               onClick={handleExportCSV}
-              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-bold flex items-center gap-1.5 border border-slate-700 hover:border-slate-600 transition-colors"
+              className="min-h-[42px] px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 border border-slate-700 hover:border-slate-600 active:scale-[0.98] transition-all cursor-pointer"
             >
-              <FileDown className="w-4 h-4 text-emerald-400" />
+              <FileDown className="w-3.5 h-3.5 text-emerald-400" />
               <span>Exportar CSV</span>
             </button>
 
+            <Link
+              to="/dashboard"
+              className="min-h-[42px] px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 border border-slate-700 hover:border-slate-600 active:scale-[0.98] transition-all cursor-pointer"
+              title="Ir al Studio de edición"
+            >
+              <ArrowRight className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Ir al Studio</span>
+            </Link>
+
             <button
               onClick={handleAdminLogout}
-              className="px-3.5 py-2 rounded-xl bg-rose-950/50 hover:bg-rose-900/70 text-rose-300 text-xs sm:text-sm font-bold flex items-center gap-1.5 border border-rose-800/70 transition-colors cursor-pointer"
+              className="col-span-2 sm:col-span-1 min-h-[42px] px-3 py-2 rounded-xl bg-rose-950/50 hover:bg-rose-900/70 text-rose-300 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 border border-rose-800/70 active:scale-[0.98] transition-all cursor-pointer"
               title="Cerrar sesión de administrador"
             >
               <LogOut className="w-3.5 h-3.5" />
@@ -1097,623 +1123,1031 @@ Administrador autorizado: jericesb5@gmail.com
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 -mt-4 sm:-mt-6">
 
-        {/* Navigation Tabs between Portfolios and Creators */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-6 bg-white dark:bg-slate-900 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center gap-2">
+        {/* Navigation Tabs (Directorio, Analíticas, Feedbacks, Creadores) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 bg-white dark:bg-slate-900 p-2 sm:p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="grid grid-cols-2 md:flex md:flex-row md:items-center gap-1.5 sm:gap-2">
             <button
               type="button"
               onClick={() => setActiveAdminTab('users')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              className={`min-h-[44px] flex items-center justify-center md:justify-start gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                 activeAdminTab === 'users'
                   ? 'bg-palette-primary text-white shadow-md shadow-palette-primary/25 scale-[1.01]'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
-              <Users className="w-4 h-4" />
-              <span>Portafolios & Usuarios ({totalProfiles})</span>
+              <Users className="w-4 h-4 shrink-0" />
+              <span className="truncate">Directorio ({totalProfiles})</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveAdminTab('analytics')}
+              className={`min-h-[44px] flex items-center justify-center md:justify-start gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeAdminTab === 'analytics'
+                  ? 'bg-palette-primary text-white shadow-md shadow-palette-primary/25 scale-[1.01]'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <TrendingUp className="w-4 h-4 text-cyan-400 shrink-0" />
+              <span className="truncate">Analíticas</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveAdminTab('feedbacks')}
+              className={`min-h-[44px] flex items-center justify-center md:justify-start gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeAdminTab === 'feedbacks'
+                  ? 'bg-palette-primary text-white shadow-md shadow-palette-primary/25 scale-[1.01]'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <MessageSquare className="w-4 h-4 text-purple-400 shrink-0" />
+              <span className="truncate">Feedbacks</span>
+              {feedbackProfiles.length > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300">
+                  {feedbackProfiles.length}
+                </span>
+              )}
             </button>
 
             <button
               type="button"
               onClick={() => setActiveAdminTab('creators')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              className={`min-h-[44px] flex items-center justify-center md:justify-start gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                 activeAdminTab === 'creators'
                   ? 'bg-palette-primary text-white shadow-md shadow-palette-primary/25 scale-[1.01]'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
-              <Award className="w-4 h-4 text-amber-400" />
-              <span>Afiliados & Creadores</span>
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-black bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+              <Award className="w-4 h-4 text-amber-400 shrink-0" />
+              <span className="truncate">Creadores</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono font-black bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
                 {creatorsSummary.length}
               </span>
             </button>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 px-3 py-1">
+          <div className="flex items-center justify-center sm:justify-end gap-1.5 text-xs text-slate-500 dark:text-slate-400 px-2 py-1">
             <Calendar className="w-3.5 h-3.5 text-indigo-500" />
-            <span>Liquidación mensual: <strong>Día 30 de cada mes</strong></span>
+            <span>Corte mensual: <strong>Día 30</strong></span>
           </div>
         </div>
 
-        {/* Tab 1: Portafolios y Usuarios */}
+        {/* Tab 1: Portafolios y Directorio de Usuarios */}
         {activeAdminTab === 'users' && (
           <div>
             {/* KPI Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 mb-8">
-          
-          {/* Card 1: Portafolios Totales */}
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-28 h-28 bg-indigo-500/5 rounded-full blur-2xl group-hover:bg-indigo-500/10 transition-colors pointer-events-none" />
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Portafolios</span>
-              <div className="p-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
-                <Users className="w-5 h-5" />
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2.5 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
+              
+              {/* Card 1: Portafolios Totales */}
+              <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-2xl group-hover:bg-indigo-500/10 transition-colors pointer-events-none" />
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">Portafolios</span>
+                  <div className="p-2 rounded-xl sm:rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 shrink-0">
+                    <Users className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </div>
+                </div>
+                <div className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 dark:text-white">
+                  {totalProfiles}
+                </div>
+                <div className="flex items-center gap-1 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 text-[11px] sm:text-xs text-emerald-600 dark:text-emerald-400 font-semibold truncate">
+                  <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                  <span>+{newProfilesThisWeek} esta semana</span>
+                </div>
+              </div>
+
+              {/* Card 2: Suscripciones Activas */}
+              <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-colors pointer-events-none" />
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">Suscripciones</span>
+                  <div className="p-2 rounded-xl sm:rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <UserCheck className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </div>
+                </div>
+                <div className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 dark:text-white">
+                  {activePremiumProfiles}
+                </div>
+                <div className="flex items-center gap-1 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 text-[11px] sm:text-xs text-emerald-600 dark:text-emerald-400 font-semibold truncate">
+                  <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
+                  <span>De pago recurrente</span>
+                </div>
+              </div>
+
+              {/* Card 3: MRR Proyectado */}
+              <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl group-hover:bg-purple-500/10 transition-colors pointer-events-none" />
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">MRR Proyectado</span>
+                  <div className="p-2 rounded-xl sm:rounded-2xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 shrink-0">
+                    <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </div>
+                </div>
+                <div className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 dark:text-white">
+                  ${projectedMrr.toLocaleString('es-CL')} <span className="text-[11px] font-bold text-slate-500">CLP</span>
+                </div>
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  <span>ARR: ${(projectedArr / 1000).toFixed(0)}k</span>
+                  <span className="font-semibold text-purple-600 dark:text-purple-400">$3.490/u</span>
+                </div>
+              </div>
+
+              {/* Card 4: Tráfico Global & Conversión */}
+              <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 rounded-full blur-2xl group-hover:bg-cyan-500/10 transition-colors pointer-events-none" />
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">Tráfico & CR</span>
+                  <div className="p-2 rounded-xl sm:rounded-2xl bg-cyan-50 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400 shrink-0">
+                    <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </div>
+                </div>
+                <div className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 dark:text-white">
+                  {totalViews.toLocaleString()} <span className="text-[11px] font-bold text-slate-500">visitas</span>
+                </div>
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 text-[11px] sm:text-xs font-semibold">
+                  <span className="text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
+                    <MousePointerClick className="w-3 h-3" />
+                    {totalClicks}
+                  </span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                    {globalConversionRate}% CR
+                  </span>
+                </div>
+              </div>
+
+              {/* Card 5: Temas Populares */}
+              <div className="col-span-2 sm:col-span-2 lg:col-span-1 xl:col-span-1 bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-shadow relative group">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Temas Principales</span>
+                  <div className="p-2 rounded-xl sm:rounded-2xl bg-fuchsia-50 dark:bg-fuchsia-950/60 text-fuchsia-600 dark:text-fuchsia-400 shrink-0">
+                    <Palette className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 flex flex-col justify-center">
+                  {topThemes.slice(0, 2).map(([themeKey, count], idx) => {
+                    const themeObj = getThemeMeta(themeKey)
+                    const pct = totalProfiles > 0 ? Math.round((count / totalProfiles) * 100) : 0
+                    return (
+                      <div key={themeKey} className="flex items-center justify-between text-xs gap-1.5">
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded-lg text-[10px] sm:text-[11px] font-bold border truncate max-w-[120px] ${themeObj.color}`}>
+                          {idx + 1}. {themeObj.name}
+                        </span>
+                        <span className="font-mono text-slate-500 dark:text-slate-400 text-[10px] sm:text-[11px] shrink-0 font-semibold">
+                          {count} ({pct}%)
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsThemeBreakdownOpen(true)}
+                  className="flex items-center justify-between w-full mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/60 text-[11px] text-slate-500 dark:text-slate-400 font-medium hover:text-fuchsia-600 transition-colors cursor-pointer text-left"
+                >
+                  <span>{topThemes.length} temas</span>
+                  <span className="text-fuchsia-600 dark:text-fuchsia-400 font-bold hover:underline">
+                    Ver todos
+                  </span>
+                </button>
+              </div>
+
+            </div>
+
+            {/* Filters & Search Control Bar */}
+            <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm mb-6 space-y-3">
+              <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+                
+                {/* Search input */}
+                <div className="relative flex-1">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Buscar por nombre, @username, cargo o email..."
+                    className="w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-xl sm:rounded-2xl text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all min-h-[42px]"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Filter pills and selects */}
+                <div className="flex flex-wrap items-center gap-2">
+                  
+                  {/* Status Filter Horizontal Pills */}
+                  <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700/60 overflow-x-auto max-w-full">
+                    <button
+                      onClick={() => setStatusFilter('all')}
+                      className={`min-h-[32px] px-2.5 py-1 rounded-lg text-xs font-bold transition-colors whitespace-nowrap cursor-pointer ${
+                        statusFilter === 'all'
+                          ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                      }`}
+                    >
+                      Todos ({totalProfiles})
+                    </button>
+                    {lifetimeProfiles > 0 && (
+                      <button
+                        onClick={() => setStatusFilter('lifetime')}
+                        className={`min-h-[32px] px-2.5 py-1 rounded-lg text-xs font-bold transition-colors whitespace-nowrap cursor-pointer ${
+                          statusFilter === 'lifetime'
+                            ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs font-black'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                        }`}
+                      >
+                        De por vida ({lifetimeProfiles})
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setStatusFilter('premium')}
+                      className={`min-h-[32px] px-2.5 py-1 rounded-lg text-xs font-bold transition-colors whitespace-nowrap cursor-pointer ${
+                        statusFilter === 'premium'
+                          ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                      }`}
+                    >
+                      Suscripción ({activePremiumProfiles})
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter('trial')}
+                      className={`min-h-[32px] px-2.5 py-1 rounded-lg text-xs font-bold transition-colors whitespace-nowrap cursor-pointer ${
+                        statusFilter === 'trial'
+                          ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-xs'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                      }`}
+                    >
+                      Prueba ({trialProfiles})
+                    </button>
+                    <button
+                      onClick={() => setStatusFilter('inactive')}
+                      className={`min-h-[32px] px-2.5 py-1 rounded-lg text-xs font-bold transition-colors whitespace-nowrap cursor-pointer ${
+                        statusFilter === 'inactive'
+                          ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 shadow-xs'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                      }`}
+                    >
+                      Inactivos ({inactiveProfiles})
+                    </button>
+                  </div>
+
+                  {/* Sort selector */}
+                  <div className="flex items-center gap-1.5">
+                    <select
+                      value={`${sortField}_${sortOrder}`}
+                      onChange={(e) => {
+                        const [f, o] = e.target.value.split('_')
+                        setSortField(f)
+                        setSortOrder(o)
+                      }}
+                      className="min-h-[38px] px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                    >
+                      <option value="createdAt_desc">Más Recientes</option>
+                      <option value="views_desc">Mayor Tráfico (Visitas)</option>
+                      <option value="views_asc">Menor Tráfico</option>
+                      <option value="clicks_desc">Más Clics Contacto</option>
+                      <option value="name_asc">Nombre (A-Z)</option>
+                    </select>
+                  </div>
+
+                  {/* Clear filters button */}
+                  {(searchTerm || statusFilter !== 'all') && (
+                    <button
+                      onClick={() => {
+                        setSearchTerm('')
+                        setStatusFilter('all')
+                      }}
+                      className="min-h-[38px] px-3 py-1.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-xl transition-colors cursor-pointer"
+                    >
+                      Limpiar
+                    </button>
+                  )}
+
+                </div>
+
               </div>
             </div>
-            <div className="text-3xl font-black text-slate-900 dark:text-white">
-              {totalProfiles}
-            </div>
-            <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/60 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>+{newProfilesThisWeek} nuevos esta semana</span>
-            </div>
-          </div>
 
-          {/* Card 2: Suscripciones Activas (Pago real) */}
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-28 h-28 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-colors pointer-events-none" />
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Suscripciones Activas</span>
-              <div className="p-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
-                <UserCheck className="w-5 h-5" />
+            {/* User Profiles Container */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+              
+              <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Portafolios Registrados</h2>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                    {filteredProfiles.length}
+                  </span>
+                </div>
+                
+                <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+                  Modifica suscripciones en vivo cambiando el <strong className="text-slate-700 dark:text-slate-300">Plan</strong>.
+                </p>
+              </div>
+
+              {filteredProfiles.length === 0 ? (
+                <div className="p-8 sm:p-12 text-center">
+                  <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-3 text-slate-400">
+                    <Search className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">No se encontraron portafolios</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-4">
+                    No hay usuarios que coincidan con la búsqueda o filtro.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setSearchTerm('')
+                      setStatusFilter('all')
+                    }}
+                    className="min-h-[40px] px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-500 transition-colors cursor-pointer"
+                  >
+                    Restablecer Filtros
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* MOBILE CARDS VIEW (md:hidden) */}
+                  <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+                    {paginatedProfiles.map((p) => {
+                      const views = p.analytics?.views || 0
+                      const clicks = p.analytics?.contactClicks || 0
+                      const conversionRate = views > 0 ? ((clicks / views) * 100).toFixed(1) : '0.0'
+                      const themeObj = getThemeMeta(p.theme || 'minimalist')
+                      const hasCustomAvatar = Boolean(
+                        p.personalInfo?.avatar &&
+                        p.personalInfo.avatar !== 'blobatar' &&
+                        p.personalInfo.avatar.trim() !== ''
+                      )
+
+                      return (
+                        <div key={p.username} className="p-4 space-y-3 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
+                          
+                          {/* User Header */}
+                          <div className="flex items-start justify-between gap-2.5">
+                            <div className="flex items-center gap-3 min-w-0">
+                              {hasCustomAvatar ? (
+                                <img
+                                  src={p.personalInfo.avatar}
+                                  alt={p.personalInfo?.name || p.username}
+                                  className="w-11 h-11 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shadow-xs shrink-0"
+                                />
+                              ) : (
+                                <div className="w-11 h-11 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-xs shrink-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800">
+                                  <Blobatar
+                                    name="Sambi"
+                                    size={44}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <div className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1 truncate">
+                                  <span className="truncate">{p.personalInfo?.name || p.username}</span>
+                                  {p.personalInfo?.availableForWork && (
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="Disponible para trabajar" />
+                                  )}
+                                </div>
+                                <div className="text-xs text-indigo-600 dark:text-indigo-400 font-mono font-bold mt-0.5 truncate">
+                                  /{p.username}
+                                </div>
+                                {p.personalInfo?.title && (
+                                  <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                                    {p.personalInfo.title}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold border shrink-0 ${themeObj.color}`}>
+                              {themeObj.name}
+                            </span>
+                          </div>
+
+                          {/* Plan Selector */}
+                          <div className="flex items-center justify-between gap-2 pt-1">
+                            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider shrink-0">
+                              Plan:
+                            </span>
+                            <div className="relative flex-1 max-w-[220px]">
+                              <select
+                                value={p.plan}
+                                onChange={(e) => handlePlanChange(p.username, e.target.value)}
+                                className={`w-full appearance-none text-xs font-extrabold px-3 py-2 pr-7 rounded-xl border transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 min-h-[38px] ${
+                                  p.plan === 'lifetime'
+                                    ? 'bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700'
+                                    : p.plan === 'premium'
+                                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                                    : p.plan === 'trial'
+                                    ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                                    : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                                }`}
+                              >
+                                <option value="lifetime">De por vida</option>
+                                <option value="premium">Suscripción ($3.490)</option>
+                                <option value="trial">1er Mes Gratis</option>
+                                <option value="inactive">Inactivo</option>
+                              </select>
+                              <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-60" />
+                            </div>
+                          </div>
+
+                          {/* Quick Stats Grid */}
+                          <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 text-center">
+                            <div>
+                              <div className="text-[10px] uppercase font-bold text-slate-400">Visitas</div>
+                              <div className="font-extrabold text-xs text-slate-800 dark:text-slate-200">{views.toLocaleString()}</div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] uppercase font-bold text-slate-400">Clics WA</div>
+                              <div className="font-bold text-xs text-emerald-600 dark:text-emerald-400">{clicks.toLocaleString()}</div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] uppercase font-bold text-slate-400">Conversión</div>
+                              <div className="font-extrabold text-xs text-slate-900 dark:text-white">{conversionRate}%</div>
+                            </div>
+                          </div>
+
+                          {/* Action Toolbar */}
+                          <div className="flex items-center gap-1.5 pt-1">
+                            <Link
+                              to={`/${p.username}`}
+                              target="_blank"
+                              className="flex-1 min-h-[38px] px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center justify-center gap-1 transition-colors"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              <span>Ver</span>
+                            </Link>
+
+                            <button
+                              onClick={() => handleEdit(p.username)}
+                              className="flex-1 min-h-[38px] px-2.5 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-600 dark:text-indigo-400 text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                              <span>Studio</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleOpenAssignCreatorModal({ creatorUsername: p.username, code: p.creatorCode || '' })}
+                              className="min-h-[38px] px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                              title="Asignar código de creador"
+                            >
+                              <Tag className="w-3.5 h-3.5" />
+                            </button>
+
+                            <button
+                              onClick={() => setConfirmDeleteUser(p.username)}
+                              className="min-h-[38px] px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-600 dark:text-rose-400 text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                              title="Eliminar usuario"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* DESKTOP TABLE VIEW (hidden md:block) */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left text-xs sm:text-sm">
+                      <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-800">
+                        <tr>
+                          <th className="py-4 px-6">Usuario & Perfil</th>
+                          <th className="py-4 px-4">Plan / Estado</th>
+                          <th className="py-4 px-4">Tema</th>
+                          <th className="py-4 px-4 text-center">Visitas</th>
+                          <th className="py-4 px-4 text-center">Clics WA / Contacto</th>
+                          <th className="py-4 px-4 text-center">Conversión</th>
+                          <th className="py-4 px-6 text-right">Acciones</th>
+                        </tr>
+                      </thead>
+
+                      <tbody className="divide-y divide-slate-200 dark:divide-slate-800/80 font-medium">
+                        {paginatedProfiles.map((p) => {
+                          const views = p.analytics?.views || 0
+                          const clicks = p.analytics?.contactClicks || 0
+                          const conversionRate = views > 0 ? ((clicks / views) * 100).toFixed(1) : '0.0'
+                          const themeObj = getThemeMeta(p.theme || 'minimalist')
+                          const hasCustomAvatar = Boolean(
+                            p.personalInfo?.avatar &&
+                            p.personalInfo.avatar !== 'blobatar' &&
+                            p.personalInfo.avatar.trim() !== ''
+                          )
+
+                          return (
+                            <tr 
+                              key={p.username} 
+                              className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group"
+                            >
+                              {/* Profile Info */}
+                              <td className="py-4 px-6">
+                                <div className="flex items-center gap-3.5">
+                                  {hasCustomAvatar ? (
+                                    <img
+                                      src={p.personalInfo.avatar}
+                                      alt={p.personalInfo?.name || p.username}
+                                      className="w-11 h-11 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shadow-sm shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="w-11 h-11 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm shrink-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800">
+                                      <Blobatar
+                                        name="Sambi"
+                                        size={44}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    </div>
+                                  )}
+                                  <div className="min-w-0">
+                                    <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 truncate">
+                                      <span>{p.personalInfo?.name || p.username}</span>
+                                      {p.personalInfo?.availableForWork && (
+                                        <span className="w-2 h-2 rounded-full bg-emerald-500" title="Disponible para trabajar" />
+                                      )}
+                                    </div>
+                                    <div className="text-xs text-indigo-600 dark:text-indigo-400 font-mono font-bold mt-0.5">
+                                      /{p.username}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Plan & Status Dropdown Selector */}
+                              <td className="py-4 px-4">
+                                <div className="relative inline-block">
+                                  <select
+                                    value={p.plan}
+                                    onChange={(e) => handlePlanChange(p.username, e.target.value)}
+                                    className={`appearance-none text-xs font-extrabold px-3 py-1.5 pr-7 rounded-xl border transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                                      p.plan === 'lifetime'
+                                        ? 'bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700 hover:bg-indigo-100'
+                                        : p.plan === 'premium'
+                                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
+                                        : p.plan === 'trial'
+                                        ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 hover:bg-amber-100'
+                                        : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800 hover:bg-rose-100'
+                                    }`}
+                                  >
+                                    <option value="lifetime">De por vida</option>
+                                    <option value="premium">Suscripción ($3.490)</option>
+                                    <option value="trial">1er Mes Gratis</option>
+                                    <option value="inactive">Inactivo</option>
+                                  </select>
+                                  <ChevronDown className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-60" />
+                                </div>
+                              </td>
+
+                              {/* Theme Badge */}
+                              <td className="py-4 px-4">
+                                <span className={`inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-bold border ${themeObj.color}`}>
+                                  {themeObj.name}
+                                </span>
+                              </td>
+
+                              {/* Analytics: Views */}
+                              <td className="py-4 px-4 text-center">
+                                <span className="font-extrabold text-slate-800 dark:text-slate-200">
+                                  {views.toLocaleString()}
+                                </span>
+                              </td>
+
+                              {/* Analytics: Contact Clicks */}
+                              <td className="py-4 px-4 text-center">
+                                <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-1 rounded-lg">
+                                  {clicks.toLocaleString()}
+                                </span>
+                              </td>
+
+                              {/* Conversion Rate */}
+                              <td className="py-4 px-4 text-center">
+                                <span className="text-xs font-extrabold text-slate-900 dark:text-white">
+                                  {conversionRate}%
+                                </span>
+                              </td>
+
+                              {/* Actions */}
+                              <td className="py-4 px-6 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <Link
+                                    to={`/${p.username}`}
+                                    target="_blank"
+                                    title="Ver portafolio público"
+                                    className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
+                                  >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                  </Link>
+
+                                  <button
+                                    onClick={() => handleEdit(p.username)}
+                                    title="Editar en Studio"
+                                    className="p-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/80 text-indigo-600 dark:text-indigo-400 transition-colors cursor-pointer"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  <button
+                                    onClick={() => handleOpenAssignCreatorModal({ creatorUsername: p.username, code: p.creatorCode || '' })}
+                                    title="Asignar código de creador"
+                                    className="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 transition-colors cursor-pointer"
+                                  >
+                                    <Tag className="w-3.5 h-3.5" />
+                                  </button>
+
+                                  <button
+                                    onClick={() => setConfirmDeleteUser(p.username)}
+                                    title="Eliminar usuario"
+                                    className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 transition-colors cursor-pointer"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+
+              {/* Table Footer Summary & Pagination */}
+              <div className="p-3.5 sm:p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                <div>
+                  Mostrando del <strong className="text-slate-800 dark:text-slate-200">{filteredProfiles.length === 0 ? 0 : (currentPage - 1) * USERS_PER_PAGE + 1}</strong> al <strong className="text-slate-800 dark:text-slate-200">{Math.min(currentPage * USERS_PER_PAGE, filteredProfiles.length)}</strong> de <strong className="text-slate-800 dark:text-slate-200">{filteredProfiles.length}</strong> portafolios.
+                </div>
+
+                {/* Pagination Controls */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="min-h-[38px] px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>Anterior</span>
+                  </button>
+
+                  {/* Desktop Page Numbers */}
+                  <div className="hidden sm:flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
+                      if (
+                        totalPages > 6 &&
+                        pageNum !== 1 &&
+                        pageNum !== totalPages &&
+                        Math.abs(pageNum - currentPage) > 1
+                      ) {
+                        if (pageNum === 2 || pageNum === totalPages - 1) {
+                          return <span key={pageNum} className="px-1 text-slate-400 font-bold">...</span>
+                        }
+                        return null
+                      }
+
+                      return (
+                        <button
+                          key={pageNum}
+                          type="button"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`w-8 h-8 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                            currentPage === pageNum
+                              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-105'
+                              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Mobile Page Indicator */}
+                  <div className="sm:hidden font-mono font-bold text-xs text-slate-700 dark:text-slate-300 px-2">
+                    {currentPage} / {totalPages}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="min-h-[38px] px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Siguiente</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="hidden lg:flex items-center gap-4">
+                  <span>MRR: <strong className="text-emerald-600 dark:text-emerald-400 font-bold">${projectedMrr.toLocaleString('es-CL')} CLP</strong></span>
+                  <span>•</span>
+                  <span>Tráfico: <strong className="text-slate-800 dark:text-slate-200 font-bold">{totalViews.toLocaleString()} visitas</strong></span>
+                </div>
               </div>
             </div>
-            <div className="text-3xl font-black text-slate-900 dark:text-white">
-              {activePremiumProfiles}
-            </div>
-            <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/60 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>{activePremiumProfiles} {activePremiumProfiles === 1 ? 'suscripción activa' : 'suscripciones activas'} • De pago mensual</span>
-            </div>
           </div>
+        )}
 
-          {/* Card 3: MRR Proyectado */}
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-28 h-28 bg-purple-500/5 rounded-full blur-2xl group-hover:bg-purple-500/10 transition-colors pointer-events-none" />
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">MRR Proyectado</span>
-              <div className="p-2.5 rounded-2xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400">
-                <DollarSign className="w-5 h-5" />
-              </div>
-            </div>
-            <div className="text-3xl font-black text-slate-900 dark:text-white">
-              ${projectedMrr.toLocaleString('es-CL')} <span className="text-sm font-bold text-slate-500">CLP/mes</span>
-            </div>
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/60 text-xs text-slate-500 dark:text-slate-400 font-medium">
-              <span>ARR: ${projectedArr.toLocaleString('es-CL')} CLP</span>
-              <span className="font-semibold text-purple-600 dark:text-purple-400">$3.490/u</span>
-            </div>
-          </div>
-
-          {/* Card 4: Tráfico Global & Conversión */}
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-28 h-28 bg-cyan-500/5 rounded-full blur-2xl group-hover:bg-cyan-500/10 transition-colors pointer-events-none" />
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tráfico & Conversión</span>
-              <div className="p-2.5 rounded-2xl bg-cyan-50 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400">
-                <Eye className="w-5 h-5" />
-              </div>
-            </div>
-            <div className="text-3xl font-black text-slate-900 dark:text-white">
-              {totalViews.toLocaleString()} <span className="text-sm font-bold text-slate-500">visitas</span>
-            </div>
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/60 text-xs font-semibold">
-              <span className="text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
-                <MousePointerClick className="w-3.5 h-3.5" />
-                {totalClicks} clics
-              </span>
-              <span className="text-purple-600 dark:text-purple-400 flex items-center gap-1">
-                <QrCode className="w-3.5 h-3.5" />
-                {totalDownloads} QR
-              </span>
-              <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                {globalConversionRate}% CR
-              </span>
-            </div>
-          </div>
-
-          {/* Card 5: Temas & Diseños Populares */}
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-shadow relative group">
-            {/* Background glow bounded to card corners */}
-            <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
-              <div className="absolute top-0 right-0 w-28 h-28 bg-fuchsia-500/5 rounded-full blur-2xl group-hover:bg-fuchsia-500/10 transition-colors" />
-            </div>
+        {/* Tab 2: Analíticas & Embudos */}
+        {activeAdminTab === 'analytics' && (
+          <div className="space-y-6 animate-fadeIn">
             
-            {/* Tooltip flotante al pasar el mouse */}
-            <div className="absolute bottom-full right-0 sm:left-1/2 sm:-translate-x-1/2 mb-2 hidden group-hover:block z-30 w-60 p-3 bg-slate-900 text-white rounded-2xl shadow-xl border border-slate-700 text-xs pointer-events-none">
-              <div className="font-bold border-b border-slate-700 pb-1.5 mb-1.5 text-[11px] text-slate-300">
-                Conteo Exacto de Temas ({topThemes.length}):
+            {/* Funnel Metrics Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 lg:gap-6">
+              <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Paso 1: Visitas Totales
+                </span>
+                <div className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono">
+                  {totalViews.toLocaleString()}
+                </div>
+                <div className="text-[11px] text-slate-500 mt-2 font-medium">
+                  Tráfico acumulado (Base 100%)
+                </div>
               </div>
-              <div className="space-y-1">
-                {topThemes.map(([themeKey, count]) => {
+
+              <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <span className="text-[10px] sm:text-xs font-bold text-cyan-500 uppercase tracking-wider block mb-1">
+                  Paso 2: Clics Contacto
+                </span>
+                <div className="text-xl sm:text-3xl font-black text-cyan-600 dark:text-cyan-400 font-mono">
+                  {totalClicks.toLocaleString()}
+                </div>
+                <div className="text-[11px] text-slate-500 mt-2 font-medium">
+                  {totalViews > 0 ? ((totalClicks / totalViews) * 100).toFixed(1) : 0}% de los visitantes
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <span className="text-[10px] sm:text-xs font-bold text-purple-500 uppercase tracking-wider block mb-1">
+                  Paso 3: QR & Descargas
+                </span>
+                <div className="text-xl sm:text-3xl font-black text-purple-600 dark:text-purple-400 font-mono">
+                  {totalDownloads.toLocaleString()}
+                </div>
+                <div className="text-[11px] text-slate-500 mt-2 font-medium">
+                  {totalViews > 0 ? ((totalDownloads / totalViews) * 100).toFixed(1) : 0}% de interacción profunda
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-indigo-600 to-violet-700 text-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-lg shadow-indigo-600/20">
+                <span className="text-[10px] sm:text-xs font-bold text-indigo-200 uppercase tracking-wider block mb-1">
+                  Paso 4: Suscriptores
+                </span>
+                <div className="text-xl sm:text-3xl font-black text-white font-mono">
+                  {activePremiumProfiles}
+                </div>
+                <div className="text-[11px] text-indigo-100 mt-2 font-medium">
+                  MRR: ${projectedMrr.toLocaleString('es-CL')} CLP/mes
+                </div>
+              </div>
+            </div>
+
+            {/* Visual Conversion Funnel Card */}
+            <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div>
+                  <h3 className="font-bold text-base text-slate-900 dark:text-white">Embudo de Conversión Global</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Eficiencia desde visita inicial hasta conversión activa</p>
+                </div>
+                <span className="px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 font-bold text-xs">
+                  {globalConversionRate}% CR Global
+                </span>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <div>
+                  <div className="flex justify-between text-xs font-bold mb-1">
+                    <span className="text-slate-700 dark:text-slate-300">1. Visitas a Portafolios Públicos</span>
+                    <span className="font-mono text-slate-500">{totalViews.toLocaleString()} (100%)</span>
+                  </div>
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden">
+                    <div className="bg-indigo-600 h-full rounded-full w-full" />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-xs font-bold mb-1">
+                    <span className="text-slate-700 dark:text-slate-300">2. Clics en Botones de Contacto (WhatsApp, LinkedIn, Email)</span>
+                    <span className="font-mono text-cyan-600 dark:text-cyan-400">
+                      {totalClicks.toLocaleString()} ({totalViews > 0 ? ((totalClicks / totalViews) * 100).toFixed(1) : 0}%)
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-cyan-500 h-full rounded-full transition-all"
+                      style={{ width: `${Math.min(100, totalViews > 0 ? (totalClicks / totalViews) * 100 : 0)}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-xs font-bold mb-1">
+                    <span className="text-slate-700 dark:text-slate-300">3. Escaneos de Tarjeta QR / Descarga de CV</span>
+                    <span className="font-mono text-purple-600 dark:text-purple-400">
+                      {totalDownloads.toLocaleString()} ({totalViews > 0 ? ((totalDownloads / totalViews) * 100).toFixed(1) : 0}%)
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-purple-500 h-full rounded-full transition-all"
+                      style={{ width: `${Math.min(100, totalViews > 0 ? (totalDownloads / totalViews) * 100 : 0)}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between text-xs font-bold mb-1">
+                    <span className="text-slate-700 dark:text-slate-300">4. Suscriptores con Pago Mensual Activo</span>
+                    <span className="font-mono text-emerald-600 dark:text-emerald-400">
+                      {activePremiumProfiles} ({totalProfiles > 0 ? ((activePremiumProfiles / totalProfiles) * 100).toFixed(1) : 0}%)
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-emerald-500 h-full rounded-full transition-all"
+                      style={{ width: `${Math.min(100, totalProfiles > 0 ? (activePremiumProfiles / totalProfiles) * 100 : 0)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Themes Breakdown Card */}
+            <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div>
+                  <h3 className="font-bold text-base text-slate-900 dark:text-white">Adopción de Temas y Diseños</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Distribución de los {topThemes.length} temas oficiales</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {topThemes.map(([themeKey, count], idx) => {
                   const meta = getThemeMeta(themeKey)
+                  const pct = totalProfiles > 0 ? Math.round((count / totalProfiles) * 100) : 0
                   return (
-                    <div key={themeKey} className="flex items-center justify-between text-[11px]">
-                      <span className="text-slate-300 truncate max-w-[120px]">{meta.name}:</span>
-                      <span className="font-bold text-white font-mono">{count} {count === 1 ? 'usuario' : 'usuarios'}</span>
+                    <div 
+                      key={themeKey}
+                      className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-mono text-xs font-bold text-slate-400 w-4">{idx + 1}.</span>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-bold border truncate ${meta.color}`}>
+                          {meta.name}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="w-16 bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden hidden xs:block">
+                          <div className="bg-fuchsia-500 h-full rounded-full" style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="font-mono font-bold text-xs text-slate-800 dark:text-slate-200">
+                          {count} ({pct}%)
+                        </span>
+                      </div>
                     </div>
                   )
                 })}
               </div>
             </div>
 
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Temas Más Usados</span>
-              <div className="p-2.5 rounded-2xl bg-fuchsia-50 dark:bg-fuchsia-950/60 text-fuchsia-600 dark:text-fuchsia-400">
-                <Palette className="w-5 h-5" />
+          </div>
+        )}
+
+        {/* Tab 3: Feedbacks & Encuestas */}
+        {activeAdminTab === 'feedbacks' && (
+          <div className="space-y-6 animate-fadeIn">
+            
+            {/* Feedbacks Header Card */}
+            <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-purple-500" />
+                  <span>Feedbacks de Usuarios Registrados</span>
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Respuestas de la encuesta de onboarding al activar el primer mes gratis
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs font-bold">
+                <span className="px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                  {feedbackProfiles.length} Respuestas
+                </span>
               </div>
             </div>
 
-            <div className="space-y-2 min-h-[44px] flex flex-col justify-center">
-              {topThemes.slice(0, 3).map(([themeKey, count], idx) => {
-                const themeObj = getThemeMeta(themeKey)
-                const pct = totalProfiles > 0 ? Math.round((count / totalProfiles) * 100) : 0
-                return (
-                  <div key={themeKey} className="flex items-center justify-between text-xs gap-2">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-bold border truncate ${themeObj.color}`}>
-                      {idx + 1}. {themeObj.name}
-                    </span>
-                    <span className="font-mono text-slate-500 dark:text-slate-400 text-[11px] shrink-0 font-semibold">
-                      {count} ({pct}%)
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsThemeBreakdownOpen(true)}
-              className="flex items-center justify-between w-full mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/60 text-xs text-slate-500 dark:text-slate-400 font-medium hover:text-fuchsia-600 dark:hover:text-fuchsia-400 transition-colors cursor-pointer text-left"
-            >
-              <span>{topThemes.length} temas en total</span>
-              <span className="text-fuchsia-600 dark:text-fuchsia-400 font-bold hover:underline">
-                Ver detalle
-              </span>
-            </button>
-          </div>
-
-        </div>
-
-        {/* Filters & Search Control Bar */}
-        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm mb-6">
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
-            
-            {/* Search input */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Buscar por nombre, @username, cargo o email..."
-                className="w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-2xl text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-
-            {/* Filter pills and selects */}
-            <div className="flex flex-wrap items-center gap-3">
-              
-              {/* Status Filter */}
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-2xl border border-slate-200 dark:border-slate-700/60">
-                <button
-                  onClick={() => setStatusFilter('all')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
-                    statusFilter === 'all'
-                      ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  Todos ({totalProfiles})
-                </button>
-                {lifetimeProfiles > 0 && (
-                  <button
-                    onClick={() => setStatusFilter('lifetime')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
-                      statusFilter === 'lifetime'
-                        ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm font-black'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                    }`}
+            {feedbackProfiles.length === 0 ? (
+              <div className="p-8 sm:p-12 text-center bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-3 text-slate-400">
+                  <MessageSquare className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">Sin feedbacks directos aún</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                  Aparecerán aquí cuando los usuarios completen la encuesta de registro al ingresar su código de creador o activar su prueba.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {feedbackProfiles.map((fb, idx) => (
+                  <div 
+                    key={idx}
+                    className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3"
                   >
-                    De por vida ({lifetimeProfiles})
-                  </button>
-                )}
-                <button
-                  onClick={() => setStatusFilter('premium')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
-                    statusFilter === 'premium'
-                      ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  Suscripción ({activePremiumProfiles})
-                </button>
-                <button
-                  onClick={() => setStatusFilter('trial')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
-                    statusFilter === 'trial'
-                      ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  Prueba ({trialProfiles})
-                </button>
-                <button
-                  onClick={() => setStatusFilter('inactive')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
-                    statusFilter === 'inactive'
-                      ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                  }`}
-                >
-                  Inactivos ({inactiveProfiles})
-                </button>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-bold text-sm text-slate-900 dark:text-white">
+                          {fb.name}
+                        </div>
+                        <div className="text-xs text-indigo-600 dark:text-indigo-400 font-mono font-bold">
+                          @{fb.username} • <span className="text-slate-400 font-normal">{fb.area}</span>
+                        </div>
+                      </div>
+
+                      {/* Rating stars */}
+                      <div className="flex items-center gap-0.5 text-amber-400 shrink-0">
+                        {Array.from({ length: 5 }).map((_, s) => (
+                          <Star 
+                            key={s} 
+                            className={`w-3.5 h-3.5 ${s < fb.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-slate-700'}`} 
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300">
+                      <div className="font-bold text-slate-500 dark:text-slate-400 text-[10px] uppercase mb-1">
+                        Obstáculo Reportado en CV:
+                      </div>
+                      <div className="font-medium text-slate-900 dark:text-white">
+                        {fb.obstacle}
+                      </div>
+                    </div>
+
+                    {fb.notes && (
+                      <p className="text-xs text-slate-600 dark:text-slate-400 italic">
+                        "{fb.notes}"
+                      </p>
+                    )}
+
+                    <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <span>Origen: <strong className="text-slate-600 dark:text-slate-300 font-bold">{fb.source}</strong></span>
+                      <span>{new Date(fb.date).toLocaleDateString('es-CL')}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
-
-              {/* Sort selector */}
-              <div className="flex items-center gap-1.5">
-                <select
-                  value={`${sortField}_${sortOrder}`}
-                  onChange={(e) => {
-                    const [f, o] = e.target.value.split('_')
-                    setSortField(f)
-                    setSortOrder(o)
-                  }}
-                  className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
-                >
-                  <option value="createdAt_desc">Más Recientes</option>
-                  <option value="views_desc">Mayor Tráfico (Visitas ↓)</option>
-                  <option value="views_asc">Menor Tráfico (Visitas ↑)</option>
-                  <option value="clicks_desc">Más Clics de Contacto ↓</option>
-                  <option value="name_asc">Nombre (A-Z)</option>
-                </select>
-              </div>
-
-              {/* Clear filters button */}
-              {(searchTerm || statusFilter !== 'all') && (
-                <button
-                  onClick={() => {
-                    setSearchTerm('')
-                    setStatusFilter('all')
-                  }}
-                  className="px-3 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-xl transition-colors"
-                >
-                  Limpiar filtros
-                </button>
-              )}
-
-            </div>
+            )}
 
           </div>
-        </div>
+        )}
 
-        {/* User Profiles Table */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-          
-          <div className="p-5 sm:p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-900/50">
-            <div className="flex items-center gap-2.5">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Portafolios Registrados</h2>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                {filteredProfiles.length} {filteredProfiles.length === 1 ? 'resultado' : 'resultados'}
-              </span>
-            </div>
-            
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Usa los selectores de la columna <strong className="text-slate-700 dark:text-slate-300">Plan / Estado</strong> para modificar suscripciones en vivo.
-            </p>
-          </div>
-
-          {filteredProfiles.length === 0 ? (
-            <div className="p-12 text-center">
-              <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4 text-slate-400">
-                <Search className="w-8 h-8" />
-              </div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">No se encontraron portafolios</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-4">
-                No hay usuarios que coincidan con los criterios de búsqueda o filtros seleccionados.
-              </p>
-              <button
-                onClick={() => {
-                  setSearchTerm('')
-                  setStatusFilter('all')
-                }}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-500 transition-colors"
-              >
-                Restablecer Filtros
-              </button>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs sm:text-sm">
-                
-                <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-800">
-                  <tr>
-                    <th className="py-4 px-6">Usuario & Perfil</th>
-                    <th className="py-4 px-4">Plan / Estado</th>
-                    <th className="py-4 px-4">Tema</th>
-                    <th className="py-4 px-4 text-center">Visitas</th>
-                    <th className="py-4 px-4 text-center">Clics WA / Contacto</th>
-                    <th className="py-4 px-4 text-center">Conversión</th>
-                    <th className="py-4 px-6 text-right">Acciones</th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800/80 font-medium">
-                  {paginatedProfiles.map((p) => {
-                    const views = p.analytics?.views || 0
-                    const clicks = p.analytics?.contactClicks || 0
-                    const conversionRate = views > 0 ? ((clicks / views) * 100).toFixed(1) : '0.0'
-                    const themeObj = getThemeMeta(p.theme || 'minimalist')
-                    const hasCustomAvatar = Boolean(
-                      p.personalInfo?.avatar &&
-                      p.personalInfo.avatar !== 'blobatar' &&
-                      p.personalInfo.avatar.trim() !== ''
-                    )
-
-                    return (
-                      <tr 
-                        key={p.username} 
-                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group"
-                      >
-                        {/* Profile Info */}
-                        <td className="py-4 px-6">
-                          <div className="flex items-center gap-3.5">
-                            {hasCustomAvatar ? (
-                              <img
-                                src={p.personalInfo.avatar}
-                                alt={p.personalInfo?.name || p.username}
-                                className="w-11 h-11 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shadow-sm"
-                              />
-                            ) : (
-                              <div className="w-11 h-11 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm shrink-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800">
-                                <Blobatar
-                                  name="Sambi"
-                                  size={44}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            )}
-                            <div className="min-w-0">
-                              <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5 truncate">
-                                <span>{p.personalInfo?.name || p.username}</span>
-                                {p.personalInfo?.availableForWork && (
-                                  <span className="w-2 h-2 rounded-full bg-emerald-500" title="Disponible para trabajar" />
-                                )}
-                              </div>
-                              <div className="text-xs text-indigo-600 dark:text-indigo-400 font-mono font-bold mt-0.5">
-                                /{p.username}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Plan & Status Dropdown Selector */}
-                        <td className="py-4 px-4">
-                          <div className="relative inline-block">
-                            <select
-                              value={p.plan}
-                              onChange={(e) => handlePlanChange(p.username, e.target.value)}
-                              className={`appearance-none text-xs font-extrabold px-3 py-1.5 pr-7 rounded-xl border transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                                p.plan === 'lifetime'
-                                  ? 'bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700 hover:bg-indigo-100'
-                                  : p.plan === 'premium'
-                                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
-                                  : p.plan === 'trial'
-                                  ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 hover:bg-amber-100'
-                                  : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800 hover:bg-rose-100'
-                              }`}
-                            >
-                              <option value="lifetime">De por vida</option>
-                              <option value="premium">Suscripción ($3.490)</option>
-                              <option value="trial">1er Mes Gratis</option>
-                              <option value="inactive">Inactivo</option>
-                            </select>
-                            <ChevronDown className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-60" />
-                          </div>
-                        </td>
-
-                        {/* Theme Badge */}
-                        <td className="py-4 px-4">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-bold border ${themeObj.color}`}>
-                            {themeObj.name}
-                          </span>
-                        </td>
-
-                        {/* Analytics: Views */}
-                        <td className="py-4 px-4 text-center">
-                          <span className="font-extrabold text-slate-800 dark:text-slate-200">
-                            {views.toLocaleString()}
-                          </span>
-                        </td>
-
-                        {/* Analytics: Contact Clicks */}
-                        <td className="py-4 px-4 text-center">
-                          <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-1 rounded-lg">
-                            {clicks.toLocaleString()}
-                          </span>
-                        </td>
-
-                        {/* Conversion Rate */}
-                        <td className="py-4 px-4 text-center">
-                          <span className="text-xs font-extrabold text-slate-900 dark:text-white">
-                            {conversionRate}%
-                          </span>
-                        </td>
-
-                        {/* Actions */}
-                        <td className="py-4 px-6 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            
-                            {/* Link to view live portfolio */}
-                            <Link
-                              to={`/${p.username}`}
-                              target="_blank"
-                              title="Ver portafolio público"
-                              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </Link>
-
-                            {/* Edit in Studio Button */}
-                            <button
-                              onClick={() => handleEdit(p.username)}
-                              title="Editar en Studio"
-                              className="p-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/80 text-indigo-600 dark:text-indigo-400 transition-colors"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-
-                            {/* Delete Profile Button */}
-                            <button
-                              onClick={() => setConfirmDeleteUser(p.username)}
-                              title="Eliminar usuario"
-                              className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 transition-colors"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-
-              </table>
-            </div>
-          )}
-
-          {/* Table Footer Summary & Pagination */}
-          <div className="p-4 sm:p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400 font-medium">
-            <div>
-              Mostrando del <strong className="text-slate-800 dark:text-slate-200">{filteredProfiles.length === 0 ? 0 : (currentPage - 1) * USERS_PER_PAGE + 1}</strong> al <strong className="text-slate-800 dark:text-slate-200">{Math.min(currentPage * USERS_PER_PAGE, filteredProfiles.length)}</strong> de <strong className="text-slate-800 dark:text-slate-200">{filteredProfiles.length}</strong> portafolios.
-            </div>
-
-            {/* Pagination Controls */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-1 cursor-pointer"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-                <span>Anterior</span>
-              </button>
-
-              <div className="flex items-center gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
-                  if (
-                    totalPages > 6 &&
-                    pageNum !== 1 &&
-                    pageNum !== totalPages &&
-                    Math.abs(pageNum - currentPage) > 1
-                  ) {
-                    if (pageNum === 2 || pageNum === totalPages - 1) {
-                      return <span key={pageNum} className="px-1 text-slate-400 font-bold">...</span>
-                    }
-                    return null
-                  }
-
-                  return (
-                    <button
-                      key={pageNum}
-                      type="button"
-                      onClick={() => setCurrentPage(pageNum)}
-                      className={`w-8 h-8 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        currentPage === pageNum
-                          ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 scale-105'
-                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  )
-                })}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-1 cursor-pointer"
-              >
-                <span>Siguiente</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <span>MRR Activo: <strong className="text-emerald-600 dark:text-emerald-400 font-bold">${projectedMrr.toLocaleString('es-CL')} CLP</strong></span>
-              <span>•</span>
-              <span>Tráfico acumulado: <strong className="text-slate-800 dark:text-slate-200 font-bold">{totalViews.toLocaleString()} visitas</strong></span>
-            </div>
-          </div>
-        </div>
-      </div>
-    )}
-
-        {/* ========================================================================= */}
-        {/* TAB 2: AFILIADOS & CREADORES ("APOYA A UN CREADOR")                       */}
-        {/* ========================================================================= */}
+        {/* Tab 4: Afiliados y Creadores ("Apoya a un creador") */}
         {activeAdminTab === 'creators' && (
           <div className="space-y-6 animate-fadeIn">
             
             {/* 1. Official Commission Rules Banner */}
-            <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-indigo-900/90 via-slate-900 to-slate-900 border border-indigo-500/30 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+            <div className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-indigo-900/90 via-slate-900 to-slate-900 border border-indigo-500/30 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-5">
               <div className="flex items-start gap-3.5">
                 <div className="p-3 rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shrink-0">
-                  <Award className="w-6 h-6" />
+                  <Award className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-base font-bold text-white">Reglas Oficiales de Liquidación para Creadores</h3>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                      Corte: 30 de cada mes
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-sm sm:text-base font-bold text-white">Liquidación Oficial para Creadores</h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      Corte: Día 30
                     </span>
                   </div>
                   <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                    Comisiones fijas acordadas por cada usuario suscrito con el código del influencer:
+                    Comisiones fijas acordadas por cada usuario que pague su plan:
                   </p>
-                  <div className="flex flex-wrap items-center gap-2.5 mt-2.5 text-xs">
-                    <span className="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 flex items-center gap-1.5 font-bold text-slate-200">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                      <span>Chile (Flow.cl):</span> <strong className="text-emerald-400 font-mono">${CREATOR_COMMISSION_CLP.toLocaleString('es-CL')} CLP</strong> por usuario
+                  <div className="flex flex-wrap items-center gap-2 mt-2 text-xs">
+                    <span className="px-2.5 py-1 rounded-xl bg-slate-800 border border-slate-700 flex items-center gap-1.5 font-bold text-slate-200">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+                      <span>Chile (Flow):</span> <strong className="text-emerald-400 font-mono">${CREATOR_COMMISSION_CLP.toLocaleString('es-CL')} CLP</strong>
                     </span>
-                    <span className="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 flex items-center gap-1.5 font-bold text-slate-200">
-                      <Globe className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Internacional (PayPal):</span> <strong className="text-cyan-400 font-mono">${CREATOR_COMMISSION_USD.toFixed(2)} USD</strong> por usuario
+                    <span className="px-2.5 py-1 rounded-xl bg-slate-800 border border-slate-700 flex items-center gap-1.5 font-bold text-slate-200">
+                      <Globe className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                      <span>Internacional (PayPal):</span> <strong className="text-cyan-400 font-mono">${CREATOR_COMMISSION_USD.toFixed(2)} USD</strong>
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="shrink-0 flex flex-wrap items-center gap-2 w-full md:w-auto">
+              <div className="shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
                 <button
                   type="button"
                   onClick={() => handleOpenAssignCreatorModal()}
-                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                  className="min-h-[42px] px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Asignar Creador</span>
@@ -1721,273 +2155,375 @@ Administrador autorizado: jericesb5@gmail.com
                 <button
                   type="button"
                   onClick={handleExportCreatorsCSV}
-                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
+                  className="min-h-[42px] px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
                 >
                   <FileDown className="w-4 h-4 text-emerald-300" />
-                  <span>Exportar Liquidación CSV</span>
+                  <span>Exportar CSV</span>
                 </button>
               </div>
             </div>
 
             {/* 2. Creators KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 lg:gap-6">
               
               {/* Card 1: Creadores Activos */}
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm relative overflow-hidden">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Creadores con Ventas</span>
-                  <div className="p-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
-                    <Users className="w-5 h-5" />
+              <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm relative overflow-hidden">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">Creadores</span>
+                  <div className="p-2 rounded-xl sm:rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 shrink-0">
+                    <Users className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                 </div>
-                <div className="text-3xl font-black text-slate-900 dark:text-white">
+                <div className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 dark:text-white">
                   {creatorsSummary.length}
                 </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">
-                  Códigos únicos con conversiones
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 truncate">
+                  Códigos únicos con ventas
                 </div>
               </div>
 
               {/* Card 2: Total Usuarios Convertidos */}
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm relative overflow-hidden">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Usuarios Convertidos</span>
-                  <div className="p-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
-                    <CheckCircle2 className="w-5 h-5" />
+              <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm relative overflow-hidden">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">Convertidos</span>
+                  <div className="p-2 rounded-xl sm:rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                 </div>
-                <div className="text-3xl font-black text-slate-900 dark:text-white">
+                <div className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 dark:text-white">
                   {totalCreatorSalesClp + totalCreatorSalesUsd}
                 </div>
-                <div className="flex items-center gap-2 mt-2 text-xs font-semibold text-slate-500">
-                  <span className="text-emerald-600 dark:text-emerald-400">{totalCreatorSalesClp} en Flow</span>
+                <div className="flex items-center gap-1.5 mt-1 text-[11px] font-semibold text-slate-500 truncate">
+                  <span className="text-emerald-600 dark:text-emerald-400">{totalCreatorSalesClp} Flow</span>
                   <span>•</span>
-                  <span className="text-cyan-600 dark:text-cyan-400">{totalCreatorSalesUsd} en PayPal</span>
+                  <span className="text-cyan-600 dark:text-cyan-400">{totalCreatorSalesUsd} PayPal</span>
                 </div>
               </div>
 
               {/* Card 3: Total Recaudado Bruto */}
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm relative overflow-hidden">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Recaudado</span>
-                  <div className="p-2.5 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
-                    <DollarSign className="w-5 h-5" />
+              <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm relative overflow-hidden">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">Recaudado</span>
+                  <div className="p-2 rounded-xl sm:rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 shrink-0">
+                    <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                 </div>
-                <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+                <div className="text-lg sm:text-xl font-black text-slate-900 dark:text-white truncate">
                   ${totalCreatorRevenueClp.toLocaleString('es-CL')} CLP
                 </div>
-                <div className="text-xs font-bold text-cyan-600 dark:text-cyan-400 mt-1">
+                <div className="text-[11px] font-bold text-cyan-600 dark:text-cyan-400 mt-1">
                   + ${totalCreatorRevenueUsd.toFixed(2)} USD
                 </div>
               </div>
 
               {/* Card 4: Total a Transferir el 30 */}
-              <div className="bg-gradient-to-br from-emerald-600 to-teal-700 text-white p-6 rounded-3xl shadow-lg shadow-emerald-600/20 relative overflow-hidden">
+              <div className="col-span-2 lg:col-span-1 bg-gradient-to-br from-emerald-600 to-teal-700 text-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-lg shadow-emerald-600/20 relative overflow-hidden">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-black uppercase tracking-wider text-emerald-100">A Transferir (Día 30)</span>
-                  <div className="p-2 rounded-xl bg-white/20 text-white">
+                  <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-emerald-100">A Transferir (Día 30)</span>
+                  <div className="p-2 rounded-xl bg-white/20 text-white shrink-0">
                     <Receipt className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="text-2xl font-black text-white">
+                <div className="text-xl sm:text-2xl font-black text-white">
                   ${totalCreatorCommissionClp.toLocaleString('es-CL')} CLP
                 </div>
-                <div className="text-sm font-bold text-emerald-100 mt-1">
+                <div className="text-xs sm:text-sm font-bold text-emerald-100 mt-0.5">
                   + ${totalCreatorCommissionUsd.toFixed(2)} USD
-                </div>
-                <div className="text-[11px] text-emerald-100/80 mt-2 font-medium">
-                  Comisiones calculadas a liquidar
                 </div>
               </div>
 
             </div>
 
-            {/* 3. Search and Table Card */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+            {/* 3. Search and Content Container */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
               
-              <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-950/50">
+              <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-50/50 dark:bg-slate-950/50">
                 <div className="relative flex-1 max-w-md">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="text"
                     value={creatorSearch}
                     onChange={(e) => setCreatorSearch(e.target.value)}
-                    placeholder="Filtrar por código de creador (EJ: STREAMER10)..."
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 uppercase"
+                    placeholder="Filtrar por código de creador..."
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 uppercase min-h-[42px]"
                   />
                 </div>
 
-                <div className="text-xs text-slate-500 dark:text-slate-400 font-medium text-right">
+                <div className="text-xs text-slate-500 dark:text-slate-400 font-medium sm:text-right">
                   Mostrando {filteredCreators.length} de {creatorsSummary.length} creadores
                 </div>
               </div>
 
-              {/* Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-200 dark:border-slate-800 text-[11px] uppercase tracking-wider font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100/60 dark:bg-slate-800/50">
-                      <th className="py-3.5 px-5">Código de Creador</th>
-                      <th className="py-3.5 px-4 text-center">Ventas Flow (Chile)</th>
-                      <th className="py-3.5 px-4 text-center">Ventas PayPal (Global)</th>
-                      <th className="py-3.5 px-4 text-center">Total Compradores</th>
-                      <th className="py-3.5 px-4 text-right">Recaudado Bruto</th>
-                      <th className="py-3.5 px-5 text-right font-black text-emerald-600 dark:text-emerald-400">
-                        A Transferir (Día 30)
-                      </th>
-                      <th className="py-3.5 px-5 text-center">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                    {filteredCreators.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="py-12 text-center text-slate-500 dark:text-slate-400">
-                          No se encontraron creadores con ventas registradas.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredCreators.map((creator) => {
-                        const totalUsers = creator.salesClp + creator.salesUsd
-                        return (
-                          <tr key={creator.code} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
-                            <td className="py-4 px-5">
+              {filteredCreators.length === 0 ? (
+                <div className="py-12 text-center text-xs text-slate-500 dark:text-slate-400">
+                  No se encontraron creadores con ventas registradas.
+                </div>
+              ) : (
+                <>
+                  {/* MOBILE CREATOR CARDS VIEW (md:hidden) */}
+                  <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+                    {filteredCreators.map((creator) => {
+                      const totalUsers = creator.salesClp + creator.salesUsd
+                      return (
+                        <div key={creator.code} className="p-4 space-y-3 hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
                               <div className="flex items-center gap-2">
                                 <span className="font-mono font-black text-xs text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/70 px-2.5 py-1 rounded-xl border border-indigo-200 dark:border-indigo-800/70">
                                   {creator.code}
                                 </span>
                                 {creator.isOfficial && (
                                   <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-700">
-                                    Oficial (De por vida)
+                                    Oficial
                                   </span>
                                 )}
                               </div>
                               {creator.creatorName && (
-                                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                                  {creator.creatorName} {creator.creatorUsername && `(@${creator.creatorUsername})`}
+                                <div className="text-xs font-bold text-slate-900 dark:text-white mt-1">
+                                  {creator.creatorName} {creator.creatorUsername && <span className="text-slate-400 font-normal">(@{creator.creatorUsername})</span>}
                                 </div>
                               )}
-                            </td>
+                            </div>
 
-                            <td className="py-4 px-4 text-center">
-                              <div className="font-bold text-slate-800 dark:text-slate-200">
-                                {creator.salesClp} usuarios
-                              </div>
-                              <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">
-                                (${(creator.salesClp * CREATOR_COMMISSION_CLP).toLocaleString('es-CL')} CLP)
-                              </div>
-                            </td>
+                            <div className="text-right shrink-0">
+                              <div className="text-[10px] uppercase font-bold text-slate-400">Total Usuarios</div>
+                              <div className="font-black text-sm text-slate-900 dark:text-white font-mono">{totalUsers}</div>
+                            </div>
+                          </div>
 
-                            <td className="py-4 px-4 text-center">
-                              <div className="font-bold text-slate-800 dark:text-slate-200">
-                                {creator.salesUsd} usuarios
-                              </div>
-                              <div className="text-[10px] text-cyan-600 dark:text-cyan-400 font-mono">
-                                (${(creator.salesUsd * CREATOR_COMMISSION_USD).toFixed(2)} USD)
-                              </div>
-                            </td>
-
-                            <td className="py-4 px-4 text-center font-black text-slate-900 dark:text-white">
-                              {totalUsers}
-                            </td>
-
-                            <td className="py-4 px-4 text-right font-mono text-slate-600 dark:text-slate-400">
-                              <div>${creator.totalRevenueClp.toLocaleString('es-CL')} CLP</div>
-                              {creator.totalRevenueUsd > 0 ? (
-                                <div className="text-[11px] text-slate-400">${creator.totalRevenueUsd.toFixed(2)} USD</div>
-                              ) : (
-                                <div className="text-[11px] text-slate-400">$0.00 USD</div>
-                              )}
-                            </td>
-
-                            <td className="py-4 px-5 text-right">
-                              <div className="font-mono font-black text-sm text-emerald-600 dark:text-emerald-400">
+                          {/* Commission highlight box */}
+                          <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-800 flex items-center justify-between">
+                            <div>
+                              <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider block">
+                                A Transferir (Día 30)
+                              </span>
+                              <div className="font-mono font-black text-sm text-emerald-700 dark:text-emerald-300">
                                 ${creator.commissionClp.toLocaleString('es-CL')} CLP
+                                {creator.commissionUsd > 0 && ` + $${creator.commissionUsd.toFixed(2)} USD`}
                               </div>
-                              {creator.commissionUsd > 0 ? (
-                                <div className="font-mono font-black text-xs text-cyan-600 dark:text-cyan-400">
-                                  + ${creator.commissionUsd.toFixed(2)} USD
-                                </div>
+                            </div>
+
+                            <div className="text-right text-[11px] text-slate-500 font-mono">
+                              <div>Flow: {creator.salesClp}</div>
+                              <div>PayPal: {creator.salesUsd}</div>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="grid grid-cols-2 gap-2 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => handleCopyCreatorSettlement(creator)}
+                              className="min-h-[40px] px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs"
+                            >
+                              {copiedCreatorCode === creator.code ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>Copiado</span>
+                                </>
                               ) : (
-                                <div className="text-[11px] text-slate-400 font-mono">
-                                  $0.00 USD
-                                </div>
+                                <>
+                                  <Copy className="w-3.5 h-3.5" />
+                                  <span>Copiar Pago</span>
+                                </>
                               )}
-                            </td>
+                            </button>
 
-                            <td className="py-4 px-5 text-center">
-                              <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                                <button
-                                  type="button"
-                                  onClick={() => handleCopyCreatorSettlement(creator)}
-                                  className="px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 font-bold text-[11px] border border-emerald-200 dark:border-emerald-800 flex items-center gap-1 transition-colors cursor-pointer"
-                                  title="Copiar liquidación para transferir"
-                                >
-                                  {copiedCreatorCode === creator.code ? (
-                                    <>
-                                      <Check className="w-3.5 h-3.5 text-emerald-500" />
-                                      <span>¡Copiado!</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Copy className="w-3.5 h-3.5" />
-                                      <span>Copiar Pago</span>
-                                    </>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedCreatorDetails(creator)}
+                              className="min-h-[40px] px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                            >
+                              <span>Detalle ({creator.transactions.length})</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleOpenAssignCreatorModal(creator)}
+                              className="min-h-[40px] px-2.5 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 font-bold text-xs border border-indigo-200 dark:border-indigo-800 flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                              <span>{creator.creatorUsername ? 'Editar' : 'Vincular'}</span>
+                            </button>
+
+                            {creator.creatorUsername ? (
+                              <button
+                                type="button"
+                                onClick={() => setConfirmRemoveCreator(creator)}
+                                className="min-h-[40px] px-2.5 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 text-rose-700 dark:text-rose-300 font-bold text-xs border border-rose-200 dark:border-rose-800 flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Desvincular</span>
+                              </button>
+                            ) : (
+                              <div />
+                            )}
+                          </div>
+
+                        </div>
+                      )
+                    })}
+                  </div>
+
+                  {/* DESKTOP CREATOR TABLE VIEW (hidden md:block) */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-200 dark:border-slate-800 text-[11px] uppercase tracking-wider font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100/60 dark:bg-slate-800/50">
+                          <th className="py-3.5 px-5">Código de Creador</th>
+                          <th className="py-3.5 px-4 text-center">Ventas Flow (Chile)</th>
+                          <th className="py-3.5 px-4 text-center">Ventas PayPal (Global)</th>
+                          <th className="py-3.5 px-4 text-center">Total Compradores</th>
+                          <th className="py-3.5 px-4 text-right">Recaudado Bruto</th>
+                          <th className="py-3.5 px-5 text-right font-black text-emerald-600 dark:text-emerald-400">
+                            A Transferir (Día 30)
+                          </th>
+                          <th className="py-3.5 px-5 text-center">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                        {filteredCreators.map((creator) => {
+                          const totalUsers = creator.salesClp + creator.salesUsd
+                          return (
+                            <tr key={creator.code} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                              <td className="py-4 px-5">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-black text-xs text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/70 px-2.5 py-1 rounded-xl border border-indigo-200 dark:border-indigo-800/70">
+                                    {creator.code}
+                                  </span>
+                                  {creator.isOfficial && (
+                                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-700">
+                                      Oficial (De por vida)
+                                    </span>
                                   )}
-                                </button>
+                                </div>
+                                {creator.creatorName && (
+                                  <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                                    {creator.creatorName} {creator.creatorUsername && `(@${creator.creatorUsername})`}
+                                  </div>
+                                )}
+                              </td>
 
-                                <button
-                                  type="button"
-                                  onClick={() => setSelectedCreatorDetails(creator)}
-                                  className="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-[11px] transition-colors cursor-pointer"
-                                  title="Ver lista de compras asociadas"
-                                >
-                                  Detalle ({creator.transactions.length})
-                                </button>
+                              <td className="py-4 px-4 text-center">
+                                <div className="font-bold text-slate-800 dark:text-slate-200">
+                                  {creator.salesClp} usuarios
+                                </div>
+                                <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">
+                                  (${(creator.salesClp * CREATOR_COMMISSION_CLP).toLocaleString('es-CL')} CLP)
+                                </div>
+                              </td>
 
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenAssignCreatorModal(creator)}
-                                  className="px-2.5 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 font-bold text-[11px] border border-indigo-200 dark:border-indigo-800 flex items-center gap-1 transition-colors cursor-pointer"
-                                  title={creator.creatorUsername ? "Editar código" : "Vincular a perfil registrado"}
-                                >
-                                  <Edit3 className="w-3.5 h-3.5" />
-                                  <span>{creator.creatorUsername ? 'Editar' : 'Vincular'}</span>
-                                </button>
+                              <td className="py-4 px-4 text-center">
+                                <div className="font-bold text-slate-800 dark:text-slate-200">
+                                  {creator.salesUsd} usuarios
+                                </div>
+                                <div className="text-[10px] text-cyan-600 dark:text-cyan-400 font-mono">
+                                  (${(creator.salesUsd * CREATOR_COMMISSION_USD).toFixed(2)} USD)
+                                </div>
+                              </td>
 
-                                {creator.creatorUsername && (
+                              <td className="py-4 px-4 text-center font-black text-slate-900 dark:text-white">
+                                {totalUsers}
+                              </td>
+
+                              <td className="py-4 px-4 text-right font-mono text-slate-600 dark:text-slate-400">
+                                <div>${creator.totalRevenueClp.toLocaleString('es-CL')} CLP</div>
+                                {creator.totalRevenueUsd > 0 ? (
+                                  <div className="text-[11px] text-slate-400">${creator.totalRevenueUsd.toFixed(2)} USD</div>
+                                ) : (
+                                  <div className="text-[11px] text-slate-400">$0.00 USD</div>
+                                )}
+                              </td>
+
+                              <td className="py-4 px-5 text-right">
+                                <div className="font-mono font-black text-sm text-emerald-600 dark:text-emerald-400">
+                                  ${creator.commissionClp.toLocaleString('es-CL')} CLP
+                                </div>
+                                {creator.commissionUsd > 0 ? (
+                                  <div className="font-mono font-black text-xs text-cyan-600 dark:text-cyan-400">
+                                    + ${creator.commissionUsd.toFixed(2)} USD
+                                  </div>
+                                ) : (
+                                  <div className="text-[11px] text-slate-400 font-mono">
+                                    $0.00 USD
+                                  </div>
+                                )}
+                              </td>
+
+                              <td className="py-4 px-5 text-center">
+                                <div className="flex items-center justify-center gap-1.5 flex-wrap">
                                   <button
                                     type="button"
-                                    onClick={() => setConfirmRemoveCreator(creator)}
-                                    className="px-2 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 text-rose-700 dark:text-rose-300 font-bold text-[11px] border border-rose-200 dark:border-rose-800 flex items-center gap-1 transition-colors cursor-pointer"
-                                    title="Desvincular código de este usuario"
+                                    onClick={() => handleCopyCreatorSettlement(creator)}
+                                    className="px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 font-bold text-[11px] border border-emerald-200 dark:border-emerald-800 flex items-center gap-1 transition-colors cursor-pointer"
+                                    title="Copiar liquidación para transferir"
                                   >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                    <span>Desvincular</span>
+                                    {copiedCreatorCode === creator.code ? (
+                                      <>
+                                        <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                        <span>Copiado</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Copy className="w-3.5 h-3.5" />
+                                        <span>Copiar Pago</span>
+                                      </>
+                                    )}
                                   </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        )
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedCreatorDetails(creator)}
+                                    className="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-[11px] transition-colors cursor-pointer"
+                                    title="Ver lista de compras asociadas"
+                                  >
+                                    Detalle ({creator.transactions.length})
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenAssignCreatorModal(creator)}
+                                    className="px-2.5 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-700 dark:text-indigo-300 font-bold text-[11px] border border-indigo-200 dark:border-indigo-800 flex items-center gap-1 transition-colors cursor-pointer"
+                                    title={creator.creatorUsername ? "Editar código" : "Vincular a perfil registrado"}
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                    <span>{creator.creatorUsername ? 'Editar' : 'Vincular'}</span>
+                                  </button>
+
+                                  {creator.creatorUsername && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setConfirmRemoveCreator(creator)}
+                                      className="px-2 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 text-rose-700 dark:text-rose-300 font-bold text-[11px] border border-rose-200 dark:border-rose-800 flex items-center gap-1 transition-colors cursor-pointer"
+                                      title="Desvincular código de este usuario"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                      <span>Desvincular</span>
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
 
             </div>
 
             {/* Modal: Creator Transactions Detail */}
             {selectedCreatorDetails && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
-                <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 relative max-h-[85vh] flex flex-col">
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
+                <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-4 sm:p-6 relative max-h-[90vh] flex flex-col">
                   
-                  <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+                  <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
-                          Detalle de Ventas con Código
+                        <h3 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
+                          Detalle de Ventas
                         </h3>
                         <span className="font-mono font-black text-xs text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/80 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800">
                           {selectedCreatorDetails.code}
@@ -2001,17 +2537,17 @@ Administrador autorizado: jericesb5@gmail.com
                     <button
                       type="button"
                       onClick={() => setSelectedCreatorDetails(null)}
-                      className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                     >
                       <X className="w-5 h-5" />
                     </button>
                   </div>
 
-                  <div className="overflow-y-auto py-3 space-y-2 flex-1">
+                  <div className="overflow-y-auto py-3 space-y-2 flex-1 pr-1">
                     {selectedCreatorDetails.transactions.map((tx, idx) => (
                       <div
                         key={idx}
-                        className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-between text-xs"
+                        className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
                       >
                         <div>
                           <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
@@ -2023,7 +2559,7 @@ Administrador autorizado: jericesb5@gmail.com
                           </div>
                         </div>
 
-                        <div className="text-right">
+                        <div className="sm:text-right">
                           <div className="font-mono font-bold text-slate-900 dark:text-white">
                             {tx.currency === 'USD' ? `$${tx.amount} USD` : `$${Number(tx.amount).toLocaleString('es-CL')} CLP`}
                           </div>
@@ -2035,7 +2571,7 @@ Administrador autorizado: jericesb5@gmail.com
                     ))}
                   </div>
 
-                  <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
+                  <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
                     <div className="text-xs">
                       Total Comisión Creador:{' '}
                       <strong className="text-emerald-600 dark:text-emerald-400 font-mono">
@@ -2047,7 +2583,7 @@ Administrador autorizado: jericesb5@gmail.com
                     <button
                       type="button"
                       onClick={() => handleCopyCreatorSettlement(selectedCreatorDetails)}
-                      className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm"
+                      className="min-h-[40px] px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm cursor-pointer"
                     >
                       <Copy className="w-3.5 h-3.5" />
                       <span>Copiar Liquidación</span>
@@ -2064,8 +2600,8 @@ Administrador autorizado: jericesb5@gmail.com
 
       {/* Modal: Quick Add Demo Profile */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-4 sm:p-6 relative max-h-[90vh] overflow-y-auto">
             
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
@@ -2073,13 +2609,13 @@ Administrador autorizado: jericesb5@gmail.com
                   <UserPlus className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">Generar Perfil Demo</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Añade arquetipos listos para testear la plataforma</p>
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Generar Perfil Demo</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Añade arquetipos listos para testear</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2089,19 +2625,19 @@ Administrador autorizado: jericesb5@gmail.com
               {DEMO_PRESETS.map((preset) => (
                 <div
                   key={preset.username}
-                  className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/20 transition-all flex items-center justify-between gap-3 group"
+                  className="p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/20 transition-all flex items-center justify-between gap-3 group"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <img
                       src={preset.personalInfo.avatar}
                       alt={preset.personalInfo.name}
-                      className="w-10 h-10 rounded-xl object-cover flex-shrink-0"
+                      className="w-10 h-10 rounded-xl object-cover shrink-0"
                     />
                     <div className="min-w-0">
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                      <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
                         {preset.personalInfo.name}
                       </h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                      <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">
                         {preset.personalInfo.title}
                       </p>
                       <div className="flex items-center gap-2 mt-1">
@@ -2117,7 +2653,7 @@ Administrador autorizado: jericesb5@gmail.com
 
                   <button
                     onClick={() => handleAddPreset(preset)}
-                    className="px-3.5 py-1.5 rounded-xl bg-indigo-600 group-hover:bg-indigo-500 text-white text-xs font-bold flex-shrink-0 shadow-sm transition-all"
+                    className="min-h-[38px] px-3.5 py-1.5 rounded-xl bg-indigo-600 group-hover:bg-indigo-500 text-white text-xs font-bold shrink-0 shadow-sm transition-all cursor-pointer"
                   >
                     + Agregar
                   </button>
@@ -2128,7 +2664,7 @@ Administrador autorizado: jericesb5@gmail.com
             <div className="flex justify-end">
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                className="min-h-[40px] px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
               >
                 Cerrar
               </button>
@@ -2140,8 +2676,8 @@ Administrador autorizado: jericesb5@gmail.com
 
       {/* Confirmation Modal: Delete Profile */}
       {confirmDeleteUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 text-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-5 sm:p-6 text-center">
             <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-3">
               <Trash2 className="w-6 h-6" />
             </div>
@@ -2151,16 +2687,16 @@ Administrador autorizado: jericesb5@gmail.com
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">
               Esta acción eliminará el portafolio y todas sus métricas asociadas de forma permanente.
             </p>
-            <div className="flex items-center justify-center gap-2.5">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
               <button
                 onClick={() => setConfirmDeleteUser(null)}
-                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 transition-colors"
+                className="w-full sm:w-auto min-h-[40px] px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 onClick={() => handleDelete(confirmDeleteUser)}
-                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-colors shadow-sm shadow-rose-600/20"
+                className="w-full sm:w-auto min-h-[40px] px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-colors shadow-sm shadow-rose-600/20 cursor-pointer"
               >
                 Sí, Eliminar
               </button>
@@ -2171,10 +2707,10 @@ Administrador autorizado: jericesb5@gmail.com
 
       {/* Modal: Assign or Edit Creator Code CRUD */}
       {isCreatorModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-4 sm:p-6 relative max-h-[90vh] overflow-y-auto">
             
-            <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2.5">
                 <div className="p-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/70 text-emerald-600 dark:text-emerald-400">
                   <Tag className="w-5 h-5" />
@@ -2184,14 +2720,14 @@ Administrador autorizado: jericesb5@gmail.com
                     {editingCreator ? 'Editar Código de Creador' : 'Asignar Código de Creador'}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Vincula un código de afiliado a un perfil registrado en la base de datos
+                    Vincula un código a un usuario registrado
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsCreatorModalOpen(false)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -2208,7 +2744,7 @@ Administrador autorizado: jericesb5@gmail.com
                     value={creatorFormUsername}
                     onChange={(e) => setCreatorFormUsername(e.target.value)}
                     disabled={Boolean(editingCreator && editingCreator.creatorUsername)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                     required
                   >
                     <option value="">-- Elige un usuario registrado ({profileList.length} disponibles) --</option>
@@ -2216,7 +2752,7 @@ Administrador autorizado: jericesb5@gmail.com
                       const hasCode = p.creatorCode || p.personalInfo?.creator_code
                       return (
                         <option key={p.username} value={p.username}>
-                          @{p.username} — {p.personalInfo?.name || 'Sin nombre'} {hasCode ? `[Código actual: ${hasCode}]` : ''}
+                          @{p.username} — {p.personalInfo?.name || 'Sin nombre'} {hasCode ? `[Código: ${hasCode}]` : ''}
                         </option>
                       )
                     })}
@@ -2237,13 +2773,13 @@ Administrador autorizado: jericesb5@gmail.com
                     type="text"
                     value={creatorFormCode}
                     onChange={(e) => setCreatorFormCode(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 30))}
-                    placeholder="EJ: SANTIAGOQ7, DEV2025, YOUTUBE"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-mono font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 uppercase tracking-wider"
+                    placeholder="EJ: SANTIAGOQ7, DEV2025, TIKTOK30"
+                    className="w-full min-h-[44px] px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-mono font-bold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 uppercase tracking-wider"
                     required
                   />
                 </div>
                 <p className="text-[11px] text-slate-400 mt-1">
-                  Se autoconvierte a mayúsculas. Por cada usuario que use este código al pagar: ${CREATOR_COMMISSION_CLP.toLocaleString('es-CL')} CLP (Flow) o ${CREATOR_COMMISSION_USD.toFixed(2)} USD (PayPal).
+                  Comisión por usuario que pague: ${CREATOR_COMMISSION_CLP.toLocaleString('es-CL')} CLP (Flow) o ${CREATOR_COMMISSION_USD.toFixed(2)} USD (PayPal).
                 </p>
               </div>
 
@@ -2261,7 +2797,7 @@ Administrador autorizado: jericesb5@gmail.com
                     Activar Plan De por vida (2099) para el creador
                   </span>
                   <span className="text-slate-500 dark:text-slate-400 text-[11px] block mt-0.5">
-                    Permite que el creador use Mi Vitae de forma ilimitada sin cobros ni fecha de vencimiento.
+                    Permite que el creador use Mi Vitae ilimitadamente sin cobros ni fecha de vencimiento.
                   </span>
                 </label>
               </div>
@@ -2274,18 +2810,18 @@ Administrador autorizado: jericesb5@gmail.com
               )}
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsCreatorModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                  className="w-full sm:w-auto min-h-[42px] px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingCreator}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-sm shadow-emerald-600/20 disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                  className="w-full sm:w-auto min-h-[42px] px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-sm shadow-emerald-600/20 disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   {isSavingCreator ? (
                     <>
@@ -2308,8 +2844,8 @@ Administrador autorizado: jericesb5@gmail.com
 
       {/* Confirmation Modal: Remove Creator Code */}
       {confirmRemoveCreator && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 text-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-5 sm:p-6 text-center">
             <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-3">
               <Tag className="w-6 h-6" />
             </div>
@@ -2322,18 +2858,18 @@ Administrador autorizado: jericesb5@gmail.com
             <p className="text-[11px] text-slate-400 mb-5">
               El historial de transacciones anteriores permanecerá intacto para liquidación.
             </p>
-            <div className="flex items-center justify-center gap-2.5">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
               <button
                 type="button"
                 onClick={() => setConfirmRemoveCreator(null)}
-                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 transition-colors"
+                className="w-full sm:w-auto min-h-[40px] px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-200 transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={handleConfirmRemoveCreator}
-                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-colors shadow-sm shadow-rose-600/20"
+                className="w-full sm:w-auto min-h-[40px] px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-colors shadow-sm shadow-rose-600/20 cursor-pointer"
               >
                 Sí, Desvincular
               </button>
@@ -2345,47 +2881,47 @@ Administrador autorizado: jericesb5@gmail.com
       {/* Modal Desglose Completo de Temas & Diseños */}
       {isThemeBreakdownOpen && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
           onClick={() => setIsThemeBreakdownOpen(false)}
         >
           <div 
-            className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5"
+            className="bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 rounded-2xl bg-fuchsia-50 dark:bg-fuchsia-950/60 text-fuchsia-600 dark:text-fuchsia-400">
                   <Palette className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
-                    Distribución de Temas & Diseños
+                  <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white">
+                    Distribución de Temas
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {totalProfiles} portafolios distribuidos en {topThemes.length} temas
+                    {totalProfiles} portafolios en {topThemes.length} temas
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsThemeBreakdownOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 aria-label="Cerrar modal"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-2.5 max-h-[60vh] overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
               {topThemes.map(([themeKey, count], idx) => {
                 const meta = getThemeMeta(themeKey)
                 const pct = totalProfiles > 0 ? Math.round((count / totalProfiles) * 100) : 0
                 return (
                   <div 
                     key={themeKey} 
-                    className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3"
+                    className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3"
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
                       <span className="font-mono text-xs font-bold text-slate-400 w-4">
                         {idx + 1}.
                       </span>
@@ -2394,13 +2930,13 @@ Administrador autorizado: jericesb5@gmail.com
                       </span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <div className="w-20 sm:w-24 bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden hidden sm:block">
+                      <div className="w-16 sm:w-20 bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden hidden xs:block">
                         <div 
                           className="bg-fuchsia-500 h-full rounded-full transition-all"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <span className="font-mono font-bold text-xs text-slate-900 dark:text-white text-right min-w-[50px]">
+                      <span className="font-mono font-bold text-xs text-slate-900 dark:text-white text-right min-w-[45px]">
                         {count} ({pct}%)
                       </span>
                     </div>
@@ -2413,7 +2949,7 @@ Administrador autorizado: jericesb5@gmail.com
               <button
                 type="button"
                 onClick={() => setIsThemeBreakdownOpen(false)}
-                className="w-full py-2.5 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                className="w-full min-h-[42px] py-2.5 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition-colors cursor-pointer"
               >
                 Cerrar
               </button>

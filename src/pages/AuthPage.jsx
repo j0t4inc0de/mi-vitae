@@ -13,9 +13,16 @@ import {
 import { sendWelcomeEmail } from '../lib/emailService'
 import { 
   LogIn, UserPlus, Mail, Lock, User, AtSign, ArrowRight, 
-  Sparkles, CheckCircle2, AlertCircle, Eye, EyeOff, Loader2, Database
+  Sparkles, CheckCircle2, AlertCircle, Eye, EyeOff, Loader2, Database, Gift, Tag
 } from 'lucide-react'
 import UserAvatar from '../components/Common/UserAvatar'
+import { 
+  getStoredCreatorCode, 
+  setStoredCreatorCode, 
+  sanitizeCreatorCode, 
+  TRIAL_DAYS_DEFAULT, 
+  TRIAL_DAYS_WITH_CODE 
+} from '../lib/creatorCode'
 
 export default function AuthPage() {
   const { navigate } = useRouter()
@@ -32,6 +39,13 @@ export default function AuthPage() {
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [creatorCode, setCreatorCode] = useState(() => getStoredCreatorCode())
+  const [inputCreatorCode, setInputCreatorCode] = useState('')
+
+  useEffect(() => {
+    setCreatorCode(getStoredCreatorCode())
+    setInputCreatorCode('')
+  }, [mode])
 
   // Real-time username verification against Supabase & local store
   const [usernameStatus, setUsernameStatus] = useState({ checked: false, available: null, checking: false })
@@ -60,18 +74,11 @@ export default function AuthPage() {
     setUsernameStatus((prev) => ({ ...prev, checking: true }))
 
     const timer = setTimeout(async () => {
-      // 1. Check local Zustand store & reserved routes
-      if (!isUsernameAvailable(cleanUsername)) {
-        setUsernameStatus({ checked: true, available: false, checking: false })
-        return
-      }
-
-      // 2. Check remote Supabase Cloud table
       try {
-        const isRemoteAvailable = await checkUsernameAvailableInSupabase(cleanUsername)
-        setUsernameStatus({ checked: true, available: isRemoteAvailable, checking: false })
+        const available = await useProfileStore.getState().checkUsernameAvailability(cleanUsername)
+        setUsernameStatus({ checked: true, available, checking: false })
       } catch {
-        setUsernameStatus({ checked: true, available: true, checking: false })
+        setUsernameStatus({ checked: true, available: isUsernameAvailable(cleanUsername), checking: false })
       }
     }, 250)
 
@@ -94,14 +101,9 @@ export default function AuthPage() {
           throw new Error('El nombre de usuario debe tener al menos 3 caracteres.')
         }
 
-        // Validar disponibilidad local
-        if (!isUsernameAvailable(cleanUsername)) {
-          throw new Error('Este nombre de usuario ya está ocupado.')
-        }
-
-        // Consultar Supabase Cloud directamente para evitar colisiones en producción
-        const isRemoteAvailable = await checkUsernameAvailableInSupabase(cleanUsername)
-        if (!isRemoteAvailable) {
+        // Validar disponibilidad en Supabase Cloud y rutas reservadas
+        const isAvail = await useProfileStore.getState().checkUsernameAvailability(cleanUsername)
+        if (!isAvail) {
           throw new Error('Este nombre de usuario ya está ocupado.')
         }
 
@@ -121,23 +123,32 @@ export default function AuthPage() {
           throw new Error(supabaseResult.error || 'Error al registrar tu cuenta. Por favor intenta nuevamente.')
         }
 
+        const activeCreatorCode = creatorCode || getStoredCreatorCode() || null
+        const trialDays = activeCreatorCode ? TRIAL_DAYS_WITH_CODE : TRIAL_DAYS_DEFAULT
+        const now = new Date()
+        const planExpiresAt = new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000).toISOString()
+
         // Crear perfil en el store para acceso inmediato al Editor Studio
         const newProfile = {
           username: cleanUsername,
+          creator_code: activeCreatorCode,
           personalInfo: {
             name: fullName.trim(),
             title: 'Profesional en Mi Vitae',
             email: email.trim(),
             avatar: 'blobatar',
             bio: 'Bienvenido a mi portafolio profesional en línea.',
-            availableForWork: true
+            availableForWork: true,
+            creator_code: activeCreatorCode
           },
           theme: 'tech',
           plan: 'free_trial',
-          planName: '1er Mes Gratis ($0 CLP)',
+          planName: activeCreatorCode 
+            ? '1er Mes Gratis ($0 CLP - Código Creador)' 
+            : '14 Días de Prueba Gratis ($0 CLP)',
           planStatus: 'active',
-          trialActivatedAt: new Date().toISOString(),
-          planExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          trialActivatedAt: now.toISOString(),
+          planExpiresAt,
           analytics: { views: 0, contactClicks: 0, cvDownloads: 0 }
         }
 
@@ -248,7 +259,10 @@ export default function AuthPage() {
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2">
             {mode === 'login' 
               ? 'Accede a tu Editor Studio para administrar tu portafolio' 
-              : 'Empieza con 1 mes gratis y crea tu portafolio en 5 minutos'}
+              : (creatorCode 
+                  ? 'Empieza con 30 días gratis con tu código y crea tu portafolio en 5 minutos'
+                  : 'Empieza con 14 días de prueba gratis y crea tu portafolio en 5 minutos'
+                )}
           </p>
         </div>
 
@@ -302,6 +316,71 @@ export default function AuthPage() {
             <div className="mb-5 p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-semibold flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
               <span>{successMessage}</span>
+            </div>
+          )}
+
+          {/* Creator Code Section (Only in register mode) */}
+          {mode === 'register' && (
+            <div className="mb-4 p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-palette-primary" />
+                  <span>¿Tienes un código de creador?</span>
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium">Opcional</span>
+              </div>
+
+              {creatorCode ? (
+                <div className="flex items-center justify-between p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 text-xs text-emerald-800 dark:text-emerald-300 font-semibold animate-fadeIn">
+                  <div className="flex items-center gap-2 truncate">
+                    <Gift className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span className="truncate">
+                      Código <span className="font-mono font-black uppercase text-emerald-900 dark:text-emerald-200">{creatorCode}</span> activo (30 días gratis)
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStoredCreatorCode('')
+                      setCreatorCode('')
+                    }}
+                    className="text-[11px] text-slate-400 hover:text-rose-500 ml-2 font-medium underline cursor-pointer shrink-0"
+                  >
+                    Quitar
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={inputCreatorCode}
+                      onChange={(e) => setInputCreatorCode(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''))}
+                      placeholder="Ej. CREADOR"
+                      maxLength={30}
+                      className="flex-1 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-mono font-bold uppercase text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-palette-primary focus:ring-1 focus:ring-palette-primary"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const clean = sanitizeCreatorCode(inputCreatorCode)
+                        if (clean) {
+                          setStoredCreatorCode(clean)
+                          setCreatorCode(clean)
+                          setInputCreatorCode('')
+                        }
+                      }}
+                      disabled={!inputCreatorCode.trim()}
+                      className="px-3.5 py-1.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold hover:opacity-90 disabled:opacity-40 transition-all cursor-pointer disabled:cursor-not-allowed shrink-0"
+                    >
+                      Aplicar
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                    Obtén 30 días gratis (en vez de 14) y renovación con descuento.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -361,11 +440,19 @@ export default function AuthPage() {
                         ? 'text-emerald-600 dark:text-emerald-400'
                         : 'text-rose-600 dark:text-rose-400'
                     }`}>
-                      {usernameStatus.checking
-                        ? 'Verificando disponibilidad...'
-                        : usernameStatus.available
-                        ? `✓ mivitae.wearesamod.com/${cleanUsername} disponible`
-                        : `✕ Este nombre de usuario ya está ocupado.`}
+                      {usernameStatus.checking ? (
+                        <span>Verificando disponibilidad...</span>
+                      ) : usernameStatus.available ? (
+                        <span className="flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                          <span>mivitae.wearesamod.com/{cleanUsername} disponible</span>
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>Este nombre de usuario ya está ocupado.</span>
+                        </span>
+                      )}
                     </p>
                   )}
 
@@ -461,7 +548,7 @@ export default function AuthPage() {
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  <span>Crear Portafolio con 1er Mes Gratis</span>
+                  <span>{creatorCode ? 'Crear Portafolio con 30 Días Gratis' : 'Crear Portafolio con 14 Días Gratis'}</span>
                 </>
               )}
             </button>

@@ -6,12 +6,26 @@
 const STORAGE_KEY = 'mivitae_creator_code'
 const MAX_LENGTH = 30
 
+// ponytail: Canonical constants for creator codes, trial periods, and pricing
+export const TRIAL_DAYS_DEFAULT = 14
+export const TRIAL_DAYS_WITH_CODE = 30
+export const PRICE_REGULAR_CLP = 3490
+export const PRICE_DISCOUNT_CLP = 2990
+export const PRICE_REGULAR_USD = 3.99
+export const PRICE_DISCOUNT_USD = 2.99
+export const CREATOR_COMMISSION_CLP = 1000
+export const CREATOR_COMMISSION_USD = 1.00
+
 /**
  * Sanitizes a creator code:
  * - Keeps only alphanumeric characters, underscores, and hyphens [A-Z0-9_-]
  * - Converts to uppercase
  * - Maximum 30 characters
  */
+const CREATOR_ALIASES = {
+  'SANTIAG0Q7': 'SANTIAGOQ7'
+}
+
 export function sanitizeCreatorCode(code) {
   if (!code || typeof code !== 'string') return ''
   const cleaned = code
@@ -19,7 +33,7 @@ export function sanitizeCreatorCode(code) {
     .toUpperCase()
     .replace(/[^A-Z0-9_-]/g, '')
     .slice(0, MAX_LENGTH)
-  return cleaned
+  return CREATOR_ALIASES[cleaned] || cleaned
 }
 
 function getStorage() {
@@ -90,4 +104,34 @@ export function captureCreatorCodeFromUrl(searchString) {
   }
 
   return null
+}
+
+/**
+ * Returns trial days: 30 if sanitized creator code exists, 14 otherwise.
+ */
+export function getTrialDays(code) {
+  return sanitizeCreatorCode(code) ? TRIAL_DAYS_WITH_CODE : TRIAL_DAYS_DEFAULT
+}
+
+/**
+ * Calculates pricing breakdown and discount based on currency and creator code.
+ */
+export function getSubscriptionPricing(currency = 'CLP', code = '') {
+  const isUsd = String(currency).toUpperCase() === 'USD'
+  const hasDiscount = Boolean(sanitizeCreatorCode(code))
+  const regularPrice = isUsd ? PRICE_REGULAR_USD : PRICE_REGULAR_CLP
+  const finalPrice = hasDiscount
+    ? (isUsd ? PRICE_DISCOUNT_USD : PRICE_DISCOUNT_CLP)
+    : regularPrice
+  const discountAmount = hasDiscount
+    ? (isUsd ? +(regularPrice - finalPrice).toFixed(2) : regularPrice - finalPrice)
+    : 0
+
+  return {
+    regularPrice,
+    finalPrice,
+    hasDiscount,
+    discountAmount,
+    currency: isUsd ? 'USD' : 'CLP'
+  }
 }

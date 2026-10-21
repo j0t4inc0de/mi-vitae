@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 
 // ponytail: Simplified, 100% responsive account drawer. Auto-Blobatar by @username only, no photo/name clutter.
-export default function UserAccountModal({ isOpen, onClose }) {
+export default function UserAccountModal({ isOpen, onClose, initialSection = 'username' }) {
   const profiles = useProfileStore((state) => state.profiles)
   const activeUsername = useProfileStore((state) => state.activeUsername)
   const openFlowModal = useProfileStore((state) => state.openFlowModal)
@@ -26,7 +26,7 @@ export default function UserAccountModal({ isOpen, onClose }) {
   const currentProfile = (activeUsername && profiles[activeUsername]) || {}
 
   // Active section: 'username' | 'membership' | 'security'
-  const [activeSection, setActiveSection] = useState('username')
+  const [activeSection, setActiveSection] = useState(initialSection)
 
   // Username form state
   const [newUsername, setNewUsername] = useState(currentProfile?.username || '')
@@ -66,6 +66,8 @@ export default function UserAccountModal({ isOpen, onClose }) {
   const isPremium = currentProfile.plan === 'premium'
   const planStatus = currentProfile.planStatus || currentProfile.plan_status || 'active'
   const isCanceled = planStatus === 'canceled'
+  const hasCreatorCode = Boolean(currentProfile.creator_code || currentProfile.personalInfo?.creator_code)
+  const defaultTrialDays = hasCreatorCode ? 30 : 14
 
   const rawExpiresAt = currentProfile.planExpiresAt || currentProfile.plan_expires_at
   const rawTrialAt = currentProfile.trialActivatedAt || currentProfile.trial_activated_at
@@ -74,9 +76,9 @@ export default function UserAccountModal({ isOpen, onClose }) {
   if (rawExpiresAt) {
     expirationDate = new Date(rawExpiresAt)
   } else if (rawTrialAt) {
-    expirationDate = new Date(new Date(rawTrialAt).getTime() + 30 * 24 * 60 * 60 * 1000)
+    expirationDate = new Date(new Date(rawTrialAt).getTime() + defaultTrialDays * 24 * 60 * 60 * 1000)
   } else {
-    expirationDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    expirationDate = new Date(Date.now() + defaultTrialDays * 24 * 60 * 60 * 1000)
   }
 
   const now = new Date()
@@ -281,7 +283,7 @@ export default function UserAccountModal({ isOpen, onClose }) {
                     <span className={`w-1.5 h-1.5 rounded-full ${
                       isCanceled ? 'bg-amber-500' : !isPlanExpired && daysRemaining > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
                     }`} />
-                    <span>{isCanceled ? 'Cancelado' : isPlanExpired ? 'Vencido' : isPremium ? 'Plan Pro' : '1er Mes Gratis'}</span>
+                    <span>{isCanceled ? 'Cancelado' : isPlanExpired ? 'Vencido' : isPremium ? 'Plan Pro' : ((currentProfile?.creator_code || currentProfile?.personalInfo?.creator_code) ? '1er Mes Gratis' : 'Prueba Gratis')}</span>
                     <span className="font-mono font-normal">({daysRemaining}d)</span>
                   </span>
                 </div>
@@ -385,10 +387,10 @@ export default function UserAccountModal({ isOpen, onClose }) {
 
                   <div>
                     <div className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                      {isPremium ? 'Plan Pro Mensual' : 'Mes de Bienvenida ($0 CLP)'}
+                      {isPremium ? 'Plan Pro Mensual' : (hasCreatorCode ? '1er Mes Gratis ($0 CLP)' : '14 Días de Prueba ($0 CLP)')}
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      Tarifa: <strong className="text-slate-700 dark:text-slate-200">$3.490 CLP / mes</strong>
+                      Tarifa: <strong className="text-slate-700 dark:text-slate-200">{hasCreatorCode ? '$2.990 CLP / mes (Descuento Creador)' : '$3.490 CLP / mes'}</strong>
                     </div>
                   </div>
 
@@ -411,14 +413,20 @@ export default function UserAccountModal({ isOpen, onClose }) {
                       onClose()
                       openFlowModal({
                         username: currentProfile.username,
-                        planName: 'Suscripción Mi Vitae ($3.490 CLP/mes)',
-                        amount: 3490
+                        planName: hasCreatorCode
+                          ? 'Suscripción Mi Vitae ($2.990 CLP/mes - Código Creador)'
+                          : 'Suscripción Mi Vitae ($3.490 CLP/mes)',
+                        amount: hasCreatorCode ? 2990 : 3490
                       })
                     }}
                     className="w-full py-3 px-4 rounded-xl bg-palette-primary hover:bg-palette-accent text-white text-xs font-extrabold shadow-md shadow-palette-primary/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
                   >
                     <CreditCard className="w-4 h-4" />
-                    <span>{isPlanExpired ? 'Renovar Plan Vencido ($3.490 CLP)' : 'Renovar Membresía ($3.490 CLP)'}</span>
+                    <span>
+                      {hasCreatorCode
+                        ? (isPlanExpired ? 'Renovar Plan Vencido ($2.990 CLP)' : 'Renovar Membresía ($2.990 CLP)')
+                        : (isPlanExpired ? 'Renovar Plan Vencido ($3.490 CLP)' : 'Renovar Membresía ($3.490 CLP)')}
+                    </span>
                   </button>
                 ) : (
                   <div className="p-3.5 rounded-xl bg-slate-100/90 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 text-center space-y-1">

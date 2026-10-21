@@ -1,6 +1,6 @@
 /**
  * =========================================================================
- * 🎨 PALETA DE COLORES GLOBAL ACTIVA (MI VITAE)
+ * PALETA DE COLORES GLOBAL ACTIVA (MI VITAE)
  * =========================================================================
  * Cada vez que envíes una paleta con 5 familias de colores en formato Tailwind
  * (50 a 950), simplemente se reemplaza este objeto y todo el proyecto se actualiza.

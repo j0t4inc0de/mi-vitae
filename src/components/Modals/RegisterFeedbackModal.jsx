@@ -8,6 +8,7 @@ import {
   checkUsernameAvailableInSupabase 
 } from '../../lib/supabaseClient'
 import { sendWelcomeEmail } from '../../lib/emailService'
+import { getStoredCreatorCode, setStoredCreatorCode, sanitizeCreatorCode, TRIAL_DAYS_DEFAULT, TRIAL_DAYS_WITH_CODE } from '../../lib/creatorCode'
 import MiVitaeLogo from '../Common/MiVitaeLogo'
 import UserAvatar from '../Common/UserAvatar'
 import { 
@@ -15,7 +16,7 @@ import {
   ArrowLeft, Check, ShieldCheck, HeartHandshake,
   Palette, User, Mail, AtSign, Code2, Scale, Heart,
   BarChart3, Rocket, GraduationCap, Building2, Zap,
-  Smartphone, Users, Search, Ticket, Lock, Loader2
+  Smartphone, Users, Search, Ticket, Lock, Loader2, Tag
 } from 'lucide-react'
 
 // Options for Question 1: Professional Areas
@@ -171,6 +172,15 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
   const [usernameStatus, setUsernameStatus] = useState({ checked: false, available: null, message: '' })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [creatorCode, setCreatorCode] = useState(() => getStoredCreatorCode())
+  const [inputCreatorCode, setInputCreatorCode] = useState('')
+
+  useEffect(() => {
+    if (isOpen) {
+      setCreatorCode(getStoredCreatorCode())
+      setInputCreatorCode('')
+    }
+  }, [isOpen])
 
   // Step 2 Feedback State
   const [selectedAreas, setSelectedAreas] = useState([])
@@ -203,31 +213,23 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
     }
 
     const timer = setTimeout(async () => {
-      const localAvailable = isUsernameAvailable(clean)
-      if (!localAvailable) {
-        setUsernameStatus({
-          checked: true,
-          available: false,
-          message: `El usuario @${clean} ya está en uso. Prueba con otro nombre.`
-        })
-        return
-      }
-
-      // Check remote Supabase Cloud table
       try {
-        const remoteAvailable = await checkUsernameAvailableInSupabase(clean)
+        const remoteAvailable = await useProfileStore.getState().checkUsernameAvailability(clean)
         setUsernameStatus({
           checked: true,
           available: remoteAvailable,
           message: remoteAvailable
             ? `¡Disponible! Tu link será mivitae.wearesamod.com/${clean}`
-            : `El usuario @${clean} ya está registrado en la nube. Prueba con otro nombre.`
+            : `El usuario @${clean} ya está en uso. Prueba con otro nombre.`
         })
       } catch {
+        const localAvailable = isUsernameAvailable(clean)
         setUsernameStatus({
           checked: true,
-          available: true,
-          message: `¡Disponible! Tu link será mivitae.wearesamod.com/${clean}`
+          available: localAvailable,
+          message: localAvailable
+            ? `¡Disponible! Tu link será mivitae.wearesamod.com/${clean}`
+            : `El usuario @${clean} ya está en uso. Prueba con otro nombre.`
         })
       }
     }, 180)
@@ -327,14 +329,21 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
         referralSource: selectedReferral
       })
 
+      const activeCode = creatorCode || getStoredCreatorCode() || null
+      const trialDays = activeCode ? TRIAL_DAYS_WITH_CODE : TRIAL_DAYS_DEFAULT
+      const now = new Date()
+      const expiresAt = new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000)
+
       // 3. Create new profile structure in store
       const newProfileData = {
         username: cleanUsername,
         theme: selectedTheme,
         plan: 'free_trial',
-        planName: '1er Mes Gratis ($0 CLP)',
+        planName: activeCode ? '1er Mes Gratis ($0 CLP - Código Creador)' : '14 Días de Prueba Gratis ($0 CLP)',
         planStatus: 'active',
-        trialActivatedAt: new Date().toISOString(),
+        trialActivatedAt: now.toISOString(),
+        planExpiresAt: expiresAt.toISOString(),
+        creator_code: activeCode,
         personalInfo: {
           name: name.trim(),
           title: selectedAreas.map(id => PROFESSIONAL_AREAS.find(a => a.id === id)?.label).join(' / ') || 'Profesional en Mi Vitae',
@@ -343,13 +352,14 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
           location: 'Chile / Remoto',
           email: email.trim(),
           whatsapp: '+56912345678',
-          availableForWork: true
+          availableForWork: true,
+          creator_code: activeCode
         },
         feedback: {
           professionalAreas: selectedAreas,
           biggestObstacle: selectedObstacle,
           referralSource: selectedReferral,
-          submittedAt: new Date().toISOString()
+          submittedAt: now.toISOString()
         },
         experience: [
           {
@@ -419,7 +429,7 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
         to: email.trim(),
         username: cleanUsername,
         name: name.trim(),
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        expiresAt: expiresAt.toISOString()
       }).catch((err) => {
         console.warn('[RegisterModal] Notice: Email delivery deferred:', err)
       })
@@ -473,10 +483,12 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
               </div>
               <div>
                 <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-tight">
-                  Activa tu 1er Mes Gratis en Mi Vitae
+                  {creatorCode ? 'Activa tu 1er Mes Gratis (30 Días) en Mi Vitae' : 'Activa tus 14 Días Gratis en Mi Vitae'}
                 </h3>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Bonificación 100% gratuita ($0 CLP) con formulario de feedback
+                  {creatorCode 
+                    ? 'Bonificación exclusiva de 30 días ($0 CLP) con código de creador' 
+                    : 'Prueba gratuita de 14 días ($0 CLP) con formulario de feedback'}
                 </p>
               </div>
             </div>
@@ -565,6 +577,7 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                   Ingresa tus datos para generar tu URL pública y configurar tu perfil inicial.
                 </p>
               </div>
+
 
               {/* Full Name */}
               <div>
@@ -695,6 +708,69 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                 )}
               </div>
 
+              {/* Creator Code Input / Active Pill (Optional) */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5 text-palette-primary" />
+                    <span>¿Tienes un código de creador o influencer?</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-medium">Opcional</span>
+                </div>
+
+                {creatorCode ? (
+                  <div className="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 text-xs text-emerald-800 dark:text-emerald-300 font-semibold animate-fadeIn">
+                    <div className="flex items-center gap-2 truncate">
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span className="truncate">
+                        Código <span className="font-mono font-black uppercase text-emerald-900 dark:text-emerald-200">{creatorCode}</span> activo (30 días gratis)
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStoredCreatorCode('')
+                        setCreatorCode('')
+                      }}
+                      className="text-[11px] text-slate-400 hover:text-rose-500 ml-2 font-medium underline cursor-pointer shrink-0"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={inputCreatorCode}
+                        onChange={(e) => setInputCreatorCode(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''))}
+                        placeholder="Ej. CREADOR"
+                        maxLength={30}
+                        className="flex-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-mono font-bold uppercase text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-palette-primary focus:ring-1 focus:ring-palette-primary"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const clean = sanitizeCreatorCode(inputCreatorCode)
+                          if (clean) {
+                            setStoredCreatorCode(clean)
+                            setCreatorCode(clean)
+                            setInputCreatorCode('')
+                          }
+                        }}
+                        disabled={!inputCreatorCode.trim()}
+                        className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold hover:opacity-90 disabled:opacity-40 transition-all cursor-pointer disabled:cursor-not-allowed shrink-0"
+                      >
+                        Aplicar
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5">
+                      Sin código recibes 14 días gratis. Con código obtienes 30 días gratis (1 mes) y renovación con descuento.
+                    </p>
+                  </div>
+                )}
+              </div>
+
               {/* Initial Theme Selection */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
@@ -787,7 +863,15 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                     Tu opinión nos ayuda a mejorar Mi Vitae
                   </h4>
                   <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
-                    Responde estas 3 breves preguntas para bonificar tu 1er mes (<span className="line-through text-slate-400">$3.490 CLP</span> → <strong className="text-emerald-600 dark:text-emerald-400 font-bold">$0 CLP</strong>) sin ningún compromiso.
+                    {creatorCode ? (
+                      <>
+                        Responde estas 3 breves preguntas para activar tus <strong className="text-emerald-600 dark:text-emerald-400 font-bold">30 días de prueba gratuita (1er mes a $0 CLP)</strong> con tu código de creador.
+                      </>
+                    ) : (
+                      <>
+                        Responde estas 3 breves preguntas para activar tus <strong className="text-emerald-600 dark:text-emerald-400 font-bold">14 días de prueba gratuita ($0 CLP)</strong> sin ningún compromiso.
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
@@ -996,7 +1080,7 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4" />
-                      <span>Activar mi 1er Mes Gratis ($0 CLP)</span>
+                      <span>{creatorCode ? 'Activar 30 Días Gratis con Código ($0 CLP)' : 'Activar 14 Días de Prueba Gratis ($0 CLP)'}</span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
@@ -1018,7 +1102,7 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
 
               <div>
                 <span className="text-xs font-black uppercase tracking-wider px-3.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                  ¡1er Mes 100% Bonificado Activado!
+                  {creatorCode ? '¡30 Días Gratis (1er Mes Bonificado) Activados!' : '¡14 Días de Prueba Gratuita Activados!'}
                 </span>
                 <h3 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white mt-3">
                   ¡Felicitaciones, {name}!
@@ -1033,7 +1117,9 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                 <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
                   <div>
                     <span className="text-[10px] uppercase font-bold text-slate-400">Suscripción</span>
-                    <div className="text-sm font-extrabold text-slate-900 dark:text-white">Mi Vitae (1er Mes Bonificado)</div>
+                    <div className="text-sm font-extrabold text-slate-900 dark:text-white">
+                      {creatorCode ? 'Mi Vitae (30 Días con Código Creador)' : 'Mi Vitae (14 Días de Prueba)'}
+                    </div>
                   </div>
                   <div className="text-right">
                     <span className="text-[10px] uppercase font-bold text-emerald-500">Monto Facturado</span>
