@@ -59,7 +59,12 @@ const PLAN_INFO = {
   },
   trial: { 
     name: '1er Mes Gratis', 
-    shortName: 'Prueba (30d)', 
+    shortName: '1er Mes Gratis (30d)', 
+    color: 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800' 
+  },
+  trial_14d: { 
+    name: '14 Días Gratis', 
+    shortName: '14 Días Gratis', 
     color: 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800' 
   },
   inactive: { 
@@ -76,7 +81,7 @@ export const CREATOR_COMMISSION_USD = 0.70
 // Directorio oficial de Creadores Afiliados Registrados en Producción
 const REGISTERED_AFFILIATES = [
   {
-    code: 'SANTIAGOQ7',
+    code: 'THIAGOQ7',
     creatorUsername: 'santiagoq7',
     creatorName: 'Santiago Quevedo',
     creatorTitle: 'Marketing Digital, Growth & Desarrollo Comercial',
@@ -334,21 +339,68 @@ export default function AdminPage() {
       ? remoteProfiles
       : Object.values(profiles) // Fallback only for isolated local testing without Supabase
 
+    let localOverrides = {}
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        localOverrides = JSON.parse(window.localStorage.getItem('mi_vitae_creator_codes_map') || '{}')
+      } catch {}
+    }
+
     return sourceProfiles.map((p) => {
+      const u = (p.username || '').toLowerCase().trim()
       const isLifetime = Boolean(
         p.isLifetime ||
         (p.planExpiresAt && new Date(p.planExpiresAt).getFullYear() >= 2090) ||
         (p.plan_expires_at && new Date(p.plan_expires_at).getFullYear() >= 2090)
       )
+
+      const rawCode = localOverrides[u] !== undefined
+        ? localOverrides[u]
+        : (p.creatorCode || p.creator_code || p.personalInfo?.creator_code || p.personalInfo?.creatorCode || (u === 'santiagoq7' ? 'THIAGOQ7' : null))
+      const normalizedCode = rawCode ? String(rawCode).trim().toUpperCase() : null
+      const creatorCode = normalizedCode === 'SANTIAGOQ7' && u === 'santiagoq7' ? 'THIAGOQ7' : normalizedCode
+
+      const registeredAff = REGISTERED_AFFILIATES.find((a) => a.creatorUsername.toLowerCase() === u)
+      const isOfficialCreator = Boolean(
+        p.isOfficialCreator ||
+        p.personalInfo?.is_official_creator ||
+        registeredAff ||
+        localOverrides[u]
+      )
+
+      const rawPlanName = String(p.planName || p.plan_name || '')
+      const expRef = p.planExpiresAt || p.plan_expires_at
+      const startRef = p.trialActivatedAt || p.trial_activated_at || p.createdAt || p.created_at
+      const diffDays = (expRef && startRef)
+        ? Math.round((new Date(expRef).getTime() - new Date(startRef).getTime()) / (1000 * 60 * 60 * 24))
+        : 30
+
       const rawPlan = p.plan || (p.status === 'trial' ? 'trial' : p.status === 'inactive' ? 'inactive' : 'premium')
-      const plan = isLifetime ? 'lifetime' : (rawPlan === 'free_trial' ? 'trial' : rawPlan)
-      const status = p.status || p.planStatus || (plan === 'inactive' ? 'inactive' : plan === 'trial' ? 'trial' : 'active')
+      const is14DayTrial = !isLifetime && rawPlan !== 'premium' && rawPlan !== 'inactive' && (
+        rawPlan === 'trial_14d' ||
+        rawPlanName.includes('14 Días') ||
+        (!rawPlanName.includes('1er Mes') && !creatorCode && diffDays > 0 && diffDays <= 16)
+      )
+
+      const plan = isLifetime
+        ? 'lifetime'
+        : rawPlan === 'premium'
+        ? 'premium'
+        : rawPlan === 'inactive' || p.planStatus === 'expired'
+        ? 'inactive'
+        : is14DayTrial
+        ? 'trial_14d'
+        : 'trial'
+
+      const status = p.status || p.planStatus || (plan === 'inactive' ? 'inactive' : (plan === 'trial' || plan === 'trial_14d') ? 'trial' : 'active')
 
       return {
         ...p,
         plan,
         status,
-        isLifetime
+        isLifetime,
+        creatorCode,
+        isOfficialCreator
       }
     })
   }, [remoteProfiles, profiles])
@@ -379,7 +431,7 @@ export default function AdminPage() {
   const totalProfiles = profileList.length
   const lifetimeProfiles = profileList.filter((p) => p.plan === 'lifetime').length
   const activePremiumProfiles = profileList.filter((p) => p.plan === 'premium').length
-  const trialProfiles = profileList.filter((p) => p.plan === 'trial').length
+  const trialProfiles = profileList.filter((p) => p.plan === 'trial' || p.plan === 'trial_14d').length
   const inactiveProfiles = profileList.filter((p) => p.plan === 'inactive').length
 
   // Conteo de usuarios registrados en los ultimos 7 dias
@@ -431,7 +483,8 @@ export default function AdminPage() {
         // Status filter
         if (statusFilter !== 'all') {
           if (statusFilter === 'lifetime' && !p.isLifetime && p.plan !== 'lifetime') return false
-          if (statusFilter !== 'lifetime' && p.plan !== statusFilter) return false
+          if (statusFilter === 'trial' && p.plan !== 'trial' && p.plan !== 'trial_14d') return false
+          if (statusFilter !== 'lifetime' && statusFilter !== 'trial' && p.plan !== statusFilter) return false
         }
 
         // Theme filter
@@ -446,8 +499,9 @@ export default function AdminPage() {
           const username = (p.username || '').toLowerCase()
           const title = (p.personalInfo?.title || '').toLowerCase()
           const email = (p.personalInfo?.email || '').toLowerCase()
+          const creatorCode = (p.creatorCode || '').toLowerCase()
 
-          if (!name.includes(query) && !username.includes(query) && !title.includes(query) && !email.includes(query)) {
+          if (!name.includes(query) && !username.includes(query) && !title.includes(query) && !email.includes(query) && !creatorCode.includes(query)) {
             return false
           }
         }
@@ -500,6 +554,24 @@ export default function AdminPage() {
   // Handle plan status change with persistence to Supabase
   const handlePlanChange = async (username, newPlan) => {
     const isLifetime = newPlan === 'lifetime'
+    const now = new Date()
+    const trialDays = newPlan === 'trial_14d' ? 14 : 30
+    const nextPlanName = isLifetime
+      ? 'Plan Pro (De por vida)'
+      : newPlan === 'premium'
+      ? 'Suscripción Mensual ($3.490 CLP)'
+      : newPlan === 'trial_14d'
+      ? '14 Días de Prueba Gratis ($0 CLP)'
+      : newPlan === 'trial'
+      ? '1er Mes Gratis ($0 CLP)'
+      : 'Plan Expirado / Inactivo'
+    const nextExpiresAt = isLifetime
+      ? '2099-12-31T23:59:59.000Z'
+      : (newPlan === 'trial' || newPlan === 'trial_14d')
+      ? new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000).toISOString()
+      : newPlan === 'premium'
+      ? new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      : now.toISOString()
 
     // 1. Optimistic update in remoteProfilesState
     setRemoteProfilesState((prev) => prev.map((p) => {
@@ -507,16 +579,17 @@ export default function AdminPage() {
         return {
           ...p,
           plan: newPlan,
+          planName: nextPlanName,
           isLifetime,
-          planStatus: newPlan === 'inactive' ? 'expired' : 'active',
-          planExpiresAt: isLifetime ? '2099-12-31T23:59:59.000Z' : p.planExpiresAt
+          planStatus: newPlan === 'inactive' ? 'expired' : (newPlan === 'trial' || newPlan === 'trial_14d') ? 'trial' : 'active',
+          planExpiresAt: nextExpiresAt
         }
       }
       return p
     }))
 
     // 2. Update Zustand store
-    setProfilePlan(username, isLifetime ? 'premium' : newPlan)
+    setProfilePlan(username, isLifetime ? 'premium' : (newPlan === 'trial_14d' ? 'trial' : newPlan))
 
     // 3. Persist directly to Supabase via serverless endpoint bypassing RLS
     const adminToken = typeof window !== 'undefined' ? sessionStorage.getItem('mi_vitae_admin_token') : null
@@ -570,6 +643,7 @@ export default function AdminPage() {
       'Ubicación',
       'Plan',
       'Estado',
+      'Código Creador / Apoya a',
       'Tema',
       'Vistas Totales',
       'Clics Contacto WhatsApp',
@@ -586,6 +660,12 @@ export default function AdminPage() {
       const totalInteractions = clicks + qrScans
       const cr = views > 0 ? ((totalInteractions / views) * 100).toFixed(1) : '0.0'
       const portUrl = `https://mivitae.wearesamod.com/${p.username}`
+      const creatorLabel = p.isOfficialCreator && p.creatorCode
+        ? `Creador Oficial: ${p.creatorCode}`
+        : p.creatorCode
+        ? `Apoya a: ${p.creatorCode}`
+        : 'Orgánico (Sin código)'
+      const planLabel = PLAN_INFO[p.plan]?.shortName || p.plan
 
       return [
         `"${p.username}"`,
@@ -594,8 +674,9 @@ export default function AdminPage() {
         `"${p.personalInfo?.email || ''}"`,
         `"${p.personalInfo?.whatsapp || p.personalInfo?.phone || ''}"`,
         `"${p.personalInfo?.location || ''}"`,
-        `"${p.plan}"`,
+        `"${planLabel}"`,
         `"${p.status}"`,
+        `"${creatorLabel}"`,
         `"${THEME_INFO[p.theme]?.name || p.theme}"`,
         views,
         clicks,
@@ -623,16 +704,22 @@ export default function AdminPage() {
   // AFFILIATES & CREATORS REAL BUSINESS LOGIC
   const creatorsSummary = useMemo(() => {
     const map = {}
+    const registeredUsernames = new Set()
 
+    // 1. Register Official Creators from profileList (avoiding regular users who merely used a referral code)
     profileList.forEach((p) => {
-      const code = String(
-        p.creatorCode || 
-        p.personalInfo?.creator_code || 
-        p.personalInfo?.creatorCode || 
-        (p.username === 'santiagoq7' ? 'SANTIAGOQ7' : '')
+      if (!p.isOfficialCreator) return
+      const u = (p.username || '').toLowerCase().trim()
+      const rawCode = String(
+        p.creatorCode ||
+        p.personalInfo?.creator_code ||
+        p.personalInfo?.creatorCode ||
+        (u === 'santiagoq7' ? 'THIAGOQ7' : '')
       ).trim().toUpperCase()
+      const code = rawCode === 'SANTIAGOQ7' && u === 'santiagoq7' ? 'THIAGOQ7' : rawCode
 
       if (code) {
+        registeredUsernames.add(u)
         map[code] = {
           code,
           creatorUsername: p.username,
@@ -652,8 +739,10 @@ export default function AdminPage() {
       }
     })
 
+    // 2. Fallback to REGISTERED_AFFILIATES if their profile wasn't already loaded with a custom code
     REGISTERED_AFFILIATES.forEach((aff) => {
-      if (!map[aff.code]) {
+      const affUser = (aff.creatorUsername || '').toLowerCase().trim()
+      if (!map[aff.code] && !registeredUsernames.has(affUser)) {
         map[aff.code] = {
           code: aff.code,
           creatorUsername: aff.creatorUsername,
@@ -673,8 +762,16 @@ export default function AdminPage() {
       }
     })
 
+    const normalizeTxCreatorCode = (raw) => {
+      const c = String(raw || '').trim().toUpperCase()
+      if ((c === 'SANTIAGOQ7' || c === 'SANTIAG0Q7' || c === 'THIAG0Q7') && map['THIAGOQ7']) {
+        return 'THIAGOQ7'
+      }
+      return c
+    }
+
     transactions.forEach((tx) => {
-      const code = String(tx.creator_code || tx.metadata?.creator_code || '').trim().toUpperCase()
+      const code = normalizeTxCreatorCode(tx.creator_code || tx.metadata?.creator_code)
       if (!code || tx.status !== 'APROBADO') return
 
       if (!map[code]) {
@@ -716,7 +813,7 @@ export default function AdminPage() {
     profileList.forEach((p) => {
       const history = p.transactionsHistory || (p.lastTransaction ? [p.lastTransaction] : [])
       history.forEach((tx) => {
-        const code = String(tx.creator_code || tx.creatorCode || '').trim().toUpperCase()
+        const code = normalizeTxCreatorCode(tx.creator_code || tx.creatorCode)
         if (!code || (tx.status && tx.status !== 'APROBADO')) return
 
         const orderId = tx.orderNumber || tx.transactionId
@@ -843,6 +940,25 @@ Administrador autorizado: jericesb5@gmail.com
     try {
       const ok = await assignCreatorCodeInSupabase(creatorFormUsername, cleanCode, creatorFormIsLifetime, adminToken)
       if (ok) {
+        // Optimistic instant update in local state so UI reflects change immediately
+        setRemoteProfilesState((prev) => prev.map((p) => {
+          if (p.username.toLowerCase() === creatorFormUsername.toLowerCase()) {
+            return {
+              ...p,
+              creatorCode: cleanCode,
+              isOfficialCreator: true,
+              isLifetime: creatorFormIsLifetime ? true : p.isLifetime,
+              plan: creatorFormIsLifetime ? 'lifetime' : p.plan,
+              personalInfo: {
+                ...(p.personalInfo || {}),
+                creator_code: cleanCode,
+                creatorCode: cleanCode,
+                is_official_creator: true
+              }
+            }
+          }
+          return p
+        }))
         showToast(`Código ${cleanCode} asignado exitosamente a @${creatorFormUsername}.`)
         setIsCreatorModalOpen(false)
         const refreshed = await fetchAllProfilesFromSupabase()
@@ -868,6 +984,21 @@ Administrador autorizado: jericesb5@gmail.com
     try {
       const ok = await removeCreatorCodeInSupabase(username, adminToken)
       if (ok) {
+        setRemoteProfilesState((prev) => prev.map((p) => {
+          if (p.username.toLowerCase() === username.toLowerCase()) {
+            const nextInfo = { ...(p.personalInfo || {}) }
+            delete nextInfo.creator_code
+            delete nextInfo.creatorCode
+            delete nextInfo.is_official_creator
+            return {
+              ...p,
+              creatorCode: null,
+              isOfficialCreator: false,
+              personalInfo: nextInfo
+            }
+          }
+          return p
+        }))
         showToast(`Código desvinculado de @${username}.`)
         setConfirmRemoveCreator(null)
         const refreshed = await fetchAllProfilesFromSupabase()
@@ -1524,6 +1655,23 @@ Administrador autorizado: jericesb5@gmail.com
                                     {p.personalInfo.title}
                                   </div>
                                 )}
+                                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                                  {p.isOfficialCreator && p.creatorCode ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                      <Award className="w-3 h-3 shrink-0" />
+                                      <span>Creador Oficial: {p.creatorCode}</span>
+                                    </span>
+                                  ) : p.creatorCode ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                      <Tag className="w-3 h-3 shrink-0" />
+                                      <span>Apoya a: {p.creatorCode}</span>
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 border border-slate-200/80 dark:border-slate-700/80">
+                                      Orgánico (Sin código)
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
 
@@ -1546,16 +1694,15 @@ Administrador autorizado: jericesb5@gmail.com
                                     ? 'bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700'
                                     : p.plan === 'premium'
                                     ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                                    : p.plan === 'trial'
+                                    : (p.plan === 'trial' || p.plan === 'trial_14d')
                                     ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
                                     : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
                                 }`}
                               >
                                 <option value="lifetime">De por vida</option>
                                 <option value="premium">Suscripción ($3.490)</option>
-                                <option value="trial">
-                                  {(p.creatorCode || p.personalInfo?.creator_code || (p.planName && p.planName.includes('1er Mes'))) ? '1er Mes Gratis (30d)' : 'Prueba Gratis (14d)'}
-                                </option>
+                                <option value="trial">1er Mes Gratis (30d)</option>
+                                <option value="trial_14d">14 Días Gratis</option>
                                 <option value="inactive">Inactivo</option>
                               </select>
                               <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-60" />
@@ -1679,6 +1826,23 @@ Administrador autorizado: jericesb5@gmail.com
                                     <div className="text-xs text-indigo-600 dark:text-indigo-400 font-mono font-bold mt-0.5">
                                       /{p.username}
                                     </div>
+                                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                                      {p.isOfficialCreator && p.creatorCode ? (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                          <Award className="w-3 h-3 shrink-0" />
+                                          <span>Creador Oficial: {p.creatorCode}</span>
+                                        </span>
+                                      ) : p.creatorCode ? (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                                          <Tag className="w-3 h-3 shrink-0" />
+                                          <span>Apoya a: {p.creatorCode}</span>
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 border border-slate-200/80 dark:border-slate-700/80">
+                                          Orgánico (Sin código)
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               </td>
@@ -1694,16 +1858,15 @@ Administrador autorizado: jericesb5@gmail.com
                                         ? 'bg-indigo-50 dark:bg-indigo-950/70 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700 hover:bg-indigo-100'
                                         : p.plan === 'premium'
                                         ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
-                                        : p.plan === 'trial'
+                                        : (p.plan === 'trial' || p.plan === 'trial_14d')
                                         ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 hover:bg-amber-100'
                                         : 'bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800 hover:bg-rose-100'
                                     }`}
                                   >
                                     <option value="lifetime">De por vida</option>
                                     <option value="premium">Suscripción ($3.490)</option>
-                                    <option value="trial">
-                                      {(p.creatorCode || p.personalInfo?.creator_code || (p.planName && p.planName.includes('1er Mes'))) ? '1er Mes Gratis (30d)' : 'Prueba Gratis (14d)'}
-                                    </option>
+                                    <option value="trial">1er Mes Gratis (30d)</option>
+                                    <option value="trial_14d">14 Días Gratis</option>
                                     <option value="inactive">Inactivo</option>
                                   </select>
                                   <ChevronDown className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-60" />
@@ -2186,10 +2349,10 @@ Administrador autorizado: jericesb5@gmail.com
                 </div>
               </div>
 
-              {/* Card 2: Total Usuarios Convertidos */}
+              {/* Card 2: Suscripciones Pagadas */}
               <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-200 dark:border-slate-800/80 shadow-sm relative overflow-hidden">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">Convertidos</span>
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">Suscripciones Pagadas</span>
                   <div className="p-2 rounded-xl sm:rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 shrink-0">
                     <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
@@ -2197,10 +2360,11 @@ Administrador autorizado: jericesb5@gmail.com
                 <div className="text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 dark:text-white">
                   {totalCreatorSalesClp + totalCreatorSalesUsd}
                 </div>
-                <div className="flex items-center gap-1.5 mt-1 text-[11px] font-semibold text-slate-500 truncate">
-                  <span className="text-emerald-600 dark:text-emerald-400">{totalCreatorSalesClp} Flow</span>
+                <div className="flex flex-wrap items-center gap-1 mt-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                  <span>Usuarios que pagaron con código</span>
+                  <span className="text-emerald-600 dark:text-emerald-400">({totalCreatorSalesClp} Flow</span>
                   <span>•</span>
-                  <span className="text-cyan-600 dark:text-cyan-400">{totalCreatorSalesUsd} PayPal</span>
+                  <span className="text-cyan-600 dark:text-cyan-400">{totalCreatorSalesUsd} PayPal)</span>
                 </div>
               </div>
 
@@ -2221,9 +2385,9 @@ Administrador autorizado: jericesb5@gmail.com
               </div>
 
               {/* Card 4: Total a Transferir el 30 */}
-              <div className="col-span-2 lg:col-span-1 bg-gradient-to-br from-emerald-600 to-teal-700 text-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-lg shadow-emerald-600/20 relative overflow-hidden">
+              <div className="bg-gradient-to-br from-emerald-600 to-teal-700 text-white p-3.5 sm:p-5 rounded-2xl sm:rounded-3xl shadow-lg shadow-emerald-600/20 relative overflow-hidden">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-emerald-100">A Transferir (Día 30)</span>
+                  <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-emerald-100 truncate">A Transferir (Día 30)</span>
                   <div className="p-2 rounded-xl bg-white/20 text-white shrink-0">
                     <Receipt className="w-4 h-4" />
                   </div>
@@ -2247,7 +2411,7 @@ Administrador autorizado: jericesb5@gmail.com
                   <input
                     type="text"
                     value={creatorSearch}
-                    onChange={(e) => setCreatorSearch(e.target.value)}
+                    onChange={(e) => setCreatorSearch(e.target.value.toUpperCase())}
                     placeholder="Filtrar por código de creador..."
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 uppercase min-h-[42px]"
                   />

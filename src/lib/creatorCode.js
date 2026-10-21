@@ -23,7 +23,9 @@ export const CREATOR_COMMISSION_USD = 1.00
  * - Maximum 30 characters
  */
 const CREATOR_ALIASES = {
-  'SANTIAG0Q7': 'SANTIAGOQ7'
+  'SANTIAG0Q7': 'THIAGOQ7',
+  'SANTIAGOQ7': 'THIAGOQ7',
+  'THIAG0Q7': 'THIAGOQ7'
 }
 
 export function sanitizeCreatorCode(code) {

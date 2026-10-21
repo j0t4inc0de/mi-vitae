@@ -1220,6 +1220,35 @@ it('verifies AdminPage contains exactly 0 emojis and provides complete Creator C
   assert.ok(adminPageContent.includes('handleConfirmRemoveCreator'), 'Must have handleConfirmRemoveCreator handler');
 });
 
+it('verifies Super Admin 4 final points: Creator Affiliation badges, dual Trial plans (trial & trial_14d), 2x2 KPI grid with Suscripciones Pagadas, and THIAGOQ7 uppercase sync', () => {
+  const adminPageContent = fs.readFileSync(path.resolve(ROOT, 'src/pages/AdminPage.jsx'), 'utf-8');
+  const supabaseClientContent = fs.readFileSync(path.resolve(ROOT, 'src/lib/supabaseClient.js'), 'utf-8');
+  const adminManageFnContent = fs.readFileSync(path.resolve(ROOT, 'functions/api/admin-manage-user.js'), 'utf-8');
+
+  // 1. Creator Affiliation badges in User Directory & CSV export
+  assert.ok(adminPageContent.includes('Creador Oficial: {p.creatorCode}'), 'Must display Creador Oficial badge in User Directory');
+  assert.ok(adminPageContent.includes('Apoya a: {p.creatorCode}'), 'Must display Apoya a badge in User Directory');
+  assert.ok(adminPageContent.includes('Orgánico (Sin código)'), 'Must display Orgánico badge in User Directory');
+  assert.ok(adminPageContent.includes('Código Creador / Apoya a'), 'CSV export must include Código Creador / Apoya a column');
+
+  // 2. Differentiated Trial options (1er Mes Gratis 30d vs 14 Días Gratis)
+  assert.ok(adminPageContent.includes('<option value="trial">1er Mes Gratis (30d)</option>'), 'Must offer 1er Mes Gratis (30d) option');
+  assert.ok(adminPageContent.includes('<option value="trial_14d">14 Días Gratis</option>'), 'Must offer 14 Días Gratis option');
+  assert.ok(supabaseClientContent.includes("plan === 'trial_14d'"), 'supabaseClient must handle trial_14d plan');
+  assert.ok(adminManageFnContent.includes("plan === 'trial_14d'"), 'admin-manage-user endpoint must handle trial_14d plan');
+
+  // 3. Creators KPI cards: Suscripciones Pagadas & 2x2 grid (no col-span-2 on 4th card)
+  assert.ok(adminPageContent.includes('Suscripciones Pagadas'), '2nd Creators KPI card must be titled Suscripciones Pagadas');
+  assert.ok(adminPageContent.includes('Usuarios que pagaron con código'), '2nd Creators KPI card must explain paid subscriptions with code');
+  assert.ok(!adminPageContent.includes('col-span-2 lg:col-span-1 bg-gradient-to-br from-emerald-600'), '4th KPI card must NOT have col-span-2 so mobile renders a clean 2x2 grid');
+
+  // 4. THIAGOQ7 official code & uppercase enforcement
+  assert.ok(adminPageContent.includes("code: 'THIAGOQ7'"), 'santiagoq7 official code must be THIAGOQ7');
+  assert.equal(creatorModule.sanitizeCreatorCode('santiagoq7'), 'THIAGOQ7', 'sanitizeCreatorCode must alias santiagoq7 to THIAGOQ7');
+  assert.equal(creatorModule.sanitizeCreatorCode('thiagoq7'), 'THIAGOQ7', 'sanitizeCreatorCode must normalize thiagoq7 to THIAGOQ7');
+  assert.ok(supabaseClientContent.includes('admin_assign_creator_code'), 'supabaseClient must include RPC fallback for creator code assignment');
+});
+
 // -------------------------------------------------------------
 // SUITE 12: REAL-TIME ANALYTICS & QR SCANS (RLS BYPASS & SYNC)
 // -------------------------------------------------------------

@@ -23,11 +23,13 @@ export async function onRequestPost(context) {
     const expectedAdminSecret = env.ADMIN_SECRET || env.ADMIN_PASSWORD || 'TeAmoSambi!@123a'
     const canonicalAdminEmail = (env.ADMIN_EMAIL || 'jericesb5@gmail.com').toLowerCase().trim()
     const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL || 'https://ewptcglzykqvnvxxwwhm.supabase.co'
+    const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_umvJDktvEJKBaLpUlSJ7gA_Dr0Zcz54'
     const supabaseServiceKey = env.SUPABASE_SERVICE_ROLE_KEY
 
     // 2. Authorization Check (Secret token OR Supabase Auth JWT Bearer)
     let isAuthorized = false
     let authorizedBy = ''
+    let bearerToken = ''
 
     const providedSecret = adminSecret || adminPassword || request.headers.get('x-admin-secret')
     if (providedSecret && providedSecret === expectedAdminSecret) {
@@ -37,13 +39,16 @@ export async function onRequestPost(context) {
 
     // Check Bearer JWT from Supabase Auth if provided
     const authHeader = request.headers.get('authorization') || ''
-    if (!isAuthorized && authHeader.startsWith('Bearer ') && supabaseServiceKey) {
-      const token = authHeader.replace('Bearer ', '').trim()
+    if (authHeader.startsWith('Bearer ')) {
+      bearerToken = authHeader.replace('Bearer ', '').trim()
+    }
+
+    if (!isAuthorized && bearerToken && (supabaseServiceKey || supabaseAnonKey)) {
       try {
         const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
           headers: {
-            'apikey': supabaseServiceKey,
-            'Authorization': `Bearer ${token}`
+            'apikey': supabaseServiceKey || supabaseAnonKey,
+            'Authorization': `Bearer ${bearerToken}`
           }
         })
         if (userRes.ok) {
@@ -108,7 +113,63 @@ export async function onRequestPost(context) {
 
     const cleanUsername = username.toLowerCase().trim()
 
+    // =========================================================================
+    // FALLBACK PATH WHEN SUPABASE_SERVICE_ROLE_KEY IS MISSING:
+    // Attempt SECURITY DEFINER RPC via Admin JWT Bearer token if available
+    // =========================================================================
     if (!supabaseServiceKey) {
+      if (bearerToken && supabaseAnonKey) {
+        const rpcHeaders = {
+          'apikey': supabaseAnonKey,
+          'Authorization': `Bearer ${bearerToken}`,
+          'Content-Type': 'application/json'
+        }
+
+        if (action === 'assign_creator_code') {
+          const { creatorCode, isLifetime } = body
+          const cleanCreatorCode = String(creatorCode || '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '').slice(0, 30)
+          if (cleanCreatorCode) {
+            const rpcRes = await fetch(`${supabaseUrl}/rest/v1/rpc/admin_assign_creator_code`, {
+              method: 'POST',
+              headers: rpcHeaders,
+              body: JSON.stringify({
+                target_username: cleanUsername,
+                new_creator_code: cleanCreatorCode,
+                set_lifetime: Boolean(isLifetime)
+              })
+            }).catch(() => null)
+            if (rpcRes && rpcRes.ok) {
+              const rpcData = await rpcRes.json().catch(() => null)
+              if (rpcData) {
+                return new Response(JSON.stringify({
+                  success: true,
+                  updated: true,
+                  username: cleanUsername,
+                  creatorCode: cleanCreatorCode,
+                  isLifetime: Boolean(isLifetime),
+                  profile: rpcData
+                }), { status: 200, headers: jsonHeaders })
+              }
+            }
+          }
+        }
+
+        if (action === 'remove_creator_code') {
+          const rpcRes = await fetch(`${supabaseUrl}/rest/v1/rpc/admin_remove_creator_code`, {
+            method: 'POST',
+            headers: rpcHeaders,
+            body: JSON.stringify({ target_username: cleanUsername })
+          }).catch(() => null)
+          if (rpcRes && rpcRes.ok) {
+            return new Response(JSON.stringify({
+              success: true,
+              removed: true,
+              username: cleanUsername
+            }), { status: 200, headers: jsonHeaders })
+          }
+        }
+      }
+
       return new Response(JSON.stringify({ 
         success: false, 
         error: 'SUPABASE_SERVICE_ROLE_KEY no está configurada en las variables de entorno de Cloudflare.' 
@@ -132,6 +193,7 @@ export async function onRequestPost(context) {
       const isLifetime = plan === 'lifetime'
       const isPremium = plan === 'premium' || isLifetime
       const isInactive = plan === 'inactive'
+      const isTrial14d = plan === 'trial_14d'
 
       let planExpiresAt
       let planStatus = 'active'
@@ -153,8 +215,13 @@ export async function onRequestPost(context) {
         planName = 'Plan Inactivo'
         planStatus = 'expired'
         planExpiresAt = new Date(Date.now() - 1000).toISOString()
+      } else if (isTrial14d) {
+        dbPlan = 'free_trial'
+        planName = '14 Días de Prueba Gratis ($0 CLP)'
+        planStatus = 'active'
+        planExpiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
       } else {
-        // trial / free_trial
+        // trial / trial_30d / free_trial
         dbPlan = 'free_trial'
         planName = '1er Mes Gratis ($0 CLP)'
         planStatus = 'active'
@@ -332,7 +399,8 @@ export async function onRequestPost(context) {
       const currentPersonalInfo = existingProfile.personal_info || {}
       const updatedPersonalInfo = {
         ...currentPersonalInfo,
-        creator_code: cleanCreatorCode
+        creator_code: cleanCreatorCode,
+        is_official_creator: true
       }
 
       const profileUpdates = {
@@ -394,6 +462,7 @@ export async function onRequestPost(context) {
       const currentPersonalInfo = profilesFound[0].personal_info || {}
       delete currentPersonalInfo.creator_code
       delete currentPersonalInfo.creatorCode
+      delete currentPersonalInfo.is_official_creator
 
       const patchRes = await fetch(`${supabaseUrl}/rest/v1/profiles?username=eq.${encodeURIComponent(cleanUsername)}`, {
         method: 'PATCH',

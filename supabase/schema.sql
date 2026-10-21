@@ -428,4 +428,70 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 REVOKE EXECUTE ON FUNCTION public.admin_delete_profile FROM public, anon;
 GRANT EXECUTE ON FUNCTION public.admin_delete_profile TO authenticated, service_role;
 
+CREATE OR REPLACE FUNCTION public.admin_assign_creator_code(
+  target_username TEXT,
+  new_creator_code TEXT,
+  set_lifetime BOOLEAN DEFAULT true
+)
+RETURNS JSONB AS $$
+DECLARE
+  updated_record JSONB;
+  clean_code TEXT := UPPER(TRIM(new_creator_code));
+BEGIN
+  -- Strict Access Guard: Only backend service_role or admin account can execute
+  IF auth.jwt() ->> 'role' <> 'service_role' 
+     AND COALESCE(auth.jwt() ->> 'email', '') <> 'jericesb5@gmail.com' THEN
+    RAISE EXCEPTION 'Access denied: administrative privileges required';
+  END IF;
+
+  UPDATE public.profiles
+  SET 
+    personal_info = jsonb_set(
+      jsonb_set(
+        COALESCE(personal_info, '{}'::jsonb),
+        '{creator_code}',
+        to_jsonb(clean_code)
+      ),
+      '{is_official_creator}',
+      'true'::jsonb
+    ),
+    plan = CASE WHEN set_lifetime THEN 'premium' ELSE plan END,
+    plan_name = CASE WHEN set_lifetime THEN 'Plan Pro (De por vida)' ELSE plan_name END,
+    plan_status = CASE WHEN set_lifetime THEN 'active' ELSE plan_status END,
+    plan_expires_at = CASE WHEN set_lifetime THEN '2099-12-31T23:59:59.000Z'::timestamptz ELSE plan_expires_at END,
+    updated_at = NOW()
+  WHERE LOWER(username) = LOWER(TRIM(target_username))
+  RETURNING to_jsonb(public.profiles.*) INTO updated_record;
+
+  RETURN updated_record;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+REVOKE EXECUTE ON FUNCTION public.admin_assign_creator_code FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.admin_assign_creator_code TO authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.admin_remove_creator_code(
+  target_username TEXT
+)
+RETURNS BOOLEAN AS $$
+BEGIN
+  -- Strict Access Guard: Only backend service_role or admin account can execute
+  IF auth.jwt() ->> 'role' <> 'service_role' 
+     AND COALESCE(auth.jwt() ->> 'email', '') <> 'jericesb5@gmail.com' THEN
+    RAISE EXCEPTION 'Access denied: administrative privileges required';
+  END IF;
+
+  UPDATE public.profiles
+  SET 
+    personal_info = COALESCE(personal_info, '{}'::jsonb) - 'creator_code' - 'creatorCode' - 'is_official_creator',
+    updated_at = NOW()
+  WHERE LOWER(username) = LOWER(TRIM(target_username));
+
+  RETURN true;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+REVOKE EXECUTE ON FUNCTION public.admin_remove_creator_code FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.admin_remove_creator_code TO authenticated, service_role;
+
 
