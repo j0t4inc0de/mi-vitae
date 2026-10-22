@@ -188,7 +188,7 @@ export default function CvImportModal({ isOpen, onClose, onSuccess }) {
           </div>
           <div>
             <h2 id="cv-modal-title" className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
-              Autocompletar con CV
+              Autocompletar Vitae STUDIO con CV
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Sube tu currículum en PDF y la IA rellenará tu Studio en segundos.

@@ -1014,7 +1014,7 @@ export default function DashboardPage() {
             >
               <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/0 via-white/15 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
               <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300 shrink-0 transition-transform duration-200 group-hover:rotate-12 group-hover:scale-110 drop-shadow-[0_0_6px_rgba(252,211,77,0.5)]" />
-              <span className="relative z-10">Autocompletar CV</span>
+              <span className="relative z-10">Autocompletar Vitae</span>
             </button>
 
             {/* 2. Crear CV */}
@@ -1034,7 +1034,7 @@ export default function DashboardPage() {
               ) : (
                 <>
                   <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300 shrink-0 transition-transform duration-200 group-hover:rotate-12 group-hover:scale-110 drop-shadow-[0_0_6px_rgba(252,211,77,0.5)]" />
-                  <span className="relative z-10">Crear CV</span>
+                  <span className="relative z-10">Crear Mi CV</span>
                   {planInfo.isExpired && (
                     <span className="relative z-10 text-[9px] font-black uppercase tracking-wider bg-amber-400 text-amber-950 px-1 py-0.5 rounded shadow-xs">
                       PRO
