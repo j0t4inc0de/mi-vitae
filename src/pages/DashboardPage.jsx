@@ -8,6 +8,8 @@ import UserAvatar from '../components/Common/UserAvatar'
 import ThemeRenderer, { filterEmptyProfileItems } from '../components/Themes/ThemeRenderer'
 import { compressImage, getApproximateDataUrlBytes, formatBytes } from '../utils/imageCompressor'
 import { INITIAL_MOCK_PROFILES } from '../data/mockProfiles'
+import { getHarvardOptimizedCv } from '../utils/harvardCvOptimizer.js'
+import { downloadHarvardPdf } from '../utils/harvardPdfGenerator.js'
 import {
   LayoutDashboard,
   User,
@@ -34,6 +36,7 @@ import {
   X,
   Check,
   Sparkles,
+  Loader2,
   Globe,
   Linkedin,
   Github,
@@ -170,6 +173,8 @@ export default function DashboardPage() {
   const [avatarDragOver, setAvatarDragOver] = useState(false)
   const [isQrOpen, setIsQrOpen] = useState(false)
   const [isCvModalOpen, setIsCvModalOpen] = useState(false)
+  const [isGeneratingCv, setIsGeneratingCv] = useState(false)
+  const [comingSoonModal, setComingSoonModal] = useState(null)
   const [copiedLink, setCopiedLink] = useState(false)
   const [paymentSuccessNotice, setPaymentSuccessNotice] = useState(false)
 
@@ -536,6 +541,35 @@ export default function DashboardPage() {
     setSavedAlert(true)
     if (savedAlertTimerRef.current) clearTimeout(savedAlertTimerRef.current)
     savedAlertTimerRef.current = setTimeout(() => setSavedAlert(false), 3500)
+  }
+
+  // ponytail: 1-click Harvard ATS CV generator with direct download and membership gating
+  const handleCreateCv = async () => {
+    if (planInfo.isExpired) {
+      openFlowModal({
+        username: profileData?.username,
+        planName: planInfo.hasCreatorCode
+          ? 'Suscripción Mi Vitae ($2.990 CLP/mes - Código Creador)'
+          : 'Suscripción Mi Vitae ($3.490 CLP/mes)',
+        amount: planInfo.hasCreatorCode ? 2990 : 3490
+      })
+      return
+    }
+
+    if (isGeneratingCv) return
+
+    try {
+      setIsGeneratingCv(true)
+      const optimizedData = await getHarvardOptimizedCv(profileData)
+      await downloadHarvardPdf(
+        optimizedData,
+        'CV_Harvard_' + (profileData?.username || 'usuario') + '.pdf'
+      )
+    } catch (err) {
+      console.error('[Dashboard] Error al generar CV Harvard:', err)
+    } finally {
+      setIsGeneratingCv(false)
+    }
   }
 
   // Personal Info Updaters
@@ -960,6 +994,95 @@ export default function DashboardPage() {
             )
           })()}
 
+          {/* PROPUESTA 4 (Hallmark · Tactile & Modern-Minimal): Barra compacta de 4 acciones IA, 4 en fila en PC y carrusel horizontal compacto en móvil */}
+          <div
+            role="toolbar"
+            aria-label="Acciones de Inteligencia Artificial"
+            onWheel={(e) => {
+              if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                e.currentTarget.scrollLeft += e.deltaY
+              }
+            }}
+            className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto -mx-1 px-1 py-1 -my-1 scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {/* 1. Autocompletar CV */}
+            <button
+              type="button"
+              onClick={() => setIsCvModalOpen(true)}
+              className="group relative overflow-hidden shrink-0 sm:min-w-0 sm:flex-1 px-2.5 sm:px-3 py-1.5 sm:py-2 min-h-[32px] sm:min-h-[36px] rounded-xl bg-gradient-to-b from-indigo-500 via-indigo-600 to-violet-600 hover:from-indigo-500 hover:via-indigo-500 hover:to-violet-500 text-white text-[11px] sm:text-xs font-bold tracking-tight flex items-center justify-center gap-1.5 ring-1 ring-inset ring-white/25 shadow-[0_2px_8px_-2px_rgba(79,70,229,0.4),inset_0_1px_0_0_rgba(255,255,255,0.25)] hover:shadow-[0_4px_12px_-2px_rgba(79,70,229,0.55),inset_0_1px_0_0_rgba(255,255,255,0.35)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 transition-all duration-200 cursor-pointer whitespace-nowrap snap-start select-none"
+              title="Autocompletar portafolio importando un archivo CV en PDF con IA"
+            >
+              <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/0 via-white/15 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
+              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300 shrink-0 transition-transform duration-200 group-hover:rotate-12 group-hover:scale-110 drop-shadow-[0_0_6px_rgba(252,211,77,0.5)]" />
+              <span className="relative z-10">Autocompletar CV</span>
+            </button>
+
+            {/* 2. Crear CV */}
+            <button
+              type="button"
+              onClick={handleCreateCv}
+              disabled={isGeneratingCv}
+              className="group relative overflow-hidden shrink-0 sm:min-w-0 sm:flex-1 px-2.5 sm:px-3 py-1.5 sm:py-2 min-h-[32px] sm:min-h-[36px] rounded-xl bg-gradient-to-b from-indigo-500 via-indigo-600 to-violet-600 hover:from-indigo-500 hover:via-indigo-500 hover:to-violet-500 disabled:opacity-75 disabled:cursor-wait text-white text-[11px] sm:text-xs font-bold tracking-tight flex items-center justify-center gap-1.5 ring-1 ring-inset ring-white/25 shadow-[0_2px_8px_-2px_rgba(79,70,229,0.4),inset_0_1px_0_0_rgba(255,255,255,0.25)] hover:shadow-[0_4px_12px_-2px_rgba(79,70,229,0.55),inset_0_1px_0_0_rgba(255,255,255,0.35)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 transition-all duration-200 cursor-pointer whitespace-nowrap snap-start select-none"
+              title="Crear un CV estilo Harvard limpio para pasar con 100% los filtros ATS"
+            >
+              <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/0 via-white/15 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
+              {isGeneratingCv ? (
+                <>
+                  <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin shrink-0" />
+                  <span className="relative z-10">Generando CV...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300 shrink-0 transition-transform duration-200 group-hover:rotate-12 group-hover:scale-110 drop-shadow-[0_0_6px_rgba(252,211,77,0.5)]" />
+                  <span className="relative z-10">Crear CV</span>
+                  {planInfo.isExpired && (
+                    <span className="relative z-10 text-[9px] font-black uppercase tracking-wider bg-amber-400 text-amber-950 px-1 py-0.5 rounded shadow-xs">
+                      PRO
+                    </span>
+                  )}
+                </>
+              )}
+            </button>
+
+            {/* 3. Pasar ATS */}
+            <button
+              type="button"
+              onClick={() => {
+                if (planInfo.isExpired) {
+                  openFlowModal({ username: profileData.username, planName: 'Suscripción Mi Vitae ($3.490 CLP/mes)', amount: 3490 })
+                  return
+                }
+                setComingSoonModal({ title: 'Pasar ATS', desc: 'Escáner inteligente para diagnosticar tu currículum frente a filtros ATS reales con score y recomendaciones.' })
+              }}
+              className="group relative overflow-hidden shrink-0 sm:min-w-0 sm:flex-1 px-2.5 sm:px-3 py-1.5 sm:py-2 min-h-[32px] sm:min-h-[36px] rounded-xl bg-gradient-to-b from-indigo-500 via-indigo-600 to-violet-600 hover:from-indigo-500 hover:via-indigo-500 hover:to-violet-500 text-white text-[11px] sm:text-xs font-bold tracking-tight flex items-center justify-center gap-1.5 ring-1 ring-inset ring-white/25 shadow-[0_2px_8px_-2px_rgba(79,70,229,0.4),inset_0_1px_0_0_rgba(255,255,255,0.25)] hover:shadow-[0_4px_12px_-2px_rgba(79,70,229,0.55),inset_0_1px_0_0_rgba(255,255,255,0.35)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 transition-all duration-200 cursor-pointer whitespace-nowrap snap-start select-none"
+              title="Evaluar tu CV con filtros ATS reales, ver tu % y 5 mejoras clave"
+            >
+              <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/0 via-white/15 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
+              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300 shrink-0 transition-transform duration-200 group-hover:rotate-12 group-hover:scale-110 drop-shadow-[0_0_6px_rgba(252,211,77,0.5)]" />
+              <span className="relative z-10">Pasar ATS</span>
+            </button>
+
+            {/* 4. Adaptar a Oferta */}
+            <button
+              type="button"
+              onClick={() => {
+                if (planInfo.isExpired) {
+                  openFlowModal({ username: profileData.username, planName: 'Suscripción Mi Vitae ($3.490 CLP/mes)', amount: 3490 })
+                  return
+                }
+                setComingSoonModal({ title: 'Adaptar a Oferta', desc: 'Compara tu perfil con una oferta laboral de LinkedIn y adapta tu currículum al cargo con IA.' })
+              }}
+              className="group relative overflow-hidden shrink-0 sm:min-w-0 sm:flex-1 px-2.5 sm:px-3 py-1.5 sm:py-2 min-h-[32px] sm:min-h-[36px] rounded-xl bg-gradient-to-b from-indigo-500 via-indigo-600 to-violet-600 hover:from-indigo-500 hover:via-indigo-500 hover:to-violet-500 text-white text-[11px] sm:text-xs font-bold tracking-tight flex items-center justify-center gap-1.5 ring-1 ring-inset ring-white/25 shadow-[0_2px_8px_-2px_rgba(79,70,229,0.4),inset_0_1px_0_0_rgba(255,255,255,0.25)] hover:shadow-[0_4px_12px_-2px_rgba(79,70,229,0.55),inset_0_1px_0_0_rgba(255,255,255,0.35)] hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 transition-all duration-200 cursor-pointer whitespace-nowrap snap-start select-none"
+              title="Comparar tu perfil con una oferta laboral y generar mensaje de postulación"
+            >
+              <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/0 via-white/15 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
+              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300 shrink-0 transition-transform duration-200 group-hover:rotate-12 group-hover:scale-110 drop-shadow-[0_0_6px_rgba(252,211,77,0.5)]" />
+              <span className="relative z-10">Adaptar a Oferta</span>
+            </button>
+
+          </div>
+
+
           <section 
             aria-label="Editor Modular" 
             className="bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-6 shadow-sm flex flex-col gap-6"
@@ -1036,29 +1159,13 @@ export default function DashboardPage() {
 
           {/* Editor Header & Tab Switcher */}
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <span>Editor de Contenido</span>
-                </h2>
-                {/* ponytail: Hidden on mobile to free up space for prominent CV import action */}
-                <p className="hidden sm:block text-xs text-slate-500 mt-0.5">
-                  Edita cada sección modularmente con actualización inmediata.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsCvModalOpen(true)}
-                  className="px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs font-bold flex items-center gap-1.5 sm:gap-2 shadow-sm shadow-indigo-500/25 transition-all active:scale-95 cursor-pointer"
-                  title="Autocompletar portafolio importando un archivo CV en PDF con IA"
-                >
-                  <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300 shrink-0" />
-                  <span className="inline sm:hidden">Importar CV</span>
-                  <span className="hidden sm:inline">Autocompletar con CV</span>
-                </button>
-              </div>
+            <div className="mb-3">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <span>Editor de Contenido</span>
+              </h2>
+              <p className="hidden sm:block text-xs text-slate-500 mt-0.5">
+                Edita cada sección modularmente con actualización inmediata.
+              </p>
             </div>
 
             {/* Scrollable Horizontal Tabs with Snap and Hidden Scrollbars */}
@@ -2661,6 +2768,59 @@ export default function DashboardPage() {
         onClose={() => setIsCvModalOpen(false)}
         onSuccess={handleCvImportSuccess}
       />
+
+      {/* ponytail: Modal temporal con Blobatar animado para herramientas de IA proximamente */}
+      {comingSoonModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs"
+          onClick={() => setComingSoonModal(null)}
+        >
+          <div
+            className="bg-white rounded-3xl p-6 sm:p-7 max-w-sm w-full text-center shadow-2xl border border-slate-100 flex flex-col items-center relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setComingSoonModal(null)}
+              className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              aria-label="Cerrar modal"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <UserAvatar
+              username={profileData?.username || 'MiVitae'}
+              avatarUrl="blobatar"
+              size={88}
+              animate={true}
+              className="rounded-3xl shadow-md mb-3"
+            />
+
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100 mb-2">
+              Próximamente
+            </span>
+
+            <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+              {comingSoonModal.title}
+            </h3>
+
+            <p className="text-xs sm:text-sm text-slate-500 mt-1.5 mb-5 leading-relaxed">
+              {comingSoonModal.desc}
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setComingSoonModal(null)}
+              className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
+
 
     </div>
   )

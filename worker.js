@@ -12,6 +12,7 @@ import { onRequestGet as handleSitemap } from './functions/api/sitemap.js'
 import { onRequestPost as handleParseCv } from './functions/api/parse-cv.js'
 import { onRequestPost as handleAdminManageUser } from './functions/api/admin-manage-user.js'
 import { onRequestPost as handleRecordAnalytics } from './functions/api/record-analytics.js'
+import { onRequestPost as handleOptimizeHarvardCv } from './functions/api/optimize-harvard-cv.js'
 
 export default {
   async fetch(request, env, ctx) {
@@ -19,6 +20,9 @@ export default {
     const pathname = url.pathname
 
     // Route API requests to serverless handlers
+    if (pathname === '/api/optimize-harvard-cv' || pathname === '/api/generate-harvard-cv') {
+      return handleOptimizeHarvardCv({ request, env })
+    }
     if (pathname === '/api/record-analytics') {
       return handleRecordAnalytics({ request, env })
     }
