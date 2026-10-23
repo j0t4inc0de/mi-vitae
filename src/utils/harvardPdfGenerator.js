@@ -377,13 +377,18 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
     });
   }
 
-  // 5. CERTIFICACIONES (Rendered only if present)
+  // 5. CERTIFICACIONES (Rendered only if present, sorted reverse-chronologically)
   const rawCerts = Array.isArray(data.certifications)
     ? data.certifications.filter((c) => c && (typeof c === 'string' || c.name || c.titulo || c.title))
     : [];
-  if (rawCerts.length > 0) {
+  const certifications = [...rawCerts].sort((a, b) => {
+    const dateA = typeof a === 'object' ? parseDateForSort(a.year || a.date, false) : 0;
+    const dateB = typeof b === 'object' ? parseDateForSort(b.year || b.date, false) : 0;
+    return dateB - dateA;
+  });
+  if (certifications.length > 0) {
     renderSectionHeader('CERTIFICACIONES');
-    rawCerts.forEach((cert) => {
+    certifications.forEach((cert) => {
       ensureSpace(16);
       const name = typeof cert === 'string' ? cert.trim() : (cert.name || cert.titulo || cert.title || '').trim();
       const yearStr = formatSingleDate(cert.year || cert.date);
@@ -423,7 +428,7 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
       if (langs.length === 0 && tools.length === 0) categories.set('Técnicas / Herramientas', techList);
     }
     if (softList.length > 0) {
-      categories.set('Competencias Profesionales', softList);
+      categories.set('Competencias & Metodologías', softList);
     }
 
     if (categories.size === 0) {

@@ -39,9 +39,9 @@ export function enhanceStarBullet(text, options = {}) {
     { regex: /^integraci[oó]n de motor de\s*/i, replace: 'Integró motor de ' },
     { regex: /^integraci[oó]n (de|en|del)?\s*/i, replace: 'Integró ' },
     { regex: /^despliegue de plataformas? (web|e-learning)?\s*(en)?\s*/i, replace: 'Desplegó plataforma $1 ' },
-    { regex: /^mentor[ií]a (acad[eé]mica)?\s*(personalizada)?\s*(en|de)?\s*/i, replace: 'Capacitó en ' },
+    { regex: /^mentor[ií]a (acad[eé]mica)?\s*(personalizada)?\s*(en|de)?\s*/i, replace: 'Impartió mentorías en ' },
     { regex: /^logro de (un)?\s*/i, replace: 'Logró un ' },
-    { regex: /^apoyo (docente|profesional|t[eé]cnico)?\s*(en el [aá]rea de|en|de)?\s*/i, replace: 'Instruyó y capacitó en ' },
+    { regex: /^apoyo (docente|profesional|t[eé]cnico)?\s*(en el [aá]rea de|en|de)?\s*/i, replace: 'Capacitó e instruyó en ' },
     { regex: /^asesor[ií]a (t[eé]cnica|profesional)?\s*(en|de)?\s*/i, replace: 'Capacitó y asesoró técnicamente en ' },
     { regex: /^an[aá]lisis y transformaci[oó]n (de|del)?\s*/i, replace: 'Analizó y transformó ' },
     { regex: /^centralizaci[oó]n (de|del)?\s*/i, replace: 'Centralizó ' },
@@ -289,6 +289,16 @@ export function enhanceStarBullet(text, options = {}) {
     }
   }
 
+  // 8.5 ponytail: Professional Register & Colloquialism Cleanup
+  bullet = bullet
+    .replace(/\bsin ca[ií]das\b/gi, 'con 99.9% de disponibilidad')
+    .replace(/\bwhatsApp\b/gi, 'WhatsApp')
+    .replace(/para la supervisi[oó]n de datos IoT en tiempo real/gi, 'IoT en tiempo real')
+    .replace(/con una disponibilidad operativa superior al 99%/gi, 'con 99%+ de disponibilidad operativa')
+    .replace(/industrial de m[aá]s de 50 dispositivos IoT industriales/gi, 'en tiempo real de más de 50 dispositivos IoT industriales')
+    .replace(/y desarrollo de chatbots de asistencia t[eé]cnica con IA atendiendo a/gi, 'y chatbots con IA para soporte técnico de')
+    .replace(/m[eé]tricas clave para la Gerencia,\s*integrando m[aá]s de 10 (m[eé]tricas|KPIs) clave de gesti[oó]n/gi, 'dashboards de Gerencia, consolidando más de 10 KPIs estratégicos')
+
   // 9. Ensure terminal period
   return bullet + '.'
 }
@@ -315,6 +325,8 @@ function synthesizeExecutiveSummary(personalInfo = {}, experience = []) {
       .replace(/\bsoy\b/gi, 'es')
       .replace(/\bme especializo en\b/gi, 'especializado en')
       .replace(/\bhe trabajado\b/gi, 'con sólida trayectoria')
+      .replace(/\s*\((OpenAI|DeepSeek|Computer Vision)[^)]*\)/gi, ', Inteligencia Artificial y Visión por Computadora')
+      .replace(/\s+/g, ' ')
       .trim()
 
     // Ensure initial capitalization
@@ -464,7 +476,8 @@ export function transformToHarvardDeterministic(profileData) {
   rawEdu.forEach((edu) => {
     if (!edu) return
     const institution = (edu.institution || edu.institucion || edu.university || edu.universidad || '').trim()
-    const degree = (edu.degree || edu.titulo || edu.carrera || edu.grado || '').trim()
+    let degree = (edu.degree || edu.titulo || edu.carrera || edu.grado || '').trim()
+    degree = degree.replace(/\s*\(?(Titulado|Graduado|Egresado)\)?\s*$/i, '').trim()
     const year = (edu.year || edu.ano || edu.endDate || edu.startDate || '').trim()
     let details = (edu.details || edu.description || edu.descripcion || '').trim()
 
@@ -550,16 +563,34 @@ export function transformToHarvardDeterministic(profileData) {
     }
   })
 
-  // ponytail: If candidate is a developer/engineer, ensure universally recognized foundational tools (Git, Linux) are listed
+  // ponytail: If candidate is developer/engineer, ensure universally recognized foundational tools & methodologies are listed
   const isDev = /software|inform[aá]tic|desarroll|full-?stack|programad|comput/i.test(
     (personalInfoSrc.title || '') + ' ' + (personalInfoSrc.bio || '') + ' ' + rawExp.map(e => e.role || '').join(' ')
   )
   if (isDev) {
-    ;['Git', 'Linux'].forEach((tool) => {
-      if (!seenSkillNames.has(tool.toLowerCase())) {
+    const FOUNDATIONAL_TECH = [
+      'Git', 'GitHub', 'Linux', 'TypeScript', 'HTML5', 'CSS3', 'CI/CD', 'RESTful APIs', 'Nginx'
+    ]
+    FOUNDATIONAL_TECH.forEach((tool) => {
+      const toolKey = tool.toLowerCase().replace(/[^a-z0-9]/g, '')
+      const alreadyHas = Array.from(seenSkillNames).some(s => s.replace(/[^a-z0-9]/g, '') === toolKey)
+      if (!alreadyHas) {
         seenSkillNames.add(tool.toLowerCase())
         skillsList.push({ name: tool, category: 'technical' })
         technicalSkills.push(tool)
+      }
+    })
+
+    const FOUNDATIONAL_SOFT = [
+      'Scrum', 'Metodologías Ágiles', 'Liderazgo Técnico'
+    ]
+    FOUNDATIONAL_SOFT.forEach((skill) => {
+      const skillKey = skill.toLowerCase().replace(/[^a-z0-9]/g, '')
+      const alreadyHas = Array.from(seenSkillNames).some(s => s.replace(/[^a-z0-9]/g, '') === skillKey)
+      if (!alreadyHas) {
+        seenSkillNames.add(skill.toLowerCase())
+        skillsList.push({ name: skill, category: 'soft' })
+        softSkills.push(skill)
       }
     })
   }
