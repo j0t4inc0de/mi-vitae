@@ -1650,6 +1650,11 @@ Administrador autorizado: jericesb5@gmail.com
                                 <div className="text-xs text-indigo-600 dark:text-indigo-400 font-mono font-bold mt-0.5 truncate">
                                   /{p.username}
                                 </div>
+                                {(p.personalInfo?.email || p.email) && (
+                                  <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono truncate mt-0.5">
+                                    {p.personalInfo?.email || p.email}
+                                  </div>
+                                )}
                                 {p.personalInfo?.title && (
                                   <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
                                     {p.personalInfo.title}
@@ -1730,19 +1735,11 @@ Administrador autorizado: jericesb5@gmail.com
                             <Link
                               to={`/${p.username}`}
                               target="_blank"
-                              className="flex-1 min-h-[38px] px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center justify-center gap-1 transition-colors"
+                              className="flex-1 min-h-[38px] px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
                             >
                               <ExternalLink className="w-3.5 h-3.5" />
-                              <span>Ver</span>
+                              <span>Ver portafolio</span>
                             </Link>
-
-                            <button
-                              onClick={() => handleEdit(p.username)}
-                              className="flex-1 min-h-[38px] px-2.5 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-600 dark:text-indigo-400 text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                              <span>Studio</span>
-                            </button>
 
                             <button
                               onClick={() => handleOpenAssignCreatorModal({ creatorUsername: p.username, code: p.creatorCode || '' })}
@@ -1826,6 +1823,11 @@ Administrador autorizado: jericesb5@gmail.com
                                     <div className="text-xs text-indigo-600 dark:text-indigo-400 font-mono font-bold mt-0.5">
                                       /{p.username}
                                     </div>
+                                    {(p.personalInfo?.email || p.email) && (
+                                      <div className="text-xs text-slate-500 dark:text-slate-400 font-mono truncate mt-0.5">
+                                        {p.personalInfo?.email || p.email}
+                                      </div>
+                                    )}
                                     <div className="mt-1 flex flex-wrap items-center gap-1.5">
                                       {p.isOfficialCreator && p.creatorCode ? (
                                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
@@ -1912,14 +1914,6 @@ Administrador autorizado: jericesb5@gmail.com
                                   >
                                     <ExternalLink className="w-3.5 h-3.5" />
                                   </Link>
-
-                                  <button
-                                    onClick={() => handleEdit(p.username)}
-                                    title="Editar en Studio"
-                                    className="p-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/80 text-indigo-600 dark:text-indigo-400 transition-colors cursor-pointer"
-                                  >
-                                    <Edit3 className="w-3.5 h-3.5" />
-                                  </button>
 
                                   <button
                                     onClick={() => handleOpenAssignCreatorModal({ creatorUsername: p.username, code: p.creatorCode || '' })}
