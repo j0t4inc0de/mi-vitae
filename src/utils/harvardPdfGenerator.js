@@ -38,7 +38,7 @@ export function parseDateForSort(dateStr, isCurrent) {
 export function formatDateRange(startDate, endDate, current) {
   const start = formatSingleDate(startDate);
   if (current) {
-    return start ? `${start} - Presente` : 'Presente';
+    return start ? `${start} - Present` : 'Present';
   }
   const end = formatSingleDate(endDate);
   if (start && end) {
@@ -333,7 +333,7 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
       const institution = (edu.institution || edu.institucion || edu.university || 'Institución').trim();
       const degree = (edu.degree || edu.carrera || edu.titulo || 'Carrera / Grado').trim();
       const location = (edu.location || '').trim();
-      const dateStr = formatDateRange(edu.startDate, edu.endDate || edu.year, edu.current);
+      const dateStr = formatSingleDate(edu.endDate || edu.year || edu.startDate);
 
       // Line 1: Institution (Bold) + Location (Right aligned)
       doc.setFont('times', 'bold');
