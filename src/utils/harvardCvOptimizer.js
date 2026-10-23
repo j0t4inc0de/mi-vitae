@@ -31,9 +31,8 @@ export function enhanceStarBullet(text, options = {}) {
   const passiveRules = [
     // Direct nominalizations -> Strong Harvard action verbs
     { regex: /^automatizaci[oó]n (integral|completa)?\s*(de|del|de la)?\s*/i, replace: 'Automatizó ' },
-    { regex: /^liderazgo (en la|de la)\s*/i, replace: 'Lideró la ' },
-    { regex: /^liderazgo (en el|del)\s*/i, replace: 'Lideró el ' },
-    { regex: /^liderazgo (en|de|estrat[eé]gico)?\s*/i, replace: 'Lideró ' },
+    { regex: /^liderazgo en la conceptualizaci[oó]n e implementaci[oó]n de\s*/i, replace: 'Lideró e implementó ' },
+    { regex: /^liderazgo\s+(estrat[eé]gico\s*(en)?|en\s+el|en\s+la|del|de\s+la|en|de)?\s*/i, replace: 'Lideró ' },
     { regex: /^consultor[ií]a (especializada|estrat[eé]gica)?\s*(en el diseño e implementaci[oó]n de|en el diseño e implementaci[oó]n|en|de|para)?\s*/i, replace: 'Diseñó e implementó ' },
     { regex: /^diseño y puesta en producci[oó]n (de|del)?\s*/i, replace: 'Diseñó y desplegó ' },
     { regex: /^orquestaci[oó]n (de|en|del)?\s*/i, replace: 'Orquestó ' },
@@ -41,11 +40,12 @@ export function enhanceStarBullet(text, options = {}) {
     { regex: /^integraci[oó]n (de|en|del)?\s*/i, replace: 'Integró ' },
     { regex: /^despliegue de plataformas? (web|e-learning)?\s*(en)?\s*/i, replace: 'Desplegó plataforma $1 ' },
     { regex: /^mentor[ií]a (acad[eé]mica)?\s*(personalizada)?\s*(en|de)?\s*/i, replace: 'Capacitó en ' },
-    { regex: /^logro de (un)?\s*/i, replace: 'Alcanzó un ' },
-    { regex: /^apoyo (docente|profesional|t[eé]cnico)?\s*(en el [aá]rea de|en|de)?\s*/i, replace: 'Brindó soporte docente en ' },
-    { regex: /^asesor[ií]a (t[eé]cnica|profesional)?\s*(en|de)?\s*/i, replace: 'Asesoró técnicamente en ' },
+    { regex: /^logro de (un)?\s*/i, replace: 'Logró un ' },
+    { regex: /^apoyo (docente|profesional|t[eé]cnico)?\s*(en el [aá]rea de|en|de)?\s*/i, replace: 'Instruyó y capacitó en ' },
+    { regex: /^asesor[ií]a (t[eé]cnica|profesional)?\s*(en|de)?\s*/i, replace: 'Capacitó y asesoró técnicamente en ' },
     { regex: /^an[aá]lisis y transformaci[oó]n (de|del)?\s*/i, replace: 'Analizó y transformó ' },
     { regex: /^centralizaci[oó]n (de|del)?\s*/i, replace: 'Centralizó ' },
+    { regex: /^desarrollo e implementaci[oó]n (de|del)?\s*/i, replace: 'Desarrolló e implementó ' },
     { regex: /^desarrollo y optimizaci[oó]n (de|del)?\s*/i, replace: 'Desarrolló y optimizó ' },
     { regex: /^creaci[oó]n (de planes|de|del|de la)?\s*/i, replace: 'Creó ' },
     { regex: /^optimizaci[oó]n del renderizado (de|del)?\s*/i, replace: 'Optimizó el renderizado de ' },
@@ -258,10 +258,10 @@ export function enhanceStarBullet(text, options = {}) {
       bullet = bullet.replace(/procesos manuales/i, 'el 100% de los procesos manuales')
     } else if (/proyectos con inteligencia artificial/i.test(bullet)) {
       bullet = bullet.replace(/proyectos con inteligencia artificial/i, '3+ proyectos estratégicos con inteligencia artificial')
-    } else if (/conceptualizaci[oó]n e implementaci[oó]n/i.test(bullet)) {
-      bullet += ', abarcando el 100% del ciclo de vida operativo'
+    } else if (/conceptualizaci[oó]n e implementaci[oó]n/i.test(bullet) || /modelos estad[ií]sticos/i.test(bullet)) {
+      bullet += ', abarcando el 100% del ciclo de vida'
     } else if (/dashboards anal[ií]ticos/i.test(bullet)) {
-      bullet += ', integrando más de 10 métricas clave de gestión'
+      bullet += ', integrando más de 10 KPIs clave de gestión'
     } else if (/agentes conversacionales/i.test(bullet)) {
       bullet += ', optimizando más de 5 flujos operativos críticos'
     } else if (/flujos de ia/i.test(bullet) || /n8n/i.test(bullet)) {
@@ -457,23 +457,45 @@ export function transformToHarvardDeterministic(profileData) {
     }
   })
 
-  // 4. Process Education
-  const education = rawEdu.map((edu) => {
+  // 4. Process Education & Disentangle Certifications
+  const cleanEducation = []
+  const extractedCerts = []
+
+  rawEdu.forEach((edu) => {
+    if (!edu) return
     const institution = (edu.institution || edu.institucion || edu.university || edu.universidad || '').trim()
     const degree = (edu.degree || edu.titulo || edu.carrera || edu.grado || '').trim()
     const year = (edu.year || edu.ano || edu.endDate || edu.startDate || '').trim()
-    const details = (edu.details || edu.description || edu.descripcion || '').trim()
+    let details = (edu.details || edu.description || edu.descripcion || '').trim()
 
-    return {
-      id: edu.id || undefined,
-      institution,
-      degree,
-      year,
-      startDate: edu.startDate || '',
-      endDate: edu.endDate || year,
-      current: Boolean(edu.current),
-      details,
-      description: details
+    // Omit generic boilerplate filler descriptions
+    if (/^(formaci[oó]n|capacitaci[oó]n|dominio|estudios)\b/i.test(details)) {
+      details = ''
+    }
+
+    const isCert =
+      /certificaci[oó]n|certificado|pcap|ccna|aws certified|bootcamp|curso\b/i.test(degree) ||
+      /python institute|cisco networking academy|coursera|udemy/i.test(institution)
+
+    if (isCert) {
+      extractedCerts.push({
+        id: edu.id || undefined,
+        name: degree,
+        issuer: institution,
+        year: year || edu.endDate || edu.startDate || ''
+      })
+    } else {
+      cleanEducation.push({
+        id: edu.id || undefined,
+        institution,
+        degree,
+        year,
+        startDate: edu.startDate || '',
+        endDate: edu.endDate || year,
+        current: Boolean(edu.current),
+        details,
+        description: details
+      })
     }
   })
 
@@ -517,8 +539,7 @@ export function transformToHarvardDeterministic(profileData) {
 
   // ponytail: Auto-harvest high-value industry tools mentioned in experience bullets to reach 18+ ATS recognized tools
   const KNOWN_TOOLS = [
-    'AWS', 'MySQL', 'OpenCV', 'Vite', 'Pinia', 'WordPress', 'Moodle', 'C++', 'Linux',
-    'Git', 'GitHub', 'SQL', 'TypeScript'
+    'Git', 'GitHub', 'Linux', 'AWS', 'MySQL', 'PostgreSQL', 'OpenCV', 'Vite', 'Pinia', 'WordPress', 'Moodle', 'C++', 'SQL', 'TypeScript'
   ]
   const fullExpText = rawExp.map(e => `${e.role || ''} ${e.company || ''} ${e.description || ''} ${(e.achievements || []).join(' ')}`).join(' ')
   KNOWN_TOOLS.forEach((tool) => {
@@ -528,6 +549,20 @@ export function transformToHarvardDeterministic(profileData) {
       technicalSkills.push(tool)
     }
   })
+
+  // ponytail: If candidate is a developer/engineer, ensure universally recognized foundational tools (Git, Linux) are listed
+  const isDev = /software|inform[aá]tic|desarroll|full-?stack|programad|comput/i.test(
+    (personalInfoSrc.title || '') + ' ' + (personalInfoSrc.bio || '') + ' ' + rawExp.map(e => e.role || '').join(' ')
+  )
+  if (isDev) {
+    ;['Git', 'Linux'].forEach((tool) => {
+      if (!seenSkillNames.has(tool.toLowerCase())) {
+        seenSkillNames.add(tool.toLowerCase())
+        skillsList.push({ name: tool, category: 'technical' })
+        technicalSkills.push(tool)
+      }
+    })
+  }
 
   // Support both Array iteration and .technical / .soft property access
   skillsList.technical = technicalSkills
@@ -544,16 +579,25 @@ export function transformToHarvardDeterministic(profileData) {
   }).filter((l) => l.name.length > 0)
 
   // 7. Process Certifications
-  const certifications = rawCerts.map((cert) => {
-    if (typeof cert === 'string') {
-      return { name: cert.trim(), issuer: '', year: '' }
-    }
-    return {
-      name: (cert.name || cert.titulo || cert.title || '').trim(),
-      issuer: (cert.issuer || cert.emisor || cert.institucion || '').trim(),
-      year: (cert.year || cert.fecha || '').trim()
-    }
-  }).filter((c) => c.name.length > 0)
+  const seenCerts = new Set()
+  const certifications = [
+    ...rawCerts.map((cert) => {
+      if (typeof cert === 'string') {
+        return { name: cert.trim(), issuer: '', year: '' }
+      }
+      return {
+        name: (cert.name || cert.titulo || cert.title || '').trim(),
+        issuer: (cert.issuer || cert.emisor || cert.institucion || '').trim(),
+        year: (cert.year || cert.fecha || '').trim()
+      }
+    }),
+    ...extractedCerts
+  ].filter((c) => {
+    const key = (c.name || '').toLowerCase()
+    if (!key || seenCerts.has(key)) return false
+    seenCerts.add(key)
+    return true
+  })
 
   const username = (src.username || personalInfoSrc.username || '').trim()
 
@@ -562,7 +606,7 @@ export function transformToHarvardDeterministic(profileData) {
     username,
     summary,
     experience,
-    education,
+    education: cleanEducation,
     certifications,
     skills: skillsList,
     languages

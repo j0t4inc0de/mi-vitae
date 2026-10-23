@@ -42,6 +42,7 @@ export function formatDateRange(startDate, endDate, current) {
   }
   const end = formatSingleDate(endDate);
   if (start && end) {
+    if (start === end) return start;
     return `${start} - ${end}`;
   }
   return start || end || '';
@@ -360,7 +361,8 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
       currentY += 12;
 
       const details = (edu.details || edu.description || '').trim();
-      if (details) {
+      const isFiller = /^(formaci[oó]n|capacitaci[oó]n|dominio|estudios)\b/i.test(details);
+      if (details && !isFiller) {
         doc.setFont('times', 'normal');
         doc.setFontSize(9.5);
         doc.setTextColor(0, 0, 0);
@@ -384,7 +386,8 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
     rawCerts.forEach((cert) => {
       ensureSpace(16);
       const name = typeof cert === 'string' ? cert.trim() : (cert.name || cert.titulo || cert.title || '').trim();
-      const meta = typeof cert === 'object' ? [cert.issuer, cert.year || cert.date].filter(Boolean).join(' • ') : '';
+      const yearStr = formatSingleDate(cert.year || cert.date);
+      const meta = typeof cert === 'object' ? [cert.issuer, yearStr].filter(Boolean).join(' • ') : '';
 
       doc.setFont('times', 'bold');
       doc.setFontSize(9.5);
@@ -403,7 +406,7 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
   // 6. HABILIDADES
   const rawSkills = Array.isArray(data.skills) ? data.skills : [];
   if (rawSkills.length > 0) {
-    renderSectionHeader('HABILIDADES & HERRAMIENTAS');
+    renderSectionHeader('HABILIDADES');
 
     const categories = new Map();
 
@@ -416,7 +419,7 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
       const langs = techList.filter(isLang);
       const tools = techList.filter((s) => !isLang(s));
       if (langs.length > 0) categories.set('Lenguajes & Frameworks', langs);
-      if (tools.length > 0) categories.set('Herramientas, Cloud & BD', tools);
+      if (tools.length > 0) categories.set('Herramientas & Cloud', tools);
       if (langs.length === 0 && tools.length === 0) categories.set('Técnicas / Herramientas', techList);
     }
     if (softList.length > 0) {
