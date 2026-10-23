@@ -42,7 +42,6 @@ export function formatDateRange(startDate, endDate, current) {
   }
   const end = formatSingleDate(endDate);
   if (start && end) {
-    if (start === end) return start;
     return `${start} - ${end}`;
   }
   return start || end || '';
@@ -333,7 +332,7 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
       const institution = (edu.institution || edu.institucion || edu.university || 'Institución').trim();
       const degree = (edu.degree || edu.carrera || edu.titulo || 'Carrera / Grado').trim();
       const location = (edu.location || '').trim();
-      const dateStr = formatSingleDate(edu.endDate || edu.year || edu.startDate);
+      const dateStr = formatDateRange(edu.startDate, edu.endDate || edu.year, edu.current);
 
       // Line 1: Institution (Bold) + Location (Right aligned)
       doc.setFont('times', 'bold');
@@ -404,16 +403,24 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
   // 6. HABILIDADES
   const rawSkills = Array.isArray(data.skills) ? data.skills : [];
   if (rawSkills.length > 0) {
-    renderSectionHeader('HABILIDADES');
+    renderSectionHeader('HABILIDADES & HERRAMIENTAS');
 
     const categories = new Map();
 
     // Check for pre-categorized properties from optimizer
-    if (Array.isArray(rawSkills.technical) && rawSkills.technical.length > 0) {
-      categories.set('Técnicas / Especialidad', rawSkills.technical);
+    const techList = Array.isArray(rawSkills.technical) ? rawSkills.technical : [];
+    const softList = Array.isArray(rawSkills.soft) ? rawSkills.soft : [];
+
+    if (techList.length > 0) {
+      const isLang = (name) => /python|javascript|typescript|vue|django|react|angular|node|c\+\+|java\b|sql\b|html|css|php|ruby|go\b|rust/i.test(name);
+      const langs = techList.filter(isLang);
+      const tools = techList.filter((s) => !isLang(s));
+      if (langs.length > 0) categories.set('Lenguajes & Frameworks', langs);
+      if (tools.length > 0) categories.set('Herramientas, Cloud & BD', tools);
+      if (langs.length === 0 && tools.length === 0) categories.set('Técnicas / Herramientas', techList);
     }
-    if (Array.isArray(rawSkills.soft) && rawSkills.soft.length > 0) {
-      categories.set('Gestión & Competencias', rawSkills.soft);
+    if (softList.length > 0) {
+      categories.set('Competencias Profesionales', softList);
     }
 
     if (categories.size === 0) {
