@@ -6,34 +6,44 @@ import { jsPDF } from 'jspdf';
  * @param {string} dateStr 
  * @returns {string}
  */
+// ponytail: Universal ATS date parser & sorter (Reverse-chronological & standard ASCII hyphens)
 export function formatSingleDate(dateStr) {
   if (!dateStr || typeof dateStr !== 'string') return '';
   const trimmed = dateStr.trim();
-  const ymMatch = trimmed.match(/^(\d{4})[-/](\d{1,2})$/);
-  if (ymMatch) {
-    const year = ymMatch[1];
-    const month = ymMatch[2].padStart(2, '0');
+  const ymdMatch = trimmed.match(/^(\d{4})[-/](\d{1,2})(?:[-/]\d{1,2})?$/);
+  if (ymdMatch) {
+    const year = ymdMatch[1];
+    const month = ymdMatch[2].padStart(2, '0');
     return `${month}/${year}`;
+  }
+  if (/^\d{4}$/.test(trimmed)) {
+    return trimmed;
   }
   return trimmed;
 }
 
-/**
- * Formats a date range into standard ATS format (e.g. "03/2019 – Presente" or "2018 – 2022")
- * @param {string} startDate 
- * @param {string} endDate 
- * @param {boolean} current 
- * @returns {string}
- */
+export function parseDateForSort(dateStr, isCurrent) {
+  if (isCurrent) return 99999999;
+  if (!dateStr) return 0;
+  const str = String(dateStr).trim();
+  const match = str.match(/^(\d{4})(?:[-/](\d{1,2}))?/);
+  if (match) {
+    const y = parseInt(match[1], 10);
+    const m = match[2] ? parseInt(match[2], 10) : 1;
+    return y * 100 + m;
+  }
+  return 0;
+}
+
 export function formatDateRange(startDate, endDate, current) {
   const start = formatSingleDate(startDate);
   if (current) {
-    return start ? `${start} – Presente` : 'Presente';
+    return start ? `${start} - Presente` : 'Presente';
   }
   const end = formatSingleDate(endDate);
   if (start && end) {
     if (start === end) return start;
-    return `${start} – ${end}`;
+    return `${start} - ${end}`;
   }
   return start || end || '';
 }
@@ -85,7 +95,14 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
   }
 
   // 1. Candidate Header
-  const personalInfo = data.personalInfo || {};
+  const personalInfo = data.personalInfo || data.personal_info || {};
+  // ponytail: ATS document metadata
+  doc.setProperties({
+    title: `Curriculum Vitae - ${(personalInfo.name || data.name || 'Profesional').trim()}`,
+    subject: 'Curriculum Vitae Harvard ATS',
+    author: (personalInfo.name || data.name || 'Profesional').trim(),
+    creator: 'Mi Vitae'
+  });
   const rawUsername = data.username || personalInfo.username || '';
   const cleanUsername = rawUsername ? encodeURIComponent(String(rawUsername).trim()) : '';
   const portfolioUrl = cleanUsername
@@ -121,7 +138,8 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
   if (personalInfo.linkedin) {
     const rawLinkedin = personalInfo.linkedin.trim();
     const linkedinUrl = rawLinkedin.startsWith('http') ? rawLinkedin : `https://${rawLinkedin}`;
-    contactTokens.push({ text: 'LinkedIn', url: linkedinUrl });
+    const cleanHandle = rawLinkedin.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+    contactTokens.push({ text: cleanHandle, url: linkedinUrl });
   }
   if (personalInfo.website && !personalInfo.website.includes('mivitae.wearesamod.com')) {
     const rawWeb = personalInfo.website.trim();
@@ -214,7 +232,16 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
   }
 
   // 3. EXPERIENCIA PROFESIONAL
-  const experiences = Array.isArray(data.experience) ? data.experience.filter(Boolean) : [];
+  const rawExperiences = Array.isArray(data.experience) ? data.experience.filter(Boolean) : [];
+  // ponytail: Sort reverse-chronologically (active/current first, then latest endDate/startDate)
+  const experiences = [...rawExperiences].sort((a, b) => {
+    const endA = parseDateForSort(a.endDate, a.current);
+    const endB = parseDateForSort(b.endDate, b.current);
+    if (endB !== endA) return endB - endA;
+    const startA = parseDateForSort(a.startDate, false);
+    const startB = parseDateForSort(b.startDate, false);
+    return startB - startA;
+  });
   if (experiences.length > 0) {
     renderSectionHeader('EXPERIENCIA PROFESIONAL');
     experiences.forEach((exp) => {
@@ -289,7 +316,16 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
   }
 
   // 4. EDUCACIÓN
-  const education = Array.isArray(data.education) ? data.education.filter(Boolean) : [];
+  const rawEducation = Array.isArray(data.education) ? data.education.filter(Boolean) : [];
+  // ponytail: Sort education reverse-chronologically
+  const education = [...rawEducation].sort((a, b) => {
+    const endA = parseDateForSort(a.endDate || a.year, a.current);
+    const endB = parseDateForSort(b.endDate || b.year, b.current);
+    if (endB !== endA) return endB - endA;
+    const startA = parseDateForSort(a.startDate, false);
+    const startB = parseDateForSort(b.startDate, false);
+    return startB - startA;
+  });
   if (education.length > 0) {
     renderSectionHeader('EDUCACIÓN');
     education.forEach((edu) => {
@@ -297,7 +333,7 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
       const institution = (edu.institution || edu.institucion || edu.university || 'Institución').trim();
       const degree = (edu.degree || edu.carrera || edu.titulo || 'Carrera / Grado').trim();
       const location = (edu.location || '').trim();
-      const dateStr = edu.year ? edu.year.trim() : formatDateRange(edu.startDate, edu.endDate, edu.current);
+      const dateStr = formatDateRange(edu.startDate, edu.endDate || edu.year, edu.current);
 
       // Line 1: Institution (Bold) + Location (Right aligned)
       doc.setFont('times', 'bold');

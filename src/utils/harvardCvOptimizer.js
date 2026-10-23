@@ -29,6 +29,38 @@ export function enhanceStarBullet(text, options = {}) {
 
   // 2. Transform passive or nominalized openings into strong Harvard action verbs
   const passiveRules = [
+    // Direct nominalizations -> Strong Harvard action verbs
+    { regex: /^automatizaci[oó]n (integral|completa)?\s*(de|del|de la)?\s*/i, replace: 'Automatizó ' },
+    { regex: /^liderazgo (en la|de la)\s*/i, replace: 'Lideró la ' },
+    { regex: /^liderazgo (en el|del)\s*/i, replace: 'Lideró el ' },
+    { regex: /^liderazgo (en|de|estrat[eé]gico)?\s*/i, replace: 'Lideró ' },
+    { regex: /^consultor[ií]a (especializada|estrat[eé]gica)?\s*(en el diseño e implementaci[oó]n de|en el diseño e implementaci[oó]n|en|de|para)?\s*/i, replace: 'Diseñó e implementó ' },
+    { regex: /^diseño y puesta en producci[oó]n (de|del)?\s*/i, replace: 'Diseñó y desplegó ' },
+    { regex: /^orquestaci[oó]n (de|en|del)?\s*/i, replace: 'Orquestó ' },
+    { regex: /^integraci[oó]n de motor de\s*/i, replace: 'Integró motor de ' },
+    { regex: /^integraci[oó]n (de|en|del)?\s*/i, replace: 'Integró ' },
+    { regex: /^despliegue de plataformas? (web|e-learning)?\s*(en)?\s*/i, replace: 'Desplegó plataforma $1 ' },
+    { regex: /^mentor[ií]a (acad[eé]mica)?\s*(personalizada)?\s*(en|de)?\s*/i, replace: 'Impartió mentoría en ' },
+    { regex: /^logro de (un)?\s*/i, replace: 'Alcanzó un ' },
+    { regex: /^apoyo (docente|profesional|t[eé]cnico)?\s*(en el [aá]rea de|en|de)?\s*/i, replace: 'Brindó soporte docente en ' },
+    { regex: /^asesor[ií]a (t[eé]cnica|profesional)?\s*(en|de)?\s*/i, replace: 'Asesoró técnicamente en ' },
+    { regex: /^an[aá]lisis y transformaci[oó]n (de|del)?\s*/i, replace: 'Analizó y transformó ' },
+    { regex: /^centralizaci[oó]n (de|del)?\s*/i, replace: 'Centralizó ' },
+    { regex: /^desarrollo y optimizaci[oó]n (de|del)?\s*/i, replace: 'Desarrolló y optimizó ' },
+    { regex: /^creaci[oó]n (de planes|de|del|de la)?\s*/i, replace: 'Creó ' },
+    { regex: /^optimizaci[oó]n del renderizado (de|del)?\s*/i, replace: 'Optimizó el renderizado de ' },
+    { regex: /^optimizaci[oó]n (de|del|de la)?\s*/i, replace: 'Optimizó ' },
+    { regex: /^capacitaci[oó]n (de cuidadores|de|a|en)?\s*/i, replace: 'Capacitó a ' },
+    { regex: /^provisi[oó]n (de cuidados|de)?\s*/i, replace: 'Proveyó ' },
+    { regex: /^rehabilitaci[oó]n (integral|de|en)?\s*/i, replace: 'Ejecutó rehabilitación de ' },
+    { regex: /^plan de intervenci[oó]n (en|de)?\s*/i, replace: 'Diseñó e intervino ' },
+    { regex: /^colaboraci[oó]n (interinstitucional|en|con)?\s*/i, replace: 'Coordinó colaboración con ' },
+    { regex: /^ejecuci[oó]n (de programas|de|del)?\s*/i, replace: 'Ejecutó ' },
+    { regex: /^elaboraci[oó]n (de fichas|de|del)?\s*/i, replace: 'Elaboró ' },
+    { regex: /^atenci[oó]n (kinesiol[oó]gica|m[eé]dica|cl[ií]nica|en|de)?\s*/i, replace: 'Brindó atención en ' },
+    { regex: /^desempeño en\s*/i, replace: 'Se desempeñó en ' },
+    { regex: /^rotaci[oó]n cl[ií]nica en\s*/i, replace: 'Completó rotación clínica en ' },
+    { regex: /^pr[aá]ctica (en|cl[ií]nica en)?\s*/i, replace: 'Ejecutó práctica clínica en ' },
     { regex: /^responsable del\s+/i, replace: 'Gestionó el ' },
     { regex: /^responsable de la\s+/i, replace: 'Gestionó la ' },
     { regex: /^responsable de los\s+/i, replace: 'Gestionó los ' },
@@ -216,24 +248,8 @@ export function enhanceStarBullet(text, options = {}) {
   // Strip trailing punctuation for clean appending if needed
   bullet = bullet.replace(/[.,;:]+$/, '').trim()
 
-  // 7. If the bullet lacks an explicit outcome and is concise (< 90 chars), append domain-coherent operational impact
-  if (!hasOutcomeIndicator && bullet.length < 90) {
-    const contextStr = `${options.role || ''} ${options.company || ''} ${bullet}`.toLowerCase()
-
-    if (/software|código|api|backend|frontend|fullstack|devops|cloud|datos|sql|base de datos|sistema|arquitectura|web|móvil|app/i.test(contextStr)) {
-      bullet += ', asegurando alta disponibilidad, escalabilidad y estándares de calidad'
-    } else if (/legal|tributar|ley|derecho|fiscal|judicial|compliance|regulatori|contrato|normativ/i.test(contextStr)) {
-      bullet += ', garantizando estricto cumplimiento normativo y mitigación de riesgos corporativos'
-    } else if (/venta|comercial|marketing|cliente|cuenta|crecimiento|negocio|ingreso/i.test(contextStr)) {
-      bullet += ', fortaleciendo la captación, retención y relación estratégica comercial'
-    } else if (/diseño|ux|ui|producto|interfaz|visual|gráfico|figma/i.test(contextStr)) {
-      bullet += ', optimizando la experiencia de usuario y la consistencia de los estándares de diseño'
-    } else if (/salud|clínic|médic|enferm|kines|terapia|paciente/i.test(contextStr)) {
-      bullet += ', garantizando la excelencia en la atención y estricto apego a protocolos clínicos'
-    } else {
-      bullet += ', optimizando tiempos de respuesta y la eficiencia de los procesos operativos'
-    }
-  }
+  // ponytail: Harvard bullets must remain crisp, concise and free of repetitive boilerplate filler.
+  // We avoid appending synthetic filler suffixes that trigger ATS repetition penalties.
 
   // 8. Ensure terminal period
   return bullet + '.'
@@ -270,7 +286,7 @@ function synthesizeExecutiveSummary(personalInfo = {}, experience = []) {
     // If bio is brief (single sentence), append executive closure
     const sentenceCount = (cleaned.match(/\./g) || []).length
     if (sentenceCount < 2) {
-      cleaned += ' Destaca por su capacidad analítica, orientación a resultados y enfoque en la optimización de procesos y trabajo colaborativo multidisciplinario.'
+      cleaned += ' Enfocado en la entrega de soluciones escalables, adopción de buenas prácticas y cumplimiento de metas operativas.'
     }
     return cleaned
   }
@@ -279,7 +295,7 @@ function synthesizeExecutiveSummary(personalInfo = {}, experience = []) {
   const hasExp = Array.isArray(experience) && experience.length > 0
   const expContext = hasExp ? `con trayectoria comprobada en organizaciones de diversos sectores` : 'con sólida formación profesional'
 
-  return `${title} ${expContext}. Destaca por su capacidad analítica, orientación a resultados y enfoque en la optimización de procesos, cumplimiento de objetivos estratégicos y trabajo colaborativo multidisciplinario.`
+  return `${title} ${expContext}. Enfocado en la entrega de soluciones escalables, adopción de buenas prácticas y cumplimiento de metas operativas.`
 }
 
 /**
@@ -318,7 +334,7 @@ export function transformToHarvardDeterministic(profileData) {
   // Deep clone to guarantee original profileData is never mutated
   const src = JSON.parse(JSON.stringify(profileData))
 
-  const personalInfoSrc = src.personalInfo || {}
+  const personalInfoSrc = src.personalInfo || src.personal_info || {}
   const rawExp = Array.isArray(src.experience) ? src.experience : []
   const rawEdu = Array.isArray(src.education) ? src.education : []
   const rawSkills = Array.isArray(src.skills) ? src.skills : []
@@ -429,24 +445,48 @@ export function transformToHarvardDeterministic(profileData) {
   const skillsList = []
   const seenSkillNames = new Set()
 
+  // ponytail: Split composite skills (e.g. 'OpenAI & DeepSeek APIs') into standard ATS taxonomy tokens
   rawSkills.forEach((s) => {
     const rawName = typeof s === 'string' ? s : (s.name || s.habilidad || s.title || '')
-    const name = rawName.trim()
-    if (!name || seenSkillNames.has(name.toLowerCase())) return
-    seenSkillNames.add(name.toLowerCase())
+    const baseName = rawName.trim()
+    if (!baseName) return
 
-    const isSoft =
-      s.category === 'soft' ||
-      /liderazgo|comunicaci|empat|equipo|adaptaci|resoluci|negociaci|gesti.n de tiempo|pensamiento cr.tico|proactiv/i.test(name)
+    // Split compound skills like 'OpenAI & DeepSeek APIs' or 'Python, C++'
+    const parts = baseName.includes('&') || baseName.includes(',')
+      ? baseName.split(/\s*[,&]\s*/).map(p => p.trim()).filter(Boolean)
+      : [baseName]
 
-    const category = isSoft ? 'soft' : (s.category || 'technical')
-    const item = { name, category }
-    skillsList.push(item)
+    parts.forEach((name) => {
+      if (seenSkillNames.has(name.toLowerCase())) return
+      seenSkillNames.add(name.toLowerCase())
 
-    if (isSoft) {
-      softSkills.push(name)
-    } else {
-      technicalSkills.push(name)
+      const isSoft =
+        s.category === 'soft' ||
+        /liderazgo|comunicaci|empat|equipo|adaptaci|resoluci|negociaci|gesti.n de tiempo|pensamiento cr.tico|proactiv/i.test(name)
+
+      const category = isSoft ? 'soft' : (s.category || 'technical')
+      skillsList.push({ name, category })
+
+      if (isSoft) {
+        softSkills.push(name)
+      } else {
+        technicalSkills.push(name)
+      }
+    })
+  })
+
+  // ponytail: Auto-harvest high-value industry tools mentioned in experience bullets to reach 15+ ATS recognized tools
+  const KNOWN_TOOLS = [
+    'AWS', 'MySQL', 'OpenCV', 'Vite', 'Pinia', 'WordPress', 'Moodle', 'C++', 'Linux',
+    'Kubernetes', 'FastAPI', 'GraphQL', 'REST APIs', 'TypeScript', 'Node.js', 'React', 'Git'
+  ]
+  const fullExpText = rawExp.map(e => `${e.role || ''} ${e.company || ''} ${e.description || ''} ${(e.achievements || []).join(' ')}`).join(' ')
+  KNOWN_TOOLS.forEach((tool) => {
+    const toolRegex = new RegExp(`\\b${tool.replace('+', '\\+')}\\b`, 'i')
+    if (toolRegex.test(fullExpText) && !seenSkillNames.has(tool.toLowerCase())) {
+      seenSkillNames.add(tool.toLowerCase())
+      skillsList.push({ name: tool, category: 'technical' })
+      technicalSkills.push(tool)
     }
   })
 

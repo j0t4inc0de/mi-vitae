@@ -14,11 +14,12 @@ const CORS_HEADERS = {
   'Access-Control-Max-Age': '86400'
 }
 
-// ponytail: Prioritize ultra-low-latency gemini-3.6-flash with 0 thinking tokens, falling back to flash-latest
+// ponytail: Fast reliable public Gemini models
 const CANDIDATE_MODELS = [
-  'gemini-3.6-flash',
-  'gemini-flash-latest',
-  'gemini-3.1-flash-lite'
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-2.5-flash',
+  'gemini-1.5-pro'
 ]
 
 const HARVARD_OPTIMIZATION_PROMPT = `
@@ -203,9 +204,7 @@ export async function onRequestPost(context) {
         ],
         generationConfig: {
           responseMimeType: 'application/json',
-          temperature: 0.2,
-          // ponytail: Disabling extended thinking tokens reduces latency from ~45s down to 2-4s, preventing Cloudflare 502 Bad Gateway timeouts
-          thinkingConfig: { thinkingBudget: 0 }
+          temperature: 0.2
         }
       }
 
