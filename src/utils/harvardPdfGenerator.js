@@ -245,14 +245,20 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
 
   // 3. EXPERIENCIA PROFESIONAL
   const rawExperiences = Array.isArray(data.experience) ? data.experience.filter(Boolean) : [];
-  // ponytail: Sort reverse-chronologically (active/current first, then latest endDate/startDate)
+  // ponytail: Sort reverse-chronologically (active/current first, then strict startDate descending to prevent chronological zig-zag)
   const experiences = [...rawExperiences].sort((a, b) => {
-    const endA = parseDateForSort(a.endDate, a.current);
-    const endB = parseDateForSort(b.endDate, b.current);
-    if (endB !== endA) return endB - endA;
+    const isCurA = Boolean(a.current || (a.endDate && /present/i.test(a.endDate)));
+    const isCurB = Boolean(b.current || (b.endDate && /present/i.test(b.endDate)));
+    if (isCurA && !isCurB) return -1;
+    if (!isCurA && isCurB) return 1;
+
     const startA = parseDateForSort(a.startDate, false);
     const startB = parseDateForSort(b.startDate, false);
-    return startB - startA;
+    if (startB !== startA) return startB - startA;
+
+    const endA = parseDateForSort(a.endDate, false);
+    const endB = parseDateForSort(b.endDate, false);
+    return endB - endA;
   });
   if (experiences.length > 0) {
     renderSectionHeader('EXPERIENCIA PROFESIONAL');

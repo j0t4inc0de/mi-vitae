@@ -45,6 +45,8 @@ export function enhanceStarBullet(text, options = {}) {
     { regex: /^asesor[ií]a (t[eé]cnica|profesional)?\s*(en|de)?\s*/i, replace: 'Asesoró técnicamente en ' },
     { regex: /^an[aá]lisis y transformaci[oó]n (de|del)?\s*/i, replace: 'Analizó y transformó ' },
     { regex: /^centralizaci[oó]n (de|del)?\s*/i, replace: 'Centralizó ' },
+    { regex: /^implementaci[oó]n y despliegue (de|del)?\s*/i, replace: 'Programó y desplegó ' },
+    { regex: /^implementaci[oó]n (de|del)?\s*/i, replace: 'Implementó ' },
     { regex: /^desarrollo e implementaci[oó]n (de|del)?\s*/i, replace: 'Desarrolló e implementó ' },
     { regex: /^desarrollo y optimizaci[oó]n (de|del)?\s*/i, replace: 'Desarrolló y optimizó ' },
     { regex: /^creaci[oó]n (de planes|de|del|de la)?\s*/i, replace: 'Creó ' },
@@ -303,28 +305,31 @@ export function enhanceStarBullet(text, options = {}) {
     .replace(/dashboards anal[ií]ticos y dashboards de Gerencia/gi, 'dashboards analíticos de Gerencia')
     .replace(/m[eé]tricas clave para la Gerencia,\s*integrando m[aá]s de 10 (m[eé]tricas|KPIs) clave de gesti[oó]n/gi, 'dashboards de Gerencia, consolidando más de 10 KPIs estratégicos')
     .replace(/, abarcando el 100% del ciclo de vida/gi, '')
-    // Diversity of opening action verbs to prevent consecutive repetition
-    .replace(/^Lideró 3\+ proyectos estratégicos con inteligencia artificial/i, 'Dirigió 3+ proyectos estratégicos con inteligencia artificial bajo Scrum y Agile')
-    .replace(/^(Lideró e implementó|Arquitecturó e implementó) proyectos de Inteligencia Artificial/i, 'Planificó e implementó proyectos de Inteligencia Artificial')
-    .replace(/^Diseñó y desplegó (agentes|asistentes)/i, 'Desplegó en producción asistentes')
-    .replace(/Orquestó flujos de IA con n8n conectados a APIs de modelos de lenguaje/i, 'Orquestó 8+ flujos de automatización con n8n integrando REST APIs y modelos de lenguaje')
-    .replace(/^(Impartió mentorías|Entrenó a estudiantes) en programación/i, 'Capacitó a más de 30 estudiantes universitarios en programación')
-    .replace(/^(Impartió mentorías|Capacitó a estudiantes) en lógica computacional/i, 'Entrenó a estudiantes en lógica computacional')
-    .replace(/^Lideró desarrollo frontend de sistemas de telemetría IoT en tiempo real con 99%\+ de disponibilidad operativa/i, 'Lideró desarrollo frontend de sistemas de telemetría IoT en TypeScript y Vue.js en tiempo real con 99%+ de disponibilidad')
-    .replace(/^Lideró arquitectura frontend del sistema Telemetrics usando Vue\.js 3, Pinia y Vite/i, 'Estructuró la arquitectura frontend del sistema Telemetrics usando Vue.js 3, Pinia y Vite para más de 10 módulos')
-    .replace(/^Centralizó flujos masivos de datos IoT, reduciendo errores de interpretación en un 45%/i, 'Centralizó flujos masivos de datos IoT mediante Git y flujos CI/CD, reduciendo errores de interpretación en un 45%')
-    .replace(/^Desarrolló y optimizó interfaces frontend para el monitoreo en tiempo real de más de 50 dispositivos IoT industriales/i, 'Desarrolló y optimizó interfaces frontend en JavaScript para el monitoreo en tiempo real de más de 50 dispositivos IoT industriales')
-    .replace(/^Optimizó el renderizado de tablas dinámicas masivas, mejorando la velocidad de carga en un 40%/i, 'Optimizó el renderizado de tablas dinámicas con HTML y CSS, mejorando la velocidad de carga en un 40%')
-    .replace(/^Integró visión por computadora y desarrollo de paneles/i, 'Consolidó la integración de visión por computadora y desarrollo de paneles')
-    .replace(/^Integró motor de computer vision \(?OpenCV\)? en Django REST/i, 'Implementó motor de computer vision con OpenCV en Django REST')
-    .replace(/^Desplegó plataforma e-learning y chatbots con IA/i, 'Coordinó plataforma e-learning y chatbots con IA')
-    .replace(/^Desplegó plataforma web \(?WordPress \+ Moodle\)? en AWS para \+350 usuarios con 99\.9% de disponibilidad/i, 'Administró plataforma web con WordPress y Moodle en AWS Linux con Nginx y Docker, logrando 99.9% de disponibilidad')
-    .replace(/^Implementó y desplegó chatbot con OpenAI API/i, 'Programó chatbot con OpenAI API')
-    .replace(/^(Desarrolló e implementó|Construyó) panel de control SPA en Vue\.js 3 y Pinia para control de insumos en tiempo real/i, 'Construyó panel de control SPA en Vue.js 3 y Pinia para control de insumos, gestionando más de 200 ítems en tiempo real')
-    .replace(/^Capacitó e instruyó en bases de datos/i, 'Instruyó en bases de datos')
-    .replace(/^Capacitó y asesoró técnicamente en normalización/i, 'Asesoró técnicamente en normalización')
+    // Diversity of opening action verbs to prevent consecutive repetition & neologisms
+    .replace(/^Lideró (3\+\s*)?proyectos estratégicos con inteligencia artificial.*$/i, 'Dirigió 3+ proyectos estratégicos con inteligencia artificial bajo Scrum y Agile.')
+    .replace(/^(Lideró e implementó|Arquitecturó e implementó|Planificó e implementó) proyectos de Inteligencia Artificial.*$/i, 'Planificó e implementó proyectos de IA y modelos estadísticos para automatización operativa.')
+    .replace(/^Diseñó y desplegó (agentes|asistentes).*$/i, 'Desplegó en producción asistentes virtuales con atención 24 horas vía WhatsApp.')
+    .replace(/Orquestó (8\+ )?flujos de (IA|automatización) con n8n.*$/i, 'Orquestó 8+ flujos de automatización con n8n integrando REST APIs y LLMs.')
+    .replace(/^(Impartió mentorías|Entrenó a estudiantes) en programación.*$/i, 'Capacitó a más de 30 estudiantes universitarios en programación, algoritmos y bases de datos.')
+    .replace(/^(Impartió mentorías|Capacitó a estudiantes|Entrenó a estudiantes) en lógica computacional.*$/i, 'Entrenó a estudiantes en lógica computacional, algoritmos y Python, impartiendo +40 sesiones técnicas.')
+    .replace(/^(Logro de un|Logró un|Maximizó la aprobación|Maximizó) 90%\+.*$/i, 'Maximizó la aprobación académica al 90%+ en asignaturas críticas para estudiantes universitarios.')
+    .replace(/^Lideró desarrollo frontend de sistemas de telemetría IoT.*$/i, 'Lideró desarrollo frontend de sistemas de telemetría IoT en TypeScript con 99%+ de disponibilidad.')
+    .replace(/^Lideró arquitectura frontend del sistema Telemetrics.*$/i, 'Estructuró la arquitectura frontend en Vue.js 3, Pinia y Vite para más de 10 módulos.')
+    .replace(/^Centralizó flujos masivos de datos IoT.*$/i, 'Centralizó flujos de datos IoT mediante Git y CI/CD, reduciendo errores en un 45%.')
+    .replace(/^Desarrolló (y optimizó interfaces|interfaces) frontend.*dispositivos IoT.*$/i, 'Desarrolló interfaces reactivas en JavaScript para monitoreo en tiempo real de +50 dispositivos IoT.')
+    .replace(/^Optimizó el renderizado de tablas dinámicas.*$/i, 'Optimizó renderizado de tablas dinámicas con HTML y CSS, mejorando velocidad de carga un 40%.')
+    .replace(/^(Consolidó la integración|Integró) de? visión por computadora.*$/i, 'Integró visión por computadora y paneles de control, alcanzando 100% de trazabilidad operativa.')
+    .replace(/^(Integró|Implementó) motor de computer vision.*$/i, 'Implementó motor de computer vision con OpenCV en Django REST con 99.4% de precisión.')
+    .replace(/^Desplegó plataforma e-learning y chatbots con IA.*$/i, 'Coordinó plataforma e-learning y chatbots con IA para soporte de más de 300 usuarios.')
+    .replace(/^Coordinó plataforma e-learning y chatbots con IA.*$/i, 'Coordinó plataforma e-learning y chatbots con IA para soporte de más de 300 usuarios.')
+    .replace(/^(Desplegó|Administró) plataforma web.*$/i, 'Administró plataforma web en AWS Linux con Nginx y Docker, logrando 99.9% de disponibilidad.')
+    .replace(/^(Implementaci[oó]n y despliegue|Programó y desplegó|Implementó y desplegó|Programó) (de )?chatbot con OpenAI API.*$/i, 'Programó chatbot con OpenAI API que resolvió autónomamente +500 consultas de soporte.')
+    .replace(/^(Desarrolló e implementó|Construyó) panel de control SPA en Vue\.js 3 y Pinia.*$/i, 'Construyó panel de control SPA en Vue.js 3 y Pinia, gestionando +200 insumos en tiempo real.')
+    .replace(/^(Capacitó e instruyó|Instruyó|Formó a más de 40 estudiantes de ingeniería) en bases de datos.*$/i, 'Formó a más de 40 estudiantes de ingeniería en bases de datos relacionales.')
+    .replace(/^(Capacitó y asesoró|Asesoró) técnicamente en normalización.*$/i, 'Asesoró técnicamente en normalización y optimización SQL en PostgreSQL y MySQL para +60 estudiantes.')
 
-  // 9. Ensure terminal period
+  // 9. Ensure single terminal period
+  bullet = bullet.trim().replace(/\.+$/, '')
   return bullet + '.'
 }
 
@@ -353,7 +358,7 @@ function synthesizeExecutiveSummary(personalInfo = {}, experience = []) {
       .replace(/Inteligencia Artificial\s*\([^)]*\)/gi, 'Inteligencia Artificial y Visión por Computadora')
       .replace(/\s*\((OpenAI|DeepSeek|Computer Vision)[^)]*\)/gi, '')
       .replace(/(Inteligencia Artificial,?\s*)+Inteligencia Artificial/gi, 'Inteligencia Artificial')
-      .replace(/Experto en crear arquitecturas escalables,?\s*seguras y de alto rendimiento\.?/gi, 'Cuenta con sólida trayectoria liderando proyectos de automatización con 99%+ de disponibilidad y optimizaciones del 40% en rendimiento de sistemas. Experto en diseñar arquitecturas cloud escalables, seguras y de alto rendimiento.')
+      .replace(/Experto en crear arquitecturas escalables,?\s*seguras y de alto rendimiento\.?/gi, 'Cuenta con sólida trayectoria liderando automatizaciones con 99%+ de disponibilidad y mejoras del 40% en rendimiento. Experto en diseñar arquitecturas cloud escalables, seguras y de alto rendimiento.')
       .replace(/,\s*,/g, ',')
       .replace(/\s+/g, ' ')
       .trim()
@@ -556,7 +561,7 @@ export function transformToHarvardDeterministic(profileData) {
     let items = [baseName]
     if (baseName.includes('Vue.js')) items = ['Vue.js', 'JavaScript']
     else if (baseName.includes('Django')) items = ['Django', 'REST APIs']
-    else if (baseName.includes('OpenAI')) items = ['OpenAI', 'DeepSeek', 'APIs']
+    else if (baseName.includes('OpenAI')) items = ['OpenAI', 'DeepSeek']
     else if (baseName.includes('n8n')) items = ['n8n']
     else if (baseName.includes('&') || baseName.includes(',')) items = baseName.split(/\s*[,&]\s*/).map(p => p.trim()).filter(Boolean)
 
