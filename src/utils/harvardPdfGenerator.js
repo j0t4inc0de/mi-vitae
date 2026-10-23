@@ -16,6 +16,12 @@ export function formatSingleDate(dateStr) {
     const month = ymdMatch[2].padStart(2, '0');
     return `${month}/${year}`;
   }
+  const myMatch = trimmed.match(/^(\d{1,2})[-/](\d{4})$/);
+  if (myMatch) {
+    const month = myMatch[1].padStart(2, '0');
+    const year = myMatch[2];
+    return `${month}/${year}`;
+  }
   if (/^\d{4}$/.test(trimmed)) {
     return trimmed;
   }
@@ -26,6 +32,12 @@ export function parseDateForSort(dateStr, isCurrent) {
   if (isCurrent) return 99999999;
   if (!dateStr) return 0;
   const str = String(dateStr).trim();
+  const myMatch = str.match(/^(\d{1,2})[-/](\d{4})$/);
+  if (myMatch) {
+    const m = parseInt(myMatch[1], 10);
+    const y = parseInt(myMatch[2], 10);
+    return y * 100 + m;
+  }
   const match = str.match(/^(\d{4})(?:[-/](\d{1,2}))?/);
   if (match) {
     const y = parseInt(match[1], 10);
