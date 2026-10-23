@@ -9,6 +9,27 @@
  * - Zero emojis throughout all texts and logic
  */
 
+// ponytail: generic filler/cliché trimming for any user text (rephrase/trim only, never adds facts).
+const FILLER_RULES = [
+  [/\s*,?\s*\b(proactiv[oa]s?|orientad[oa]s? a(l logro de)? resultados)\b(\s+y\b)?/giu, ''],
+  [/\b(s[oó]lida|amplia|vasta|extensa) (trayectoria|experiencia)\b/giu, 'experiencia'],
+  [/\btrayectoria comprobada\b/giu, 'experiencia'],
+  [/\b(con el fin de|a fin de)\b/giu, 'para'],
+  [/\ba trav[eé]s de\b/giu, 'mediante'],
+  [/\bllev(ar|ó|o) a cabo\b/giu, (m, s) => (s === 'ar' ? 'ejecutar' : 'ejecutó')],
+  [/\bde (forma|manera) aut[oó]noma\b/giu, 'autónomamente'],
+  [/\bpara el desarrollo de\b/giu, 'para'],
+  [/\bun total de\s+/giu, ''],
+  [/\bdivers[oa]s\s+/giu, ''],
+  [/(\bclave\b[^.]*?)\s+clave\b/giu, '$1'],
+  [/\s+([,;]|\.(?=\s|$))/g, '$1'], // ponytail: keep ".NET"/".js" tokens intact
+  [/\.(\s*\.)+/g, '.'], // collapse ".." left when a whole sentence was filler
+  [/\s*,\s*(?=\.)/g, ''], // ponytail: clean ",." or ", ."
+  [/\s+\b[yYeEoOuU]\b\s*(?=[.,;:]|$)/g, ''], // ponytail: strip dangling orphan conjunction before punctuation
+  [/\s{2,}/g, ' ']
+]
+const trimFiller = (text) => FILLER_RULES.reduce((t, [re, rep]) => t.replace(re, rep), text).trim()
+
 /**
  * Normalizes and formats a single bullet point into Harvard STAR format
  * (Action Verb + Context/Scope + Result/Impact) without inventing fake facts.
@@ -30,36 +51,39 @@ export function enhanceStarBullet(text, options = {}) {
   // 2. Transform passive or nominalized openings into strong Harvard action verbs
   const passiveRules = [
     // Direct nominalizations -> Strong Harvard action verbs
-    { regex: /^automatizaci[oó]n (integral|completa)?\s*(de|del|de la)?\s*/i, replace: 'Automatizó ' },
+    { regex: /^automatizaci[oó]n (?:integral|completa)?\s*(?:del|de la|de los|de las|de)?\s*/i, replace: 'Automatizó ' },
     { regex: /^liderazgo en la conceptualizaci[oó]n e implementaci[oó]n de\s*/i, replace: 'Planificó e implementó ' },
     { regex: /^liderazgo\s+(estrat[eé]gico\s*(en)?|en\s+el|en\s+la|del|de\s+la|en|de)?\s*/i, replace: 'Lideró ' },
     { regex: /^consultor[ií]a (especializada|estrat[eé]gica)?\s*(en el diseño e implementaci[oó]n de|en el diseño e implementaci[oó]n|en|de|para)?\s*/i, replace: 'Diseñó e implementó ' },
-    { regex: /^diseño y puesta en producci[oó]n (de|del)?\s*/i, replace: 'Desplegó en producción ' },
-    { regex: /^orquestaci[oó]n (de|en|del)?\s*/i, replace: 'Orquestó ' },
+    { regex: /^diseño y puesta en producci[oó]n (?:del|de la|de los|de las|de)?\s*/i, replace: 'Desplegó en producción ' },
+    { regex: /^orquestaci[oó]n (?:del|de la|de los|de las|en|de)?\s*/i, replace: 'Orquestó ' },
     { regex: /^integraci[oó]n de motor de\s*/i, replace: 'Integró motor de ' },
-    { regex: /^integraci[oó]n (de|en|del)?\s*/i, replace: 'Integró ' },
-    { regex: /^despliegue de plataformas? (web|e-learning)?\s*(en)?\s*/i, replace: 'Desplegó plataforma $1 ' },
-    { regex: /^mentor[ií]a (acad[eé]mica)?\s*(personalizada)?\s*(en|de)?\s*/i, replace: 'Entrenó a estudiantes en ' },
+    { regex: /^integraci[oó]n (?:del|de la|de los|de las|en|de)?\s*/i, replace: 'Integró ' },
+    { regex: /^despliegue de plataformas? (?:web|e-learning)?\s*(?:en)?\s*/i, replace: 'Desplegó plataforma $1 ' },
+    { regex: /^mentor[ií]a (?:acad[eé]mica\s+|personalizada\s+)?a\s+/i, replace: 'Impartió mentorías a ' },
+    { regex: /^mentor[ií]a (?:acad[eé]mica\s+|personalizada\s+)?(?:en|de)?\s*/i, replace: 'Impartió mentorías en ' },
     { regex: /^logro de (un)?\s*/i, replace: 'Logró un ' },
     { regex: /^apoyo (docente|profesional|t[eé]cnico)?\s*(en el [aá]rea de|en|de)?\s*/i, replace: 'Capacitó e instruyó en ' },
     { regex: /^asesor[ií]a (t[eé]cnica|profesional)?\s*(en|de)?\s*/i, replace: 'Asesoró técnicamente en ' },
-    { regex: /^an[aá]lisis y transformaci[oó]n (de|del)?\s*/i, replace: 'Analizó y transformó ' },
-    { regex: /^centralizaci[oó]n (de|del)?\s*/i, replace: 'Centralizó ' },
-    { regex: /^implementaci[oó]n y despliegue (de|del)?\s*/i, replace: 'Programó y desplegó ' },
-    { regex: /^implementaci[oó]n (de|del)?\s*/i, replace: 'Implementó ' },
-    { regex: /^desarrollo e implementaci[oó]n (de|del)?\s*/i, replace: 'Desarrolló e implementó ' },
-    { regex: /^desarrollo y optimizaci[oó]n (de|del)?\s*/i, replace: 'Desarrolló y optimizó ' },
-    { regex: /^creaci[oó]n (de planes|de|del|de la)?\s*/i, replace: 'Creó ' },
-    { regex: /^optimizaci[oó]n del renderizado (de|del)?\s*/i, replace: 'Optimizó el renderizado de ' },
-    { regex: /^optimizaci[oó]n (de|del|de la)?\s*/i, replace: 'Optimizó ' },
+    { regex: /^an[aá]lisis y transformaci[oó]n (?:del|de la|de los|de las|de)?\s*/i, replace: 'Analizó y transformó ' },
+    { regex: /^centralizaci[oó]n (?:del|de la|de los|de las|de)?\s*/i, replace: 'Centralizó ' },
+    { regex: /^implementaci[oó]n y despliegue (?:del|de la|de los|de las|de)?\s*/i, replace: 'Programó y desplegó ' },
+    { regex: /^implementaci[oó]n (?:del|de la|de los|de las|de)?\s*/i, replace: 'Implementó ' },
+    { regex: /^desarrollo e implementaci[oó]n (?:del|de la|de los|de las|de)?\s*/i, replace: 'Desarrolló e implementó ' },
+    { regex: /^desarrollo y optimizaci[oó]n (?:del|de la|de los|de las|de)?\s*/i, replace: 'Desarrolló y optimizó ' },
+    { regex: /^creaci[oó]n (?:de planes|de la|del|de los|de las|de)?\s*/i, replace: 'Creó ' },
+    { regex: /^optimizaci[oó]n del renderizado (?:del|de la|de los|de las|de)?\s*/i, replace: 'Optimizó el renderizado de ' },
+    { regex: /^optimizaci[oó]n (?:de la|del|de los|de las|de)?\s*/i, replace: 'Optimizó ' },
     { regex: /^capacitaci[oó]n (de cuidadores|de|a|en)?\s*/i, replace: 'Capacitó a ' },
     { regex: /^provisi[oó]n (de cuidados|de)?\s*/i, replace: 'Proveyó ' },
     { regex: /^rehabilitaci[oó]n (integral|de|en)?\s*/i, replace: 'Ejecutó rehabilitación de ' },
     { regex: /^plan de intervenci[oó]n (en|de)?\s*/i, replace: 'Diseñó e intervino ' },
     { regex: /^colaboraci[oó]n (interinstitucional|en|con)?\s*/i, replace: 'Coordinó colaboración con ' },
-    { regex: /^ejecuci[oó]n (de programas|de|del)?\s*/i, replace: 'Ejecutó ' },
-    { regex: /^elaboraci[oó]n (de fichas|de|del)?\s*/i, replace: 'Elaboró ' },
-    { regex: /^atenci[oó]n (kinesiol[oó]gica|m[eé]dica|cl[ií]nica|en|de)?\s*/i, replace: 'Brindó atención en ' },
+    { regex: /^ejecuci[oó]n (?:de programas|de la|del|de los|de las|de)?\s*/i, replace: 'Ejecutó ' },
+    { regex: /^elaboraci[oó]n (?:de fichas|de la|del|de los|de las|de)?\s*/i, replace: 'Elaboró ' },
+    { regex: /^atenci[oó]n\s+(kinesiol[oó]gica|m[eé]dica|cl[ií]nica|psicol[oó]gica|integral)\s*(a|en|de)?\s*/i, replace: (m, g1, g2) => 'Brindó atención ' + g1.toLowerCase() + (g2 ? ' ' + g2 + ' ' : ' ') },
+    { regex: /^atenci[oó]n\s+(?:al?|en|de)\s+/i, replace: (m) => 'Brindó atención ' + m.replace(/^atenci[oó]n\s+/i, '') },
+    { regex: /^llev(ar|[oó]) a cabo\s+/i, replace: 'Ejecutó ' },
     { regex: /^desempeño en\s*/i, replace: 'Se desempeñó en ' },
     { regex: /^rotaci[oó]n cl[ií]nica en\s*/i, replace: 'Completó rotación clínica en ' },
     { regex: /^pr[aá]ctica (en|cl[ií]nica en)?\s*/i, replace: 'Ejecutó práctica clínica en ' },
@@ -229,7 +253,8 @@ export function enhanceStarBullet(text, options = {}) {
     { regex: /^elaborar\s+/i, replace: 'Elaboró ' },
     { regex: /^redactar\s+/i, replace: 'Redactó ' },
     { regex: /^estructurar\s+/i, replace: 'Estructuró ' },
-    { regex: /^mantener\s+/i, replace: 'Mantuvo ' }
+    { regex: /^mantener\s+/i, replace: 'Mantuvo ' },
+    { regex: /^(llevar|llev[eé]) a cabo\s+/i, replace: 'Ejecutó ' }
   ]
 
   for (const item of infinitiveMap) {
@@ -251,85 +276,29 @@ export function enhanceStarBullet(text, options = {}) {
   bullet = bullet.replace(/[.,;:]+$/, '').trim()
 
   // ponytail: Harvard bullets must remain crisp, concise and free of repetitive boilerplate filler.
-  // We avoid appending synthetic filler suffixes that trigger ATS repetition penalties.
+  // Strict veracity invariant: We NEVER inject synthetic numbers, percentages, companies or dates.
 
-  // 8. ponytail: Ensure bullet contains quantifiable figures or scope metrics for ATS scanners
-  const hasFigure = /\d|%|\$|USD|CLP|EUR|UF/i.test(bullet)
-  if (!hasFigure) {
-    if (/procesos manuales/i.test(bullet)) {
-      bullet = bullet.replace(/procesos manuales/i, 'el 100% de los procesos manuales')
-    } else if (/proyectos con inteligencia artificial/i.test(bullet)) {
-      bullet = bullet.replace(/proyectos con inteligencia artificial/i, '3+ proyectos estratégicos con inteligencia artificial')
-    } else if (/conceptualizaci[oó]n e implementaci[oó]n/i.test(bullet) || /modelos estad[ií]sticos/i.test(bullet)) {
-      bullet += ', abarcando el 100% del ciclo de vida'
-    } else if (/dashboards anal[ií]ticos/i.test(bullet)) {
-      bullet += ', integrando más de 10 KPIs clave de gestión'
-    } else if (/agentes conversacionales/i.test(bullet)) {
-      bullet += ', optimizando más de 5 flujos operativos críticos'
-    } else if (/flujos de ia/i.test(bullet) || /n8n/i.test(bullet)) {
-      bullet += ', orquestando 4+ APIs de modelos de lenguaje'
-    } else if (/sistemas de telemetr[ií]a/i.test(bullet)) {
-      bullet += ' con una disponibilidad operativa superior al 99%'
-    } else if (/dispositivos iot/i.test(bullet)) {
-      bullet = bullet.replace(/dispositivos iot/i, 'más de 50 dispositivos IoT industriales')
-    } else if (/pr[eé]stamo de insumos/i.test(bullet)) {
-      bullet += ', alcanzando un 100% de trazabilidad operativa'
-    } else if (/panel de control spa/i.test(bullet)) {
-      bullet += ' para la gestión en tiempo real de más de 200 insumos'
-    } else if (/plataforma e-learning/i.test(bullet)) {
-      bullet += ' atendiendo a más de 300 usuarios'
-    } else if (/programaci[oó]n/i.test(bullet)) {
-      bullet = bullet.replace(/Capacitó en programaci[oó]n/i, 'Capacitó a más de 30 estudiantes en programación')
-    } else if (/l[oó]gica computacional/i.test(bullet)) {
-      bullet += ', impartiendo más de 40 sesiones técnicas'
-    } else if (/bases de datos relacionales para estudiantes de ingenier[ií]a/i.test(bullet)) {
-      bullet = bullet.replace(/bases de datos relacionales para estudiantes de ingenier[ií]a/i, 'bases de datos relacionales para más de 40 estudiantes de ingeniería')
-    } else if (/bases de datos/i.test(bullet)) {
-      bullet += ' a más de 40 estudiantes universitarios'
-    } else {
-      bullet += ', cumpliendo el 100% de los estándares de entrega'
-    }
-  }
-
-  // 8.5 ponytail: Professional Register & Action Verb Diversity
+  // 8. ponytail: Professional Register, Concision & Action Verb Diversity (without inventing facts or figures)
   bullet = bullet
-    .replace(/\bsin ca[ií]das\b/gi, 'con 99.9% de disponibilidad')
     .replace(/\bwhatsApp\b/gi, 'WhatsApp')
     .replace(/\b24\/7\b/g, 'con atención continua las 24 horas')
-    .replace(/agentes conversacionales virtuales (con atención continua las 24 horas|24\/7)/i, 'asistentes virtuales con atención continua las 24 horas')
+    .replace(/\bsin ca[ií]das\b/gi, 'con alta disponibilidad')
+    .replace(/agentes conversacionales virtuales/gi, 'asistentes virtuales')
     .replace(/para la supervisi[oó]n de datos IoT en tiempo real/gi, 'IoT en tiempo real')
-    .replace(/con una disponibilidad operativa superior al 99%/gi, 'con 99%+ de disponibilidad operativa')
-    .replace(/industrial de m[aá]s de 50 dispositivos IoT industriales/gi, 'en tiempo real de más de 50 dispositivos IoT industriales')
-    .replace(/y desarrollo de chatbots de asistencia t[eé]cnica con IA atendiendo a/gi, 'y chatbots con IA para soporte técnico de')
     .replace(/para el desarrollo de dashboards anal[ií]ticos y dashboards de Gerencia/gi, 'para dashboards analíticos de Gerencia')
     .replace(/dashboards anal[ií]ticos y dashboards de Gerencia/gi, 'dashboards analíticos de Gerencia')
     .replace(/m[eé]tricas clave para la Gerencia,\s*integrando m[aá]s de 10 (m[eé]tricas|KPIs) clave de gesti[oó]n/gi, 'dashboards de Gerencia, consolidando más de 10 KPIs estratégicos')
     .replace(/, abarcando el 100% del ciclo de vida/gi, '')
     // Diversity of opening action verbs to prevent consecutive repetition & neologisms
-    .replace(/^Lideró (3\+\s*)?proyectos estratégicos con inteligencia artificial.*$/i, 'Dirigió 3+ proyectos estratégicos con inteligencia artificial bajo Scrum y Agile.')
-    .replace(/^(Lideró e implementó|Arquitecturó e implementó|Planificó e implementó) proyectos de Inteligencia Artificial.*$/i, 'Planificó e implementó proyectos de IA y modelos estadísticos para automatización operativa.')
-    .replace(/^Diseñó y desplegó (agentes|asistentes).*$/i, 'Desplegó en producción asistentes virtuales con atención 24 horas vía WhatsApp.')
-    .replace(/Orquestó (8\+ )?flujos de (IA|automatización) con n8n.*$/i, 'Orquestó 8+ flujos de automatización con n8n integrando REST APIs y LLMs.')
-    .replace(/^(Impartió mentorías|Entrenó a estudiantes) en programación.*$/i, 'Capacitó a más de 30 estudiantes universitarios en programación, algoritmos y bases de datos.')
-    .replace(/^(Impartió mentorías|Capacitó a estudiantes|Entrenó a estudiantes) en lógica computacional.*$/i, 'Entrenó a estudiantes en lógica computacional, algoritmos y Python, impartiendo +40 sesiones técnicas.')
-    .replace(/^(Logro de un|Logró un|Maximizó la aprobación|Maximizó) 90%\+.*$/i, 'Maximizó la aprobación académica al 90%+ en asignaturas críticas para estudiantes universitarios.')
-    .replace(/^Lideró desarrollo frontend de sistemas de telemetría IoT.*$/i, 'Lideró desarrollo frontend de sistemas de telemetría IoT en TypeScript con 99%+ de disponibilidad.')
-    .replace(/^Lideró arquitectura frontend del sistema Telemetrics.*$/i, 'Estructuró la arquitectura frontend en Vue.js 3, Pinia y Vite para más de 10 módulos.')
-    .replace(/^Centralizó flujos masivos de datos IoT.*$/i, 'Centralizó flujos de datos IoT mediante Git y CI/CD, reduciendo errores en un 45%.')
-    .replace(/^Desarrolló (y optimizó interfaces|interfaces) frontend.*dispositivos IoT.*$/i, 'Desarrolló interfaces reactivas en JavaScript para monitoreo en tiempo real de +50 dispositivos IoT.')
-    .replace(/^Optimizó el renderizado de tablas dinámicas.*$/i, 'Optimizó renderizado de tablas dinámicas con HTML y CSS, mejorando velocidad de carga un 40%.')
-    .replace(/^(Consolidó la integración|Integró) de? visión por computadora.*$/i, 'Integró visión por computadora y paneles de control, alcanzando 100% de trazabilidad operativa.')
-    .replace(/^(Integró|Implementó) motor de computer vision.*$/i, 'Implementó motor de computer vision con OpenCV en Django REST con 99.4% de precisión.')
-    .replace(/^Desplegó plataforma e-learning y chatbots con IA.*$/i, 'Coordinó plataforma e-learning y chatbots con IA para soporte de más de 300 usuarios.')
-    .replace(/^Coordinó plataforma e-learning y chatbots con IA.*$/i, 'Coordinó plataforma e-learning y chatbots con IA para soporte de más de 300 usuarios.')
-    .replace(/^(Desplegó|Administró) plataforma web.*$/i, 'Administró plataforma web en AWS Linux con Nginx y Docker, logrando 99.9% de disponibilidad.')
-    .replace(/^(Implementaci[oó]n y despliegue|Programó y desplegó|Implementó y desplegó|Programó) (de )?chatbot con OpenAI API.*$/i, 'Programó chatbot con OpenAI API que resolvió autónomamente +500 consultas de soporte.')
-    .replace(/^(Desarrolló e implementó|Construyó) panel de control SPA en Vue\.js 3 y Pinia.*$/i, 'Construyó panel de control SPA en Vue.js 3 y Pinia, gestionando +200 insumos en tiempo real.')
-    .replace(/^(Capacitó e instruyó|Instruyó|Formó a más de 40 estudiantes de ingeniería) en bases de datos.*$/i, 'Formó a más de 40 estudiantes de ingeniería en bases de datos relacionales.')
-    .replace(/^(Capacitó y asesoró|Asesoró) técnicamente en normalización.*$/i, 'Asesoró técnicamente en normalización y optimización SQL en PostgreSQL y MySQL para +60 estudiantes.')
+    .replace(/^Arquitectur[oó]\s+e\s+implement[oó]\b/i, 'Planificó e implementó')
+    .replace(/^Arquitectur[oó]\b/i, 'Planificó')
+    .replace(/^Lideró e implementó\b/i, 'Planificó e implementó')
+    .replace(/^Lideró arquitectura frontend\b/i, 'Estructuró la arquitectura frontend')
+    .replace(/^Logro de un\b/i, 'Maximizó un')
 
-  // 9. Ensure single terminal period
-  bullet = bullet.trim().replace(/\.+$/, '')
+  // 9. Trim filler and ensure single terminal period
+  bullet = trimFiller(bullet).replace(/\.+$/, '')
+  bullet = bullet.charAt(0).toUpperCase() + bullet.slice(1)
   return bullet + '.'
 }
 
@@ -354,14 +323,15 @@ function synthesizeExecutiveSummary(personalInfo = {}, experience = []) {
       .replace(/^tengo más de\s+/i, 'Con más de ')
       .replace(/\bsoy\b/gi, 'es')
       .replace(/\bme especializo en\b/gi, 'especializado en')
-      .replace(/\bhe trabajado\b/gi, 'con sólida trayectoria')
+      .replace(/\bhe trabajado\b/gi, 'con experiencia')
       .replace(/Inteligencia Artificial\s*\([^)]*\)/gi, 'Inteligencia Artificial y Visión por Computadora')
       .replace(/\s*\((OpenAI|DeepSeek|Computer Vision)[^)]*\)/gi, '')
       .replace(/(Inteligencia Artificial,?\s*)+Inteligencia Artificial/gi, 'Inteligencia Artificial')
-      .replace(/Experto en crear arquitecturas escalables,?\s*seguras y de alto rendimiento\.?/gi, 'Cuenta con sólida trayectoria liderando automatizaciones con 99%+ de disponibilidad y mejoras del 40% en rendimiento. Experto en diseñar arquitecturas cloud escalables, seguras y de alto rendimiento.')
+      .replace(/Experto en crear arquitecturas escalables,?\s*seguras y de alto rendimiento\.?/gi, 'Especialista en diseñar arquitecturas cloud escalables, seguras y de alto rendimiento.')
       .replace(/,\s*,/g, ',')
       .replace(/\s+/g, ' ')
       .trim()
+    cleaned = trimFiller(cleaned)
 
     // Ensure initial capitalization
     cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1)
@@ -377,7 +347,7 @@ function synthesizeExecutiveSummary(personalInfo = {}, experience = []) {
 
   // Derive trajectory statement from experience
   const hasExp = Array.isArray(experience) && experience.length > 0
-  const expContext = hasExp ? `con trayectoria comprobada en organizaciones de diversos sectores` : 'con sólida formación profesional'
+  const expContext = hasExp ? 'con experiencia profesional' : 'con formación profesional'
 
   return `${title} ${expContext}. Enfocado en la entrega de soluciones escalables, adopción de buenas prácticas y cumplimiento de metas operativas.`
 }
@@ -559,11 +529,7 @@ export function transformToHarvardDeterministic(profileData) {
     if (!baseName) return
 
     let items = [baseName]
-    if (baseName.includes('Vue.js')) items = ['Vue.js', 'JavaScript']
-    else if (baseName.includes('Django')) items = ['Django', 'REST APIs']
-    else if (baseName.includes('OpenAI')) items = ['OpenAI', 'DeepSeek']
-    else if (baseName.includes('n8n')) items = ['n8n']
-    else if (baseName.includes('&') || baseName.includes(',')) items = baseName.split(/\s*[,&]\s*/).map(p => p.trim()).filter(Boolean)
+    if (baseName.includes('&') || baseName.includes(',')) items = baseName.split(/\s*[,&]\s*/).map(p => p.trim()).filter(Boolean)
 
     items.forEach((name) => {
       if (seenSkillNames.has(name.toLowerCase())) return

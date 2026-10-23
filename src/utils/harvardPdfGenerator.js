@@ -106,6 +106,24 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
     return false;
   }
 
+  // ponytail: Universal ATS text wrapper that prevents orphan trailing conjunctions (y, e, o, u) at line ends
+  function wrapLines(text, width) {
+    const raw = doc.splitTextToSize(text, width);
+    const result = [];
+    for (let i = 0; i < raw.length; i++) {
+      let line = raw[i];
+      if (i < raw.length - 1) {
+        const match = line.match(/\s+([yYeEoOuU])$/);
+        if (match) {
+          line = line.slice(0, -match[0].length);
+          raw[i + 1] = match[1] + ' ' + raw[i + 1];
+        }
+      }
+      result.push(line);
+    }
+    return result;
+  }
+
   // 1. Candidate Header
   const personalInfo = data.personalInfo || data.personal_info || {};
   // ponytail: ATS document metadata
@@ -236,7 +254,7 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
     doc.setFont('times', 'normal');
     doc.setFontSize(9.5);
     doc.setTextColor(0, 0, 0);
-    const summaryLines = doc.splitTextToSize(summaryText, contentWidth);
+    const summaryLines = wrapLines(summaryText, contentWidth);
     summaryLines.forEach((line) => {
       ensureSpace(12);
       doc.text(line, margin, currentY);
@@ -322,7 +340,7 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
         doc.setFont('times', 'normal');
         doc.setFontSize(9.5);
         doc.setTextColor(0, 0, 0);
-        const bLines = doc.splitTextToSize(bullet, contentWidth - bulletIndent);
+        const bLines = wrapLines(bullet, contentWidth - bulletIndent);
         ensureSpace(bLines.length * 12);
         doc.text('•', margin + 2, currentY);
         bLines.forEach((bline) => {
@@ -385,7 +403,7 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
         doc.setFont('times', 'normal');
         doc.setFontSize(9.5);
         doc.setTextColor(0, 0, 0);
-        const detLines = doc.splitTextToSize(details, contentWidth);
+        const detLines = wrapLines(details, contentWidth);
         detLines.forEach((dline) => {
           ensureSpace(12);
           doc.text(dline, margin, currentY);
@@ -480,8 +498,29 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
       });
     }
 
-    for (const [catName, skillItems] of categories.entries()) {
-      if (!skillItems || skillItems.length === 0) continue;
+    // ponytail: ATS polish at render time — dedupe, nest niche sub-tools under a present parent, mainstream first (stable). Never adds skills.
+    const allLower = new Set([...categories.values()].flat().map((s) => String(s).trim().toLowerCase()));
+    const SUBS = [[/^vue(\.?js)?$/i, /^(pinia|vite)$/i], [/^openai\b/i, /^deepseek$/i]];
+    const RANK = [/^python$/i, /^javascript$/i, /^typescript$/i, /^java$/i, /^c\+\+$/i, /^c#$/i, /^sql$/i, /^postgre/i, /^mysql$/i, /^html/i, /^css/i, /^react/i, /^vue/i, /^angular/i, /^node/i, /^django$/i, /^docker$/i, /^kubernetes$/i, /^aws\b/i, /^azure$/i, /^gcp|^google cloud/i, /^git$/i, /^github$/i, /^gitlab$/i, /^linux$/i, /^rest/i, /^ci\/cd$/i, /^nginx$/i, /^openai/i, /^excel|^microsoft/i];
+    const rank = (s) => { const i = RANK.findIndex((r) => r.test(s)); return i < 0 ? RANK.length : i; };
+    const hasParent = (re) => [...allLower].some((s) => re.test(s));
+    const polish = (items) => {
+      const seen = new Set();
+      return items
+        .map((s) => String(s).trim())
+        .filter((s) => s && !seen.has(s.toLowerCase()) && seen.add(s.toLowerCase()))
+        .filter((s) => !SUBS.some(([p, c]) => c.test(s) && hasParent(p)))
+        .map((s) => {
+          const pair = SUBS.find(([p]) => p.test(s));
+          const kids = pair ? [...categories.values()].flat().map((k) => String(k).trim()).filter((k, i, a) => pair[1].test(k) && a.findIndex((x) => x.toLowerCase() === k.toLowerCase()) === i) : [];
+          return kids.length ? `${s} (${kids.join(', ')})` : s;
+        })
+        .sort((a, b) => rank(a) - rank(b));
+    };
+
+    for (const [catName, rawItems] of categories.entries()) {
+      const skillItems = polish(rawItems || []);
+      if (skillItems.length === 0) continue;
       ensureSpace(14);
       const label = catName === 'Generales' ? 'Habilidades Principales: ' : `${catName}: `;
 
@@ -493,7 +532,7 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
 
       doc.setFont('times', 'normal');
       const skillsStr = skillItems.join(', ');
-      const lines = doc.splitTextToSize(skillsStr, contentWidth - labelW);
+      const lines = wrapLines(skillsStr, contentWidth - labelW);
 
       lines.forEach((line, idx) => {
         if (idx > 0) {
@@ -525,7 +564,7 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
     }).filter(Boolean);
 
     const fullLangText = langStrings.join('  •  ');
-    const lines = doc.splitTextToSize(fullLangText, contentWidth);
+    const lines = wrapLines(fullLangText, contentWidth);
     lines.forEach((line) => {
       ensureSpace(12);
       doc.text(line, margin, currentY);
