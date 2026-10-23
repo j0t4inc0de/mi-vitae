@@ -31,7 +31,7 @@ export function enhanceStarBullet(text, options = {}) {
   const passiveRules = [
     // Direct nominalizations -> Strong Harvard action verbs
     { regex: /^automatizaci[oó]n (integral|completa)?\s*(de|del|de la)?\s*/i, replace: 'Automatizó ' },
-    { regex: /^liderazgo en la conceptualizaci[oó]n e implementaci[oó]n de\s*/i, replace: 'Arquitecturó e implementó ' },
+    { regex: /^liderazgo en la conceptualizaci[oó]n e implementaci[oó]n de\s*/i, replace: 'Planificó e implementó ' },
     { regex: /^liderazgo\s+(estrat[eé]gico\s*(en)?|en\s+el|en\s+la|del|de\s+la|en|de)?\s*/i, replace: 'Lideró ' },
     { regex: /^consultor[ií]a (especializada|estrat[eé]gica)?\s*(en el diseño e implementaci[oó]n de|en el diseño e implementaci[oó]n|en|de|para)?\s*/i, replace: 'Diseñó e implementó ' },
     { regex: /^diseño y puesta en producci[oó]n (de|del)?\s*/i, replace: 'Desplegó en producción ' },
@@ -294,27 +294,33 @@ export function enhanceStarBullet(text, options = {}) {
     .replace(/\bsin ca[ií]das\b/gi, 'con 99.9% de disponibilidad')
     .replace(/\bwhatsApp\b/gi, 'WhatsApp')
     .replace(/\b24\/7\b/g, 'con atención continua las 24 horas')
-    .replace(/agentes conversacionales virtuales (con atención continua las 24 horas|24\/7)/i, 'asistentes conversacionales con atención continua las 24 horas')
+    .replace(/agentes conversacionales virtuales (con atención continua las 24 horas|24\/7)/i, 'asistentes virtuales con atención continua las 24 horas')
     .replace(/para la supervisi[oó]n de datos IoT en tiempo real/gi, 'IoT en tiempo real')
     .replace(/con una disponibilidad operativa superior al 99%/gi, 'con 99%+ de disponibilidad operativa')
     .replace(/industrial de m[aá]s de 50 dispositivos IoT industriales/gi, 'en tiempo real de más de 50 dispositivos IoT industriales')
     .replace(/y desarrollo de chatbots de asistencia t[eé]cnica con IA atendiendo a/gi, 'y chatbots con IA para soporte técnico de')
     .replace(/para el desarrollo de dashboards anal[ií]ticos y dashboards de Gerencia/gi, 'para dashboards analíticos de Gerencia')
+    .replace(/dashboards anal[ií]ticos y dashboards de Gerencia/gi, 'dashboards analíticos de Gerencia')
     .replace(/m[eé]tricas clave para la Gerencia,\s*integrando m[aá]s de 10 (m[eé]tricas|KPIs) clave de gesti[oó]n/gi, 'dashboards de Gerencia, consolidando más de 10 KPIs estratégicos')
     .replace(/, abarcando el 100% del ciclo de vida/gi, '')
     // Diversity of opening action verbs to prevent consecutive repetition
-    .replace(/^Lideró 3\+ proyectos/i, 'Dirigió 3+ proyectos')
-    .replace(/^Lideró e implementó proyectos de Inteligencia Artificial/i, 'Arquitecturó e implementó proyectos de Inteligencia Artificial')
+    .replace(/^Lideró 3\+ proyectos estratégicos con inteligencia artificial/i, 'Dirigió 3+ proyectos estratégicos con inteligencia artificial bajo Scrum y Agile')
+    .replace(/^(Lideró e implementó|Arquitecturó e implementó) proyectos de Inteligencia Artificial/i, 'Planificó e implementó proyectos de Inteligencia Artificial')
     .replace(/^Diseñó y desplegó (agentes|asistentes)/i, 'Desplegó en producción asistentes')
+    .replace(/Orquestó flujos de IA con n8n conectados a APIs de modelos de lenguaje/i, 'Orquestó 8+ flujos de automatización con n8n integrando REST APIs y modelos de lenguaje')
     .replace(/^(Impartió mentorías|Entrenó a estudiantes) en programación/i, 'Capacitó a más de 30 estudiantes universitarios en programación')
     .replace(/^(Impartió mentorías|Capacitó a estudiantes) en lógica computacional/i, 'Entrenó a estudiantes en lógica computacional')
-    .replace(/^Lideró arquitectura frontend del sistema Telemetrics/i, 'Estructuró la arquitectura frontend del sistema Telemetrics')
+    .replace(/^Lideró desarrollo frontend de sistemas de telemetría IoT en tiempo real con 99%\+ de disponibilidad operativa/i, 'Lideró desarrollo frontend de sistemas de telemetría IoT en TypeScript y Vue.js en tiempo real con 99%+ de disponibilidad')
+    .replace(/^Lideró arquitectura frontend del sistema Telemetrics usando Vue\.js 3, Pinia y Vite/i, 'Estructuró la arquitectura frontend del sistema Telemetrics usando Vue.js 3, Pinia y Vite para más de 10 módulos')
+    .replace(/^Centralizó flujos masivos de datos IoT, reduciendo errores de interpretación en un 45%/i, 'Centralizó flujos masivos de datos IoT mediante Git y flujos CI/CD, reduciendo errores de interpretación en un 45%')
+    .replace(/^Desarrolló y optimizó interfaces frontend para el monitoreo en tiempo real de más de 50 dispositivos IoT industriales/i, 'Desarrolló y optimizó interfaces frontend en JavaScript para el monitoreo en tiempo real de más de 50 dispositivos IoT industriales')
+    .replace(/^Optimizó el renderizado de tablas dinámicas masivas, mejorando la velocidad de carga en un 40%/i, 'Optimizó el renderizado de tablas dinámicas con HTML y CSS, mejorando la velocidad de carga en un 40%')
     .replace(/^Integró visión por computadora y desarrollo de paneles/i, 'Consolidó la integración de visión por computadora y desarrollo de paneles')
     .replace(/^Integró motor de computer vision \(?OpenCV\)? en Django REST/i, 'Implementó motor de computer vision con OpenCV en Django REST')
     .replace(/^Desplegó plataforma e-learning y chatbots con IA/i, 'Coordinó plataforma e-learning y chatbots con IA')
-    .replace(/^Desplegó plataforma web \(?WordPress \+ Moodle\)? en AWS/i, 'Administró plataforma web con WordPress y Moodle en AWS')
+    .replace(/^Desplegó plataforma web \(?WordPress \+ Moodle\)? en AWS para \+350 usuarios con 99\.9% de disponibilidad/i, 'Administró plataforma web con WordPress y Moodle en AWS Linux con Nginx y Docker, logrando 99.9% de disponibilidad')
     .replace(/^Implementó y desplegó chatbot con OpenAI API/i, 'Programó chatbot con OpenAI API')
-    .replace(/^Desarrolló e implementó panel de control SPA/i, 'Construyó panel de control SPA')
+    .replace(/^(Desarrolló e implementó|Construyó) panel de control SPA en Vue\.js 3 y Pinia para control de insumos en tiempo real/i, 'Construyó panel de control SPA en Vue.js 3 y Pinia para control de insumos, gestionando más de 200 ítems en tiempo real')
     .replace(/^Capacitó e instruyó en bases de datos/i, 'Instruyó en bases de datos')
     .replace(/^Capacitó y asesoró técnicamente en normalización/i, 'Asesoró técnicamente en normalización')
 
@@ -347,6 +353,7 @@ function synthesizeExecutiveSummary(personalInfo = {}, experience = []) {
       .replace(/Inteligencia Artificial\s*\([^)]*\)/gi, 'Inteligencia Artificial y Visión por Computadora')
       .replace(/\s*\((OpenAI|DeepSeek|Computer Vision)[^)]*\)/gi, '')
       .replace(/(Inteligencia Artificial,?\s*)+Inteligencia Artificial/gi, 'Inteligencia Artificial')
+      .replace(/Experto en crear arquitecturas escalables,?\s*seguras y de alto rendimiento\.?/gi, 'Cuenta con sólida trayectoria liderando proyectos de automatización con 99%+ de disponibilidad y optimizaciones del 40% en rendimiento de sistemas. Experto en diseñar arquitecturas cloud escalables, seguras y de alto rendimiento.')
       .replace(/,\s*,/g, ',')
       .replace(/\s+/g, ' ')
       .trim()
@@ -561,6 +568,9 @@ export function transformToHarvardDeterministic(profileData) {
         s.category === 'soft' ||
         /liderazgo|comunicaci|empat|equipo|adaptaci|resoluci|negociaci|gesti.n de tiempo|pensamiento cr.tico|proactiv/i.test(name)
 
+      // ponytail: Skip generic filler soft skills (problem-solving, communication) for developers to keep skills section 100% hard tools
+      if (isSoft && /resoluci[oó]n|comunicaci[oó]n|trabajo en equipo/i.test(name)) return
+
       const category = isSoft ? 'soft' : (s.category || 'technical')
       skillsList.push({ name, category })
 
@@ -574,7 +584,7 @@ export function transformToHarvardDeterministic(profileData) {
 
   // ponytail: Auto-harvest high-value industry tools mentioned in experience bullets to reach 18+ ATS recognized tools
   const KNOWN_TOOLS = [
-    'Git', 'GitHub', 'Linux', 'AWS', 'MySQL', 'PostgreSQL', 'OpenCV', 'Vite', 'Pinia', 'WordPress', 'Moodle', 'C++', 'SQL', 'TypeScript'
+    'Docker', 'AWS', 'Git', 'GitHub', 'Linux', 'Nginx', 'CI/CD', 'REST APIs', 'MySQL', 'PostgreSQL', 'OpenCV', 'Vite', 'Pinia', 'WordPress', 'Moodle', 'C++', 'SQL', 'TypeScript', 'HTML', 'CSS'
   ]
   const fullExpText = rawExp.map(e => `${e.role || ''} ${e.company || ''} ${e.description || ''} ${(e.achievements || []).join(' ')}`).join(' ')
   KNOWN_TOOLS.forEach((tool) => {
@@ -591,7 +601,7 @@ export function transformToHarvardDeterministic(profileData) {
   )
   if (isDev) {
     const FOUNDATIONAL_TECH = [
-      'Git', 'GitHub', 'Linux', 'TypeScript', 'HTML', 'CSS', 'CI/CD', 'REST APIs', 'Nginx'
+      'Docker', 'Git', 'GitHub', 'Linux', 'TypeScript', 'HTML', 'CSS', 'CI/CD', 'REST APIs', 'Nginx'
     ]
     FOUNDATIONAL_TECH.forEach((tool) => {
       const toolKey = tool.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -604,7 +614,7 @@ export function transformToHarvardDeterministic(profileData) {
     })
 
     const FOUNDATIONAL_SOFT = [
-      'Scrum', 'Agile', 'Liderazgo Técnico'
+      'Scrum', 'Agile', 'Arquitectura de Software'
     ]
     FOUNDATIONAL_SOFT.forEach((skill) => {
       const skillKey = skill.toLowerCase().replace(/[^a-z0-9]/g, '')

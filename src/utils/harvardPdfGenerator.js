@@ -401,23 +401,34 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
   if (certifications.length > 0) {
     renderSectionHeader('CERTIFICACIONES');
     certifications.forEach((cert) => {
-      ensureSpace(16);
+      ensureSpace(24);
       const name = typeof cert === 'string' ? cert.trim() : (cert.name || cert.titulo || cert.title || '').trim();
       const yearStr = formatSingleDate(cert.year || cert.date);
-      const meta = typeof cert === 'object' ? [cert.issuer, yearStr].filter(Boolean).join(' • ') : '';
+      const issuer = typeof cert === 'object' ? (cert.issuer || cert.emisor || '').trim() : '';
 
+      // Line 1: Certification Name (Bold) + Year (Right aligned, zero text overlap)
       doc.setFont('times', 'bold');
       doc.setFontSize(9.5);
       doc.setTextColor(0, 0, 0);
       doc.text(name, margin, currentY);
-      if (meta) {
+      if (yearStr) {
         doc.setFont('times', 'normal');
-        const metaW = doc.getTextWidth(meta);
-        doc.text(meta, pageWidth - margin - metaW, currentY);
+        const yearW = doc.getTextWidth(yearStr);
+        doc.text(yearStr, pageWidth - margin - yearW, currentY);
       }
-      currentY += 13;
+      currentY += 12;
+
+      // Line 2: Issuer / Academy (Italic)
+      if (issuer) {
+        doc.setFont('times', 'italic');
+        doc.setFontSize(9);
+        doc.setTextColor(0, 0, 0);
+        doc.text(issuer, margin, currentY);
+        currentY += 12;
+      }
+      currentY += 2;
     });
-    currentY += 3;
+    currentY += 2;
   }
 
   // 6. HABILIDADES
@@ -436,11 +447,15 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
       const langs = techList.filter(isLang);
       const tools = techList.filter((s) => !isLang(s));
       if (langs.length > 0) categories.set('Lenguajes & Frameworks', langs);
-      if (tools.length > 0) categories.set('Herramientas & Cloud', tools);
-      if (langs.length === 0 && tools.length === 0) categories.set('Técnicas / Herramientas', techList);
+      if (tools.length > 0) categories.set('Herramientas, Cloud & DevOps', tools);
+      if (langs.length === 0 && tools.length === 0) categories.set('Herramientas Técnicas', techList);
     }
     if (softList.length > 0) {
-      categories.set('Competencias & Metodologías', softList);
+      // Filter out generic filler words (problem-solving, communication) for strict ATS tools recognition
+      const technicalMethods = softList.filter((s) => !/resoluci[oó]n de problemas|comunicaci[oó]n|trabajo en equipo/i.test(s));
+      if (technicalMethods.length > 0) {
+        categories.set('Metodologías Técnicas', technicalMethods);
+      }
     }
 
     if (categories.size === 0) {
