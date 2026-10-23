@@ -210,10 +210,11 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
   /**
    * Renders a standard ATS section header with 0.75pt divider rule
    * @param {string} title 
+   * @param {number} minContentSpace Minimum height required for header + first item to avoid orphan headers
    */
-  function renderSectionHeader(title) {
-    // Avoid orphan header: ensure header + rule + at least 1-2 lines fit
-    ensureSpace(48);
+  function renderSectionHeader(title, minContentSpace = 65) {
+    // Avoid orphan header: ensure header + rule + at least 1 full item fit on the current page
+    ensureSpace(35 + minContentSpace);
     if (currentY > margin + 5) {
       currentY += 8;
     }
@@ -245,23 +246,23 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
 
   // 3. EXPERIENCIA PROFESIONAL
   const rawExperiences = Array.isArray(data.experience) ? data.experience.filter(Boolean) : [];
-  // ponytail: Sort reverse-chronologically (active/current first, then strict startDate descending to prevent chronological zig-zag)
+  // ponytail: Sort reverse-chronologically by completion date (active first, then latest endDate, then startDate)
   const experiences = [...rawExperiences].sort((a, b) => {
     const isCurA = Boolean(a.current || (a.endDate && /present/i.test(a.endDate)));
     const isCurB = Boolean(b.current || (b.endDate && /present/i.test(b.endDate)));
     if (isCurA && !isCurB) return -1;
     if (!isCurA && isCurB) return 1;
 
-    const startA = parseDateForSort(a.startDate, false);
-    const startB = parseDateForSort(b.startDate, false);
-    if (startB !== startA) return startB - startA;
-
     const endA = parseDateForSort(a.endDate, false);
     const endB = parseDateForSort(b.endDate, false);
-    return endB - endA;
+    if (endB !== endA) return endB - endA;
+
+    const startA = parseDateForSort(a.startDate, false);
+    const startB = parseDateForSort(b.startDate, false);
+    return startB - startA;
   });
   if (experiences.length > 0) {
-    renderSectionHeader('EXPERIENCIA PROFESIONAL');
+    renderSectionHeader('EXPERIENCIA PROFESIONAL', 65);
     experiences.forEach((exp) => {
       ensureSpace(32);
       const company = (exp.company || exp.empresa || 'Empresa').trim();
@@ -345,9 +346,9 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
     return startB - startA;
   });
   if (education.length > 0) {
-    renderSectionHeader('EDUCACIÓN');
+    renderSectionHeader('EDUCACIÓN', 65);
     education.forEach((edu) => {
-      ensureSpace(30);
+      ensureSpace(35);
       const institution = (edu.institution || edu.institucion || edu.university || 'Institución').trim();
       const degree = (edu.degree || edu.carrera || edu.titulo || 'Carrera / Grado').trim();
       const location = (edu.location || '').trim();
@@ -405,9 +406,9 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
     return dateB - dateA;
   });
   if (certifications.length > 0) {
-    renderSectionHeader('CERTIFICACIONES');
+    renderSectionHeader('CERTIFICACIONES', 45);
     certifications.forEach((cert) => {
-      ensureSpace(24);
+      ensureSpace(30);
       const name = typeof cert === 'string' ? cert.trim() : (cert.name || cert.titulo || cert.title || '').trim();
       const yearStr = formatSingleDate(cert.year || cert.date);
       const issuer = typeof cert === 'object' ? (cert.issuer || cert.emisor || '').trim() : '';
@@ -440,7 +441,7 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
   // 6. HABILIDADES
   const rawSkills = Array.isArray(data.skills) ? data.skills : [];
   if (rawSkills.length > 0) {
-    renderSectionHeader('HABILIDADES');
+    renderSectionHeader('HABILIDADES', 40);
 
     const categories = new Map();
 
@@ -510,7 +511,7 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
   // 7. IDIOMAS
   const rawLanguages = Array.isArray(data.languages) ? data.languages : [];
   if (rawLanguages.length > 0) {
-    renderSectionHeader('IDIOMAS');
+    renderSectionHeader('IDIOMAS', 30);
     ensureSpace(14);
     doc.setFont('times', 'normal');
     doc.setFontSize(9.5);
