@@ -90,6 +90,17 @@ export async function signUpWithSupabase({ email, password, username, fullName }
   }
 
   try {
+    const normalizedEmail = email.trim().toLowerCase()
+
+    // ponytail: Prevent duplicate profile registrations with the same email
+    const emailAvailable = await checkEmailAvailableInSupabase(normalizedEmail)
+    if (!emailAvailable) {
+      return {
+        success: false,
+        error: 'Este correo electrónico ya está registrado. Por favor inicia sesión con tu cuenta.'
+      }
+    }
+
     // 1. Sign up user in Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: email.trim(),
@@ -105,6 +116,14 @@ export async function signUpWithSupabase({ email, password, username, fullName }
 
     if (authError) {
       return { success: false, error: authError.message }
+    }
+
+    // ponytail: Catch Supabase anti-enumeration empty identities (user already registered in auth.users)
+    if (authData.user && Array.isArray(authData.user.identities) && authData.user.identities.length === 0) {
+      return {
+        success: false,
+        error: 'Este correo electrónico ya está registrado. Por favor inicia sesión con tu cuenta.'
+      }
     }
 
     const userId = authData.user?.id
@@ -518,6 +537,27 @@ export async function saveProfileToSupabase(profile) {
   } catch (err) {
     console.warn('[Supabase] Exception saving profile:', err)
     return false
+  }
+}
+
+/**
+ * ponytail: Check email availability in Supabase profiles
+ */
+export async function checkEmailAvailableInSupabase(email) {
+  await initSupabase()
+  if (!isSupabaseConfigured || !supabase || !email) return true
+
+  try {
+    const normalized = email.toLowerCase().trim()
+    const { count, error } = await supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .filter('personal_info->>email', 'ilike', normalized)
+
+    if (error) return true
+    return count === 0
+  } catch {
+    return true
   }
 }
 

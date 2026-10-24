@@ -6,6 +6,7 @@ import {
   saveProfileToSupabase,
   fetchProfileFromSupabase,
   checkUsernameAvailableInSupabase,
+  checkEmailAvailableInSupabase,
   saveFeedbackToSupabase,
   saveTransactionToSupabase,
   incrementAnalyticsInSupabase,
@@ -207,6 +208,37 @@ export const useProfileStore = create(
         const profiles = get().profiles
         if (profiles[normalized]) return false
 
+        return true
+      },
+
+// ponytail: Check if email is available in local store
+      isEmailAvailable: (email) => {
+        if (!email || !email.includes('@')) return false
+        const normalized = email.toLowerCase().trim()
+        const profiles = get().profiles
+        const taken = Object.values(profiles).some(
+          (p) => (p.personalInfo?.email || p.email || '').toLowerCase().trim() === normalized
+        )
+        return !taken
+      },
+
+      // ponytail: Check if email is available in Supabase and local store
+      checkEmailAvailability: async (email) => {
+        if (!email || !email.includes('@')) return false
+        const normalized = email.toLowerCase().trim()
+        const profiles = get().profiles
+        const takenLocally = Object.values(profiles).some(
+          (p) => (p.personalInfo?.email || p.email || '').toLowerCase().trim() === normalized
+        )
+        if (takenLocally) return false
+
+        if (isSupabaseConfigured) {
+          try {
+            return await checkEmailAvailableInSupabase(normalized)
+          } catch {
+            return true
+          }
+        }
         return true
       },
 

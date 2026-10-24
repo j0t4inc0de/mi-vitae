@@ -49,6 +49,7 @@ export default function AuthPage() {
 
   // Real-time username verification against Supabase & local store
   const [usernameStatus, setUsernameStatus] = useState({ checked: false, available: null, checking: false })
+  const [emailStatus, setEmailStatus] = useState({ checked: false, available: null, checking: false })
 
   // Store hooks
   const isUsernameAvailable = useProfileStore((state) => state.isUsernameAvailable)
@@ -85,6 +86,29 @@ export default function AuthPage() {
     return () => clearTimeout(timer)
   }, [cleanUsername, mode, isUsernameAvailable])
 
+
+  // Live debounce email verification in Supabase Cloud
+  useEffect(() => {
+    const cleanEmail = email.trim().toLowerCase()
+    if (mode !== 'register' || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      setEmailStatus({ checked: false, available: null, checking: false })
+      return
+    }
+
+    setEmailStatus((prev) => ({ ...prev, checking: true }))
+
+    const timer = setTimeout(async () => {
+      try {
+        const available = await useProfileStore.getState().checkEmailAvailability(cleanEmail)
+        setEmailStatus({ checked: true, available, checking: false })
+      } catch {
+        setEmailStatus({ checked: true, available: true, checking: false })
+      }
+    }, 250)
+
+    return () => clearTimeout(timer)
+  }, [email, mode])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setErrorMessage('')
@@ -101,6 +125,11 @@ export default function AuthPage() {
           throw new Error('El nombre de usuario debe tener al menos 3 caracteres.')
         }
 
+        // Validar disponibilidad de correo en Supabase Cloud
+        const isEmailFree = await useProfileStore.getState().checkEmailAvailability(email.trim())
+        if (!isEmailFree) {
+          throw new Error('Este correo electrónico ya está registrado. Por favor inicia sesión con tu cuenta.')
+        }
         // Validar disponibilidad en Supabase Cloud y rutas reservadas
         const isAvail = await useProfileStore.getState().checkUsernameAvailability(cleanUsername)
         if (!isAvail) {
@@ -498,6 +527,21 @@ export default function AuthPage() {
                   className="w-full bg-transparent text-slate-900 dark:text-white text-sm focus:outline-none placeholder:text-slate-400 dark:placeholder:text-slate-600"
                 />
               </div>
+              {mode === 'register' && email.includes('@') && emailStatus.checked && !emailStatus.available && (
+                <p className="text-[11px] font-semibold mt-1 text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    Este correo ya está registrado.{' '}
+                    <button
+                      type="button"
+                      onClick={() => { setMode('login'); setErrorMessage(''); setSuccessMessage('') }}
+                      className="underline font-bold ml-1 cursor-pointer hover:text-rose-700"
+                    >
+                      Inicia sesión aquí
+                    </button>
+                  </span>
+                </p>
+              )}
             </div>
 
             {/* Password */}

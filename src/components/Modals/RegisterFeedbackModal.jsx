@@ -170,6 +170,7 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
   const [username, setUsername] = useState(initialUsername || '')
   const [selectedTheme, setSelectedTheme] = useState('tech')
   const [usernameStatus, setUsernameStatus] = useState({ checked: false, available: null, message: '' })
+  const [emailStatus, setEmailStatus] = useState({ checking: false, available: true, message: '' })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [creatorCode, setCreatorCode] = useState(() => getStoredCreatorCode())
@@ -237,6 +238,32 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
     return () => clearTimeout(timer)
   }, [username, isUsernameAvailable])
 
+
+  // Live real-time email verification debounce
+  useEffect(() => {
+    const clean = email.trim().toLowerCase()
+    if (!clean || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) {
+      setEmailStatus({ checking: false, available: true, message: '' })
+      return
+    }
+
+    setEmailStatus((prev) => ({ ...prev, checking: true }))
+    const timer = setTimeout(async () => {
+      try {
+        const available = await useProfileStore.getState().checkEmailAvailability(clean)
+        setEmailStatus({
+          checking: false,
+          available,
+          message: available ? '' : 'Este correo ya está registrado en Mi Vitae. Inicia sesión con tu cuenta.'
+        })
+      } catch {
+        setEmailStatus({ checking: false, available: true, message: '' })
+      }
+    }, 250)
+
+    return () => clearTimeout(timer)
+  }, [email])
+
   // Trigger confetti when entering Step 3
   useEffect(() => {
     if (step === 3 && confettiCanvasRef.current) {
@@ -284,7 +311,7 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
 
   // Validation for Step 1
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-  const isStep1Valid = name.trim().length >= 3 && isEmailValid && usernameStatus.available === true && password.length >= 6
+  const isStep1Valid = name.trim().length >= 3 && isEmailValid && emailStatus.available !== false && usernameStatus.available === true && password.length >= 6
 
   // Validation for Step 2
   const isStep2Valid = selectedAreas.length > 0 && selectedObstacle && selectedReferral
@@ -307,6 +334,14 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
     const cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '')
     
     try {
+      // 0. Verify email availability before submitting
+      const isEmailFree = await useProfileStore.getState().checkEmailAvailability(email.trim())
+      if (!isEmailFree) {
+        setSubmitError('Este correo electrónico ya está registrado. Por favor inicia sesión.')
+        setIsSubmitting(false)
+        return
+      }
+
       // 1. Sign up user in Supabase Auth & PostgreSQL
       const supabaseResult = await signUpWithSupabase({
         email: email.trim(),
@@ -613,6 +648,30 @@ export default function RegisterFeedbackModal({ isOpen, onClose, initialUsername
                   <p className="text-[11px] text-rose-500 mt-1 flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" />
                     <span>Ingresa un correo electrónico válido</span>
+                  </p>
+                )}
+                {email && isEmailValid && emailStatus.checking && (
+                  <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                    <span>Verificando disponibilidad de correo...</span>
+                  </p>
+                )}
+                {email && isEmailValid && !emailStatus.checking && emailStatus.available === false && (
+                  <p className="text-[11px] text-rose-500 font-semibold mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    <span>
+                      Este correo ya está registrado.{' '}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleModalClose()
+                          navigate('/login')
+                        }}
+                        className="underline font-bold ml-1 cursor-pointer hover:text-rose-700"
+                      >
+                        Inicia sesión aquí
+                      </button>
+                    </span>
                   </p>
                 )}
               </div>

@@ -183,6 +183,13 @@ it('validates username availability correctly and blocks reserved routes', () =>
 
   // Brand new available username
   assert.equal(store.isUsernameAvailable('maria_cloud_2026'), true, 'Unique username should be available');
+
+  // Email availability validation
+  assert.equal(store.isEmailAvailable('carlos.mendoza.code@gmail.com'), false, 'Existing email must be unavailable');
+  assert.equal(store.isEmailAvailable('CARLOS.MENDOZA.CODE@GMAIL.COM'), false, 'Case-insensitive email check failed');
+  assert.equal(store.isEmailAvailable(''), false, 'Empty email must be unavailable');
+  assert.equal(store.isEmailAvailable('invalid-email'), false, 'Invalid email without @ must be unavailable');
+  assert.equal(store.isEmailAvailable('nuevo_usuario_2026@test.com'), true, 'Unused email should be available');
 });
 
 it('tests addProfile, getProfileByUsername and setActiveUsername', () => {
