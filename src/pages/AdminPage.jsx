@@ -78,6 +78,21 @@ const PLAN_INFO = {
 export const CREATOR_COMMISSION_CLP = 600
 export const CREATOR_COMMISSION_USD = 0.70
 
+// ponytail: Format last access/activity timestamp
+const formatLastActivity = (dateStr) => {
+  if (!dateStr) return 'Sin registro'
+  const d = new Date(dateStr)
+  return isNaN(d.getTime())
+    ? 'Sin registro'
+    : d.toLocaleString('es-CL', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+}
+
 // Directorio oficial de Creadores Afiliados Registrados en Producción
 const REGISTERED_AFFILIATES = [
   {
@@ -1714,6 +1729,16 @@ Administrador autorizado: jericesb5@gmail.com
                             </div>
                           </div>
 
+                          {/* Ultimo Acceso */}
+                          <div className="flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400 pt-1">
+                            <span className="text-[11px] font-bold uppercase tracking-wider shrink-0">
+                              Último Acceso:
+                            </span>
+                            <span className="font-medium text-slate-700 dark:text-slate-300 text-right truncate">
+                              {formatLastActivity(p.updatedAt || p.updated_at || p.createdAt || p.created_at)}
+                            </span>
+                          </div>
+
                           {/* Quick Stats Grid */}
                           <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 text-center">
                             <div>
@@ -1770,6 +1795,7 @@ Administrador autorizado: jericesb5@gmail.com
                         <tr>
                           <th className="py-4 px-6">Usuario & Perfil</th>
                           <th className="py-4 px-4">Plan / Estado</th>
+                          <th className="py-4 px-4">Último Acceso</th>
                           <th className="py-4 px-4">Tema</th>
                           <th className="py-4 px-4 text-center">Visitas</th>
                           <th className="py-4 px-4 text-center">Clics WA / Contacto</th>
@@ -1873,6 +1899,11 @@ Administrador autorizado: jericesb5@gmail.com
                                   </select>
                                   <ChevronDown className="w-3.5 h-3.5 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-60" />
                                 </div>
+                              </td>
+
+                              {/* Último Acceso */}
+                              <td className="py-4 px-4 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                                {formatLastActivity(p.updatedAt || p.updated_at || p.createdAt || p.created_at)}
                               </td>
 
                               {/* Theme Badge */}
