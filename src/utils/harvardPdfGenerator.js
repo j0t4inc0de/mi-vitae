@@ -463,23 +463,63 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
 
     const categories = new Map();
 
-    // Check for pre-categorized properties from optimizer
-    const techList = Array.isArray(rawSkills.technical) ? rawSkills.technical : [];
-    const softList = Array.isArray(rawSkills.soft) ? rawSkills.soft : [];
+    // Check for pre-categorized properties from optimizer or direct profile
+    const techList = Array.isArray(rawSkills.technical)
+      ? rawSkills.technical
+      : rawSkills.filter(s => typeof s === 'object' && s.category === 'technical').map(s => s.name || s.habilidad || s.title || '');
+    const softList = Array.isArray(rawSkills.soft)
+      ? rawSkills.soft
+      : rawSkills.filter(s => typeof s === 'object' && s.category === 'soft').map(s => s.name || s.habilidad || s.title || '');
 
-    if (techList.length > 0) {
-      const isLang = (name) => /python|javascript|typescript|vue|django|react|angular|node|c\+\+|java\b|sql\b|html|css|php|ruby|go\b|rust/i.test(name);
-      const langs = techList.filter(isLang);
-      const tools = techList.filter((s) => !isLang(s));
-      if (langs.length > 0) categories.set('Lenguajes & Frameworks', langs);
-      if (tools.length > 0) categories.set('Herramientas, Cloud & DevOps', tools);
-      if (langs.length === 0 && tools.length === 0) categories.set('Herramientas Técnicas', techList);
-    }
-    if (softList.length > 0) {
-      // Filter out generic filler words (problem-solving, communication) for strict ATS tools recognition
-      const technicalMethods = softList.filter((s) => !/resoluci[oó]n de problemas|comunicaci[oó]n|trabajo en equipo/i.test(s));
-      if (technicalMethods.length > 0) {
-        categories.set('Metodologías Técnicas', technicalMethods);
+    const candidateTitle = data.personalInfo?.title || '';
+    const isNonDev = /social|kinesi[oó]log|enfermer|m[eé]dic|terapeuta|salud|psic[oó]log|abogad|jur[ií]dic|derecho|docente|profesor|educaci[oó]n|pedagog/i.test(candidateTitle);
+    const isCodeLang = (name) => /python|javascript|typescript|vue|django|react|angular|node|c\+\+|java\b|sql\b|html|css|php|ruby|go\b|rust|swift|kotlin/i.test(name);
+    const hasCodeLangs = techList.some(isCodeLang);
+    const isTechProfile = !isNonDev && (
+      hasCodeLangs ||
+      /software|inform[aá]tic|desarrollador|developer|full-?stack|programad|computaci[oó]n|frontend|backend|devops/i.test(
+        candidateTitle + ' ' + (data.personalInfo?.bio || '')
+      )
+    );
+
+    // Respect cleanly organized custom categories if original profile already provided them
+    const hasCustomCategories = rawSkills.some(
+      (s) => typeof s === 'object' && s.category && !/^(technical|soft|generales?)$/i.test(String(s.category).trim())
+    );
+
+    if (hasCustomCategories) {
+      rawSkills.forEach((s) => {
+        if (!s) return;
+        const name = typeof s === 'string' ? s.trim() : (s.name || s.habilidad || '').trim();
+        if (!name) return;
+        let cat = (typeof s === 'object' && s.category ? s.category.trim() : '') || (isTechProfile ? 'Habilidades Técnicas' : 'Áreas de Especialidad');
+        if (/^technical$/i.test(cat)) cat = isTechProfile ? 'Habilidades Técnicas' : 'Áreas de Especialidad';
+        if (/^soft$/i.test(cat)) cat = 'Competencias Profesionales';
+
+        if (!categories.has(cat)) categories.set(cat, []);
+        categories.get(cat).push(name);
+      });
+    } else if (isTechProfile) {
+      if (techList.length > 0) {
+        const langs = techList.filter(isCodeLang);
+        const tools = techList.filter((s) => !isCodeLang(s));
+        if (langs.length > 0) categories.set('Lenguajes & Frameworks', langs);
+        if (tools.length > 0) categories.set('Herramientas & Cloud', tools);
+        if (langs.length === 0 && tools.length === 0) categories.set('Habilidades Técnicas', techList);
+      }
+      if (softList.length > 0) {
+        const techMethods = softList.filter((s) => /scrum|agile|kanban|ci\/cd|arquitectura|patrones|devops/i.test(s));
+        const humanSkills = softList.filter((s) => !/scrum|agile|kanban|ci\/cd|arquitectura|patrones|devops/i.test(s));
+        if (techMethods.length > 0) categories.set('Metodologías & Prácticas', techMethods);
+        if (humanSkills.length > 0) categories.set('Competencias Profesionales', humanSkills);
+      }
+    } else {
+      // Universal titles respectful of candidate's discipline (health, humanistic, legal, etc.)
+      if (techList.length > 0) {
+        categories.set('Áreas de Especialidad', techList);
+      }
+      if (softList.length > 0) {
+        categories.set('Competencias Profesionales', softList);
       }
     }
 
@@ -489,9 +529,8 @@ export function generateHarvardPdf(rawInputData = {}, options = {}) {
         const name = typeof s === 'string' ? s.trim() : (s.name || s.habilidad || '').trim();
         if (!name) return;
         let cat = typeof s === 'object' && s.category ? s.category.trim() : '';
-        if (!cat) cat = 'Generales';
-        if (cat.toLowerCase() === 'technical') cat = 'Técnicas / Especialidad';
-        if (cat.toLowerCase() === 'soft') cat = 'Gestión & Competencias';
+        if (!cat || cat.toLowerCase() === 'technical') cat = isTechProfile ? 'Habilidades Técnicas' : 'Áreas de Especialidad';
+        if (cat.toLowerCase() === 'soft') cat = 'Competencias Profesionales';
 
         if (!categories.has(cat)) categories.set(cat, []);
         categories.get(cat).push(name);

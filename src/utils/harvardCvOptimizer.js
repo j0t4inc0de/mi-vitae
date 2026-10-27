@@ -522,6 +522,12 @@ export function transformToHarvardDeterministic(profileData) {
   const skillsList = []
   const seenSkillNames = new Set()
 
+  // ponytail: Identify development/IT profiles vs humanistic, health, legal, education disciplines
+  const nonDevRegex = /social|kinesi[oó]log|enfermer|m[eé]dic|terapeuta|salud|psic[oó]log|abogad|jur[ií]dic|derecho|docente|profesor|educaci[oó]n|pedagog/i
+  const devRoleRegex = /software|inform[aá]tic|desarrollador|developer|full-?stack|programad|computaci[oó]n|frontend|backend|devops|cloud\s+engineer|sre\b/i
+  const candidateContext = `${personalInfoSrc.title || ''} ${personalInfoSrc.bio || ''} ${rawExp.map(e => e.role || '').join(' ')}`
+  const isDev = !nonDevRegex.test(personalInfoSrc.title || '') && devRoleRegex.test(candidateContext)
+
   // ponytail: Clean ATS skill normalization (disentangle compound skills and harvest core stack)
   rawSkills.forEach((s) => {
     const rawName = typeof s === 'string' ? s : (s.name || s.habilidad || s.title || '')
@@ -540,7 +546,7 @@ export function transformToHarvardDeterministic(profileData) {
         /liderazgo|comunicaci|empat|equipo|adaptaci|resoluci|negociaci|gesti.n de tiempo|pensamiento cr.tico|proactiv/i.test(name)
 
       // ponytail: Skip generic filler soft skills (problem-solving, communication) for developers to keep skills section 100% hard tools
-      if (isSoft && /resoluci[oó]n|comunicaci[oó]n|trabajo en equipo/i.test(name)) return
+      if (isDev && isSoft && /resoluci[oó]n|comunicaci[oó]n|trabajo en equipo/i.test(name)) return
 
       const category = isSoft ? 'soft' : (s.category || 'technical')
       skillsList.push({ name, category })
@@ -553,47 +559,19 @@ export function transformToHarvardDeterministic(profileData) {
     })
   })
 
-  // ponytail: Auto-harvest high-value industry tools mentioned in experience bullets to reach 18+ ATS recognized tools
-  const KNOWN_TOOLS = [
-    'Docker', 'AWS', 'Git', 'GitHub', 'Linux', 'Nginx', 'CI/CD', 'REST APIs', 'MySQL', 'PostgreSQL', 'OpenCV', 'Vite', 'Pinia', 'WordPress', 'Moodle', 'C++', 'SQL', 'TypeScript', 'HTML', 'CSS'
-  ]
-  const fullExpText = rawExp.map(e => `${e.role || ''} ${e.company || ''} ${e.description || ''} ${(e.achievements || []).join(' ')}`).join(' ')
-  KNOWN_TOOLS.forEach((tool) => {
-    if (fullExpText.toLowerCase().includes(tool.toLowerCase()) && !seenSkillNames.has(tool.toLowerCase())) {
-      seenSkillNames.add(tool.toLowerCase())
-      skillsList.push({ name: tool, category: 'technical' })
-      technicalSkills.push(tool)
-    }
-  })
-
-  // ponytail: If candidate is developer/engineer, ensure universally recognized foundational tools & methodologies are listed
-  const isDev = /software|inform[aá]tic|desarroll|full-?stack|programad|comput/i.test(
-    (personalInfoSrc.title || '') + ' ' + (personalInfoSrc.bio || '') + ' ' + rawExp.map(e => e.role || '').join(' ')
-  )
+  // ponytail: Auto-harvest high-value industry tools & foundational stack ONLY if candidate is developer/IT
   if (isDev) {
-    const FOUNDATIONAL_TECH = [
-      'Docker', 'Git', 'GitHub', 'Linux', 'TypeScript', 'HTML', 'CSS', 'CI/CD', 'REST APIs', 'Nginx'
+    const KNOWN_TOOLS = [
+      'Docker', 'AWS', 'Git', 'GitHub', 'Linux', 'Nginx', 'CI/CD', 'REST APIs', 'MySQL', 'PostgreSQL', 'OpenCV', 'Vite', 'Pinia', 'WordPress', 'Moodle', 'C++', 'SQL', 'TypeScript', 'HTML', 'CSS'
     ]
-    FOUNDATIONAL_TECH.forEach((tool) => {
-      const toolKey = tool.toLowerCase().replace(/[^a-z0-9]/g, '')
-      const alreadyHas = Array.from(seenSkillNames).some(s => s.replace(/[^a-z0-9]/g, '') === toolKey)
-      if (!alreadyHas) {
+    const fullExpText = rawExp.map(e => `${e.role || ''} ${e.company || ''} ${e.description || ''} ${(e.achievements || []).join(' ')}`).join(' ')
+    KNOWN_TOOLS.forEach((tool) => {
+      const escaped = tool.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')
+      const toolRegex = new RegExp('\\b' + escaped + (/[a-zA-Z0-9_]$/.test(tool) ? '\\b' : '(?![a-zA-Z0-9_])'), 'i')
+      if (toolRegex.test(fullExpText) && !seenSkillNames.has(tool.toLowerCase())) {
         seenSkillNames.add(tool.toLowerCase())
         skillsList.push({ name: tool, category: 'technical' })
         technicalSkills.push(tool)
-      }
-    })
-
-    const FOUNDATIONAL_SOFT = [
-      'Scrum', 'Agile', 'Arquitectura de Software'
-    ]
-    FOUNDATIONAL_SOFT.forEach((skill) => {
-      const skillKey = skill.toLowerCase().replace(/[^a-z0-9]/g, '')
-      const alreadyHas = Array.from(seenSkillNames).some(s => s.replace(/[^a-z0-9]/g, '') === skillKey)
-      if (!alreadyHas) {
-        seenSkillNames.add(skill.toLowerCase())
-        skillsList.push({ name: skill, category: 'soft' })
-        softSkills.push(skill)
       }
     })
   }

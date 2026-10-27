@@ -1065,6 +1065,91 @@ await test('RW-10.5: Scenario 5 - Localhost Developer (offline / no API keys) tr
   assert.ok(res.summary.length > 20);
 });
 
+await test('RW-10.6: Non-tech profile (Antonia Moyano - Trabajadora Social) never injects Git from digitacion and renders respectful labels', () => {
+  assert.ok(pdfGenModule && optimizerModule, 'Modules required');
+  const antoniaProfile = {
+    username: 'antonia_ts',
+    personalInfo: {
+      name: 'Antonia Moyano',
+      title: 'Trabajadora Social',
+      bio: 'Especialista en intervencion familiar y comunitaria con experiencia en digitacion de fichas sociales.'
+    },
+    experience: [
+      {
+        company: 'Municipalidad de Santiago',
+        role: 'Trabajadora Social',
+        startDate: '2021-03',
+        description: 'Responsable de la digitacion y archivo de expedientes sociales y atencion directa a usuarios.'
+      }
+    ],
+    skills: [
+      { name: 'Intervencion Familiar', category: 'technical' },
+      { name: 'Empatia', category: 'soft' }
+    ]
+  };
+
+  const optimized = optimizerModule.transformToHarvardDeterministic(antoniaProfile);
+  const hasGit = optimized.skills.some((s) => s.name.toLowerCase() === 'git');
+  assert.equal(hasGit, false, 'Word boundaries must prevent substring digitacion from injecting Git');
+
+  const res = pdfGenModule.generateHarvardPdf(optimized);
+  const doc = res?.doc || res;
+  const latin1 = Buffer.from(doc.output('arraybuffer')).toString('latin1');
+  assert.ok(!latin1.includes('DevOps'), 'Must never show DevOps for social work');
+  assert.ok(!latin1.includes('Metodolog\\355as T\\351cnicas') && !latin1.includes('Metodologías Técnicas'), 'Must never show Metodologias Tecnicas for soft skills');
+  assert.ok(latin1.includes('Especialidad'), 'Must use respectful hard skill category');
+  assert.ok(latin1.includes('Competencias Profesionales'), 'Must use respectful soft skill category');
+});
+
+await test('RW-10.7: Non-tech profile (Carlos Erices - Kinesiologo) never injects Git from logistica and uses universal categories', () => {
+  assert.ok(pdfGenModule && optimizerModule, 'Modules required');
+  const carlosProfile = {
+    username: 'carlos_kine',
+    personalInfo: {
+      name: 'Carlos Erices Fuentealba',
+      title: 'Kinesiologo Clinico',
+      bio: 'Kinesiologo especializado en rehabilitacion motora y atencion a personas mayores.'
+    },
+    experience: [
+      {
+        company: 'Cesfam dos de Septiembre',
+        role: 'Kinesiologo',
+        startDate: '2020-01',
+        description: 'Coordinacion logistica del programa de rehabilitacion integral y digitalizacion de registros.'
+      }
+    ],
+    skills: [
+      { name: 'Kinesioterapia', category: 'technical' },
+      { name: 'Trabajo en equipo', category: 'soft' }
+    ]
+  };
+
+  const optimized = optimizerModule.transformToHarvardDeterministic(carlosProfile);
+  const hasGit = optimized.skills.some((s) => s.name.toLowerCase() === 'git');
+  assert.equal(hasGit, false, 'Word boundaries must prevent substring logistica from injecting Git');
+  assert.ok(optimized.skills.some((s) => s.name.toLowerCase() === 'trabajo en equipo'), 'Non-dev soft skills must be preserved');
+
+  const res = pdfGenModule.generateHarvardPdf(optimized);
+  const doc = res?.doc || res;
+  const latin1 = Buffer.from(doc.output('arraybuffer')).toString('latin1');
+  assert.ok(!latin1.includes('DevOps'), 'Must never show DevOps for health profiles');
+  assert.ok(!latin1.includes('Metodolog\\355as T\\351cnicas') && !latin1.includes('Metodologías Técnicas'), 'Must never show Metodologias Tecnicas for soft skills');
+});
+
+await test('RW-10.8: Pre-categorized profiles cleanly preserve original custom skill categories in Harvard PDF', () => {
+  assert.ok(pdfGenModule && optimizerModule, 'Modules required');
+  const lawyerProfile = INITIAL_MOCK_PROFILES['abogado_consultor'];
+  const optimized = optimizerModule.transformToHarvardDeterministic(lawyerProfile);
+  const res = pdfGenModule.generateHarvardPdf(optimized);
+  const doc = res?.doc || res;
+  const latin1 = Buffer.from(doc.output('arraybuffer')).toString('latin1');
+
+  assert.ok(latin1.includes('Especialidad:'), 'Must preserve original Especialidad category');
+  assert.ok(latin1.includes('Corporativo:'), 'Must preserve original Corporativo category');
+  assert.ok(latin1.includes('Litigios:'), 'Must preserve original Litigios category');
+  assert.ok(!latin1.includes('DevOps'), 'Lawyer must never contain DevOps');
+});
+
 // Close Vite test server
 await vite.close();
 
